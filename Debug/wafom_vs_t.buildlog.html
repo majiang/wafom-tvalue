@@ -1,0 +1,31 @@
+<html><head><META HTTP-EQUIV="Content-Type" content="text/html">
+</head><body><pre>
+<table width=100% bgcolor=#CFCFE5><tr><td>
+	<font face=arial size=+3>Build Log</font>
+</table>
+<table width=100% bgcolor=#DFDFE5><tr><td><font face=arial size=+2>
+Building Debug\wafom_vs_t.exe
+</font></table>
+<table width=100% bgcolor=#EFEFE5><tr><td><font face=arial size=+1>
+Command Line
+</font></table>
+set PATH=C:\Program Files\D\dmd2\windows\bin;C:\Program Files\Microsoft SDKs\Windows\v6.0A\\bin;%PATH%
+dmd -g -debug -X -Xf&quot;Debug\wafom_vs_t.json&quot; -deps=&quot;Debug\wafom_vs_t.dep&quot; -of&quot;Debug\wafom_vs_t.exe_cv&quot; -map &quot;Debug\wafom_vs_t.map&quot; -L/NOMAP -unittest digitalnet.d finitefield.d main.d sobol.d tvalue.d wafom.d
+if errorlevel 1 goto reportError
+if not exist &quot;Debug\wafom_vs_t.exe_cv&quot; (echo &quot;Debug\wafom_vs_t.exe_cv&quot; not created! &amp;&amp; goto reportError)
+echo Converting debug information...
+&quot;C:\Program Files\VisualD\cv2pdb\cv2pdb.exe&quot; -D2.043 &quot;Debug\wafom_vs_t.exe_cv&quot; &quot;Debug\wafom_vs_t.exe&quot;
+if errorlevel 1 goto reportError
+if not exist &quot;Debug\wafom_vs_t.exe&quot; (echo &quot;Debug\wafom_vs_t.exe&quot; not created! &amp;&amp; goto reportError)
+
+goto noError
+
+:reportError
+echo Building Debug\wafom_vs_t.exe failed!
+
+:noError
+<table width=100% bgcolor=#EFEFE5><tr><td><font face=arial size=+1>
+Output
+</font></table>
+Converting debug information...
+</body></html>
