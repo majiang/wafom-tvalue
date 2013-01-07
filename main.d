@@ -25,6 +25,7 @@ void main()
         ];
         foreach (i; 0..10)
         {
+            writeln("length = ", length, "; dimension = ", i+1);
             auto sobol = Sobols(DN[0..(i + 1)]);
             auto t1 = sobol.save.tvalue1();
             "t-val = ".writeln(t1, " by Algorithm 1");
