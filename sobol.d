@@ -2,6 +2,15 @@ module sobol;
 
 debug import std.stdio;
 
+/** Sobol Sequence generator: Multidimensional version.
+
+Examples:
+----------------
+double integral = 0;
+auto sobol = Sobol([direction_numbers(...), ...]);
+foreach (x; sobol) integral += x.f();
+----------------
+*/
 struct Sobols
 {
     immutable size_t dimension;
