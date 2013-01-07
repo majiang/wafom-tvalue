@@ -72,10 +72,6 @@ static assert (!isBidirectionalRange!Sobols);
 static assert (!isRandomAccessRange!Sobols);
 
 
-/** Sobol sequence generator: one-dimensional version.
-
-This is an input range: foreach (ulong x; Sobol(ulong[])) works well.
-*/
 struct Sobol
 {
     ulong[] direction_numbers;
@@ -125,7 +121,7 @@ unittest
 
 /** Compute direction numbers from initial terms and a primitive polynomial which represents the recurrence relation.
 */
-ulong[] direction_numbers(ulong[] initial_terms, ulong primitive_polynomial, size_t length)
+ulong[] direction_numbers(ulong[] initial_terms, immutable ulong primitive_polynomial, immutable size_t length)
 {
     //debug writeln("direction_numbers(initial_terms=", initial_terms, ", primitive_polynomial=", primitive_polynomial, ", length=", length);
     auto ret = initial_terms;
@@ -137,7 +133,6 @@ ulong[] direction_numbers(ulong[] initial_terms, ulong primitive_polynomial, siz
         {
             if (primitive_polynomial >> j & 1)
             {
-                //debug writeln("i = ", i, "; j = ", j);
                 ret[i] ^= ret[i - degree + j];
             }
             ret[i] <<= 1;
@@ -150,6 +145,7 @@ ulong[] direction_numbers(ulong[] initial_terms, ulong primitive_polynomial, siz
 unittest
 {
     assert (direction_numbers([1, 3, 7], (1 << 3) + (1 << 1) + 1, 6) == [1, 3, 7, 5, 7, 43]);
+    assert (direction_numbers([1, 3, 7], (1 << 3) + (1 << 1) + 1, 2) == [1, 3]);
     debug "direction_numbers: unittest passed!".writeln();
 }
 

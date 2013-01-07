@@ -1,15 +1,14 @@
 module main;
 
-import tvalue : tvalue, tvalue1;
+import tvalue : tvalue1, tvalue2;
 import wafom : wafom;
 import sobol : Sobol, Sobols, direction_numbers;
 
 import std.stdio;
 
-const length = 6;
-
 void main()
 {
+    foreach (length; [4, 6, 8, 10, 12, 14, 16]){
     auto DN =
     [
         direction_numbers([1], 3, length),
@@ -23,26 +22,18 @@ void main()
         direction_numbers([1, 1, 5, 11, 27], 47, length),
         direction_numbers([1, 3, 5, 1, 15], 61, length),
     ];
-    //version (none)
-    foreach (i; 0..3)
+    foreach (i; 0..10)
     {
         auto sobol = Sobols(DN[0..(i + 1)]);
-        string sep = "";
-        foreach (x; sobol.save)
-        {
-            foreach (e; x) e.write(",");
-            writeln();
-        }
-        writeln();
-        "t-val = ".writeln(sobol.save.tvalue1(), " by Algorithm 1");
-        "t-val = ".writeln(sobol.save.tvalue(), " by Algorithm 2");
+        auto t1 = sobol.save.tvalue1();
+        "t-val = ".writeln(t1, " by Algorithm 1");
+        auto t2 = sobol.save.tvalue2();
+        "t-val = ".writeln(t2, " by Algorithm 2");
+        if (t1 != t2)
+            "    Error!".writeln();
         "wafom = ".writeln(sobol.wafom());
         writeln();
     }
-    version (none)
-    foreach (x; Sobol(direction_numbers([1], 2, 6)))
-    {
-        x.write(", ");
     }
 }
 

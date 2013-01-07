@@ -4,13 +4,41 @@ import sobol : Sobols;
 debug import std.stdio;
 import std.bigint;
 
-ulong tvalue1(Sobols P)//, immutable size_t bits, immutable size_t dimension)
+version = 1;
+version (1) {alias tvalue1 tvalue;}
+version (2) {alias tvalue2 tvalue;}
+
+
+/** Compute t-value of a digital net formed from Sobol sequences.
+
+Algorithm:
+Algorithm 1 of MacWilliams.
+* 1: input P = (x[n] : 0 <= n < b^m) in [0..1)^s
+** b = 2
+** m = P.bits
+** s = P.dimension
+*
+* 2: compute the coefficients N[a] of z^a for 0 <= a <= m of the polynomial
+*     Q[m](z)(b^-m)sum[n in b^m]prod[i in s](1-(bz)^nu*(x[n,i]))
+* modulo z^(m+1), where
+*     Q[m](z) := (1+(b-1)z+(b^2-b)z^2 + ... + (b^m-b^{m-1})z^m)^s
+* and
+*     nu*(x) = ceil(-lg x)
+*
+* 3: t = m - min(a : 0 < a <= m; N[a] = 0)
+*
+* 4: return t.
+
+Params:
+P = a subset of [0..(2^m))^s
+actual P is [0..1)^s
+*/
+ulong tvalue1(Sobols P)
 {
-    BigInt[] total;
-    total.length = P.bits + 1;
+    auto total = new BigInt[P.bits + 1] ; // sum
     foreach (x; P)
     {
-        auto current = P.bits.empty_product();
+        auto current = P.bits.empty_product(); // prod
         foreach (e; x)
         {
             auto nu = e.reciprocal(P.bits);
@@ -23,8 +51,9 @@ ulong tvalue1(Sobols P)//, immutable size_t bits, immutable size_t dimension)
                 current[i+nu] -= current[i] << nu;
             }
         }
-        total = total.add(current);
+        total = total.plus(current);
     }
+    // construct Q.
     BigInt[] Q;
     Q.length = P.bits + 1;
     Q[0] = 1;
@@ -33,53 +62,69 @@ ulong tvalue1(Sobols P)//, immutable size_t bits, immutable size_t dimension)
         Q[i+1] = 1;
         Q[i+1] <<= i;
     }
-    Q = Q.polynomial_power(P.dimension);
-    foreach (i, x; Q.polynomial_product_polynomial(total))
+    foreach (i, x; Q.power(P.dimension).times(total)) // (b^-m) is unnecessary
     {
         if (i == 0)
+        {
             continue;
+        }
         if (x.toLong)
-            return P.bits + 1 - i;
-            //return bits - i;
+        {
+            return P.bits - i /**/ + 1 /* why?*/;
+        }
     }
-    return -1;
+    return -1; // all zero, t = m - (m+1) according to Algorithm 1.
 }
 
 /** Compute t-value of a digital net formed from Sobol sequences.
 
+Algorithm:
+Algorithm 2 of MacWilliams.
+* 1: input P = (x[n] : 0 <= n < b^m) in [0..1)^s
+** b = 2
+** m = P.bits
+** s = P.dimension
+*
+* 2: compute the coefficients of z^a for (s-1)(m+1) <= a < s(m+1) of the polynomial
+*     Q(z) = b^{(s-1)m}sum[n in b^m]prod[i in s](z^mu(x[n,i])-z^(m+1))
+*                 - (1+(b-1)z+...+(b^m-b^{m-1})-b^mz^{m+1})^s
+* where mu(x) = 1+floor(lg(b^m x)) = m+1 + floor(lg x) = m+1 - ceil(-lg x)
+*
+* 3: t = (1 - s)(m + 1) + Q.degree
+*
+* 4: return t.
+
+This function computes only the m+1 most significant coefficients
+by computing the m+1 lowest coefficients of the product of the reciprocal
+prod[i in s](-1 + y^(m+1-mu(x))) = prod[i in s](-1 + y^nu*(x))
+
+Params:
 P = a subset of  [0..(1<<m))^s
+actual P is [0..1)^s
 */
-ulong tvalue(Sobols P)//, immutable size_t bits, immutable size_t dimension)
+ulong tvalue2(Sobols P)
 {
-    BigInt[] total;
-    total.length = P.bits + 1;
-    int j = 0;
+    auto total = new BigInt[P.bits + 1];
     foreach (x; P)
     {
         auto current = P.bits.empty_product();
         foreach (e; x)
         {
-            assert (current[0].toLong);
-            current = current.polynomial_product_sparse(e.reciprocal(P.bits));
+            current = current.times_sparse(e.reciprocal(P.bits));
+            assert (current[0].toLong); // 最上位の係数は0であってはならない。
         }
-        assert (current[0].toLong);
-        total = total.add(current);
-        //debug j.write(": ");
-        assert (total[0].toLong);
-        //debug "OK".writeln();
-        j++;
+        total = total.plus(current);
+        assert (total[0].toLong); // ditto
     }
-    foreach (i; 0..(P.bits + 1)) total[i] <<= ((P.dimension - 1) * P.bits);
-    //debug "total = ".writeln(total);
-    auto rest = P.bits.power_part().polynomial_power(P.dimension);
-    foreach (i; 0..(P.bits + 1)) rest[i] = -rest[i];
-    //debug "rest = ".writeln(total);
-    foreach (i, c; total.add(rest))
+    foreach (i, c; P.bits.power_part().power(P.dimension))
     {
-        //debug c.write(", ");
+        total[i] = (total[i] << ((P.dimension - 1) * P.bits)) - c;
+    }
+    assert (!(total[0].toLong)); // 最上位の係数は (ここでは) 0でなければならない。
+    foreach (i, c; total)
+    {
         if (c.toLong)
         {
-            assert (i);
             return P.bits + 1 - i;
         }
     }
@@ -87,7 +132,7 @@ ulong tvalue(Sobols P)//, immutable size_t bits, immutable size_t dimension)
 }
 
 
-BigInt[] power_part(immutable size_t m)
+private BigInt[] power_part(immutable size_t m)
 {
     BigInt[] ret;
     ret.length = m + 1;
@@ -98,7 +143,6 @@ BigInt[] power_part(immutable size_t m)
         ret[i] = 1;
         ret[i] <<= m - i;
     }
-//    debug writeln(ret);
     return ret;
 }
 
@@ -111,7 +155,7 @@ BigInt[] power_part(immutable size_t m)
 *     m + 1 if x = 0
 *     m - (x.lg.floor) otherwise
 */
-size_t reciprocal(ulong x, immutable size_t m)
+private size_t reciprocal(ulong x, immutable size_t m)
 in
 {
     assert (0 <= x);
@@ -138,18 +182,19 @@ body
 }
 
 
-BigInt[] empty_product(immutable size_t m)
+private BigInt[] empty_product(immutable size_t m)
 {
-    BigInt[] ret;
-    ret.length = m + 1;
-    ret[0] = 1;
-    return ret;
+    return [BigInt(1)] ~ new BigInt[m];
 }
 
-BigInt[] polynomial_product_polynomial(BigInt[] f, BigInt[] g)
+private BigInt[] times(BigInt[] f, BigInt[] g)
+in
 {
-    BigInt[] ret;
-    ret.length = f.length;
+    assert (f.length == g.length);
+}
+body
+{
+    auto ret = new BigInt[f.length];
     foreach (i, c; f)
     {
         foreach (j, d; g)
@@ -164,7 +209,7 @@ BigInt[] polynomial_product_polynomial(BigInt[] f, BigInt[] g)
     return ret;
 }
 
-BigInt[] polynomial_square(BigInt[] f)
+private BigInt[] square(BigInt[] f)
 {
     BigInt[] ret;
     ret.length = f.length;
@@ -189,23 +234,23 @@ BigInt[] polynomial_square(BigInt[] f)
     return ret;
 }
 
-BigInt[] polynomial_power(BigInt[] f, ulong s)
+private BigInt[] power(BigInt[] f, ulong s)
 {
     auto ret = (f.length - 1).empty_product();
-    BigInt[] square = f.dup;
+    BigInt[] sq = f.dup;
     while (s)
     {
         if (s & 1)
         {
-            ret = ret.polynomial_product_polynomial(square);
+            ret = ret.times(sq);
         }
-        square = square.polynomial_square();
+        sq = sq.square();
         s >>= 1;
     }
     return ret;
 }
 
-BigInt[] polynomial_product_sparse(BigInt[] f, size_t g)
+private BigInt[] times_sparse(BigInt[] f, size_t g)
 in
 {
     assert (f[0].toLong);
@@ -217,14 +262,12 @@ out (result)
 }
 body
 {
-    //debug f.writeln(" times -1+z^", g); 
     BigInt[] ret;
     ret.length = f.length;
     foreach (i, c; f)
     {
         ret[i] = -c;
     }
-    //debug ret.writeln();
     foreach (i, c; f)
     {
         if (ret.length <= i + g)
@@ -233,19 +276,21 @@ body
         }
         ret[i + g] += c;
     }
-    //debug ret.writeln();
     return ret;
 }
 
-BigInt[] add(BigInt[] f, BigInt[] g)
+private BigInt[] plus(BigInt[] f, BigInt[] g)
+in
 {
-    BigInt[] ret;
-    ret.length = f.length;
+    assert (f.length == g.length);
+}
+body
+{
+    auto ret = new BigInt[f.length];
     foreach (i, c; f)
     {
         ret[i] = c + g[i];
     }
-    //ret[] = f[] + g[];
     return ret;
 }
 
@@ -270,14 +315,14 @@ version (digitalnet){
             current = empty_product!m();
             foreach (e; x)
             {
-                current = current.polynomial_product_sparse(reciprocal!(cast(size_t)m, b)(e));
+                current = current.times_sparse(reciprocal!(cast(size_t)m, b)(e));
             }
-            total = total.add!m(current);
+            total = total.plus!m(current);
         }
         total[] *= b ^^ ((s - 1) * m);
-        auto rest = power_part!(b, m)().polynomial_power!m(s);
+        auto rest = power_part!(b, m)().power!m(s);
         rest[] *= -1;
-        foreach (i, c; total.add!m(rest))
+        foreach (i, c; total.plus!m(rest))
         {
             if (c)
             {
