@@ -1,6 +1,7 @@
 module sobol;
 
 debug import std.stdio;
+import graycode : bottom_zeros;
 
 /** Sobol Sequence generator: Multidimensional version.
 
@@ -10,6 +11,9 @@ double integral = 0;
 auto sobol = Sobol([direction_numbers(...), ...]);
 foreach (x; sobol) integral += x.f();
 ----------------
+
+Remarks:
+t <= (primitive).(degree-1).sum
 */
 struct Sobols
 {
@@ -28,12 +32,12 @@ struct Sobols
     {
         this.dimension = direction_numbers.length;
         this.bits = direction_numbers[0].length;
-        this.length = 1 << this.bits;
+        this.length = 1UL << this.bits;
         this.current.length = this.direction_numbers.length = this.dimension;
         foreach (i, c; direction_numbers)
         {
             this.direction_numbers[i] = c.shift();
-            assert (1 << c.length == this.length);
+            assert (1UL << c.length == this.length);
         }
         this._position = 0;
     }
@@ -156,29 +160,6 @@ unittest
     assert (direction_numbers([1, 3, 7], (1 << 3) + (1 << 1) + 1, 6) == [1, 3, 7, 5, 7, 43]);
     assert (direction_numbers([1, 3, 7], (1 << 3) + (1 << 1) + 1, 2) == [1, 3]);
     debug "direction_numbers: unittest passed!".writeln();
-}
-
-private size_t bottom_zeros(ulong x)
-{
-    assert (x);
-    size_t ret;
-    while ((x & 1) == 0)
-    {
-        x >>= 1;
-        ret += 1;
-    }
-    return ret;
-}
-
-unittest
-{
-    auto p = [1, 2, 3, 4, 5, 6, 7, 8, 16, 32];
-    auto q = [0, 1, 0, 2, 0, 1, 0, 3, 4, 5];
-    foreach (i, x; p)
-    {
-        assert (x.bottom_zeros() == q[i]);
-    }
-    debug "bottom_zeros: unittest passed!".writeln();
 }
 
 private size_t degree(ulong polynomial)

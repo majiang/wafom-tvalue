@@ -5,9 +5,12 @@ import sobol : Sobols;
 
 /** Compute wafom of a digital net formed from Sobol sequences.
 
+R must support iteration and have properties bits, length, dimension.
+
+Params:
 P = a subset of  [0..(1<<m))^s
 */
-double wafom(Sobols P)//, size_t bits, size_t dimension)
+double wafom(R)(R P)//, size_t bits, size_t dimension)
 {
     double ret = 0;
     double[] power_of_half;

@@ -33,7 +33,7 @@ Params:
 P = a subset of [0..(2^m))^s
 actual P is [0..1)^s
 */
-ulong tvalue1(Sobols P)
+ulong tvalue1(R)(R P)
 {
     auto total = new BigInt[P.bits + 1] ; // sum
     foreach (x; P)
@@ -73,7 +73,7 @@ ulong tvalue1(Sobols P)
             return P.bits - i /**/ + 1 /* why?*/;
         }
     }
-    return -1; // all zero, t = m - (m+1) according to Algorithm 1.
+    return 0; // all zero, t = m - (m+1) according to Algorithm 1.
 }
 
 /** Compute t-value of a digital net formed from Sobol sequences.
@@ -102,7 +102,7 @@ Params:
 P = a subset of  [0..(1<<m))^s
 actual P is [0..1)^s
 */
-ulong tvalue2(Sobols P)
+ulong tvalue2(R)(R P)
 {
     auto total = new BigInt[P.bits + 1];
     foreach (x; P)

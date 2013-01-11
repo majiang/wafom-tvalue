@@ -3,17 +3,14 @@ direction_numbers: unittest passed!
 bottom_zeros: unittest passed!
 degree: unittest passed!
 Sobol sequence formed from direction numbers [1, 3, 7, 5]: 0, 8, 4, 12, 2, 10, 6, 14, 11, 3, 15, 7, 9, 1, 13, 5, 
-
 length = 4; dimension = 1
-t-val = 18446744073709551615 by Algorithm 1
+t-val = 0 by Algorithm 1
 t-val = 0 by Algorithm 2
-    Error!
 wafom = 0
 
 length = 4; dimension = 2
-t-val = 18446744073709551615 by Algorithm 1
+t-val = 0 by Algorithm 1
 t-val = 0 by Algorithm 2
-    Error!
 wafom = 0.338654
 
 length = 4; dimension = 3
@@ -57,9 +54,8 @@ t-val = 3 by Algorithm 2
 wafom = 274.218
 
 length = 6; dimension = 1
-t-val = 18446744073709551615 by Algorithm 1
+t-val = 0 by Algorithm 1
 t-val = 0 by Algorithm 2
-    Error!
 wafom = 0
 
 length = 6; dimension = 2
@@ -108,9 +104,8 @@ t-val = 4 by Algorithm 2
 wafom = 284.059
 
 length = 8; dimension = 1
-t-val = 18446744073709551615 by Algorithm 1
+t-val = 0 by Algorithm 1
 t-val = 0 by Algorithm 2
-    Error!
 wafom = 0
 
 length = 8; dimension = 2
@@ -159,9 +154,8 @@ t-val = 5 by Algorithm 2
 wafom = 285.055
 
 length = 10; dimension = 1
-t-val = 18446744073709551615 by Algorithm 1
+t-val = 0 by Algorithm 1
 t-val = 0 by Algorithm 2
-    Error!
 wafom = 0
 
 length = 10; dimension = 2
@@ -210,9 +204,8 @@ t-val = 6 by Algorithm 2
 wafom = 285.328
 
 length = 12; dimension = 1
-t-val = 18446744073709551615 by Algorithm 1
+t-val = 0 by Algorithm 1
 t-val = 0 by Algorithm 2
-    Error!
 wafom = -3.53802e-16
 
 length = 12; dimension = 2
@@ -261,9 +254,8 @@ t-val = 8 by Algorithm 2
 wafom = 284.604
 
 length = 14; dimension = 1
-t-val = 18446744073709551615 by Algorithm 1
+t-val = 0 by Algorithm 1
 t-val = 0 by Algorithm 2
-    Error!
 wafom = 4.96355e-16
 
 length = 14; dimension = 2
@@ -312,9 +304,8 @@ t-val = 10 by Algorithm 2
 wafom = 285.813
 
 length = 16; dimension = 1
-t-val = 18446744073709551615 by Algorithm 1
+t-val = 0 by Algorithm 1
 t-val = 0 by Algorithm 2
-    Error!
 wafom = 4.09067e-16
 
 length = 16; dimension = 2

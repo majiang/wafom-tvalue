@@ -14,7 +14,10 @@
 <font color=blue>auto</font> sobol = Sobol([direction_numbers(...), ...]);
 <font color=blue>foreach</font> (x; sobol) integral += x.f();
 </pre>
+
 <br><br>
+<b>Remarks:</b><br>
+t &lt;= (primitive).(degree-1).sum<br><br>
 
 </dd>
 <dt><big>ulong[] <u>direction_numbers</u>(ulong[] <i>initial_terms</i>, immutable ulong <i>primitive_polynomial</i>, immutable size_t <i>length</i>);
