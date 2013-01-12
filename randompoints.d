@@ -6,7 +6,21 @@ import std.random : uniform;
 
 import graycode;
 
-struct RandomPoints
+auto randomPoints(size_t dimension, size_t bits)
+{
+    return BasisPoints(dimension.random_basis(bits));
+}
+
+unittest
+{
+    debug foreach (x; randomPoints(3, 4))
+    {
+        x.writeln();
+    }
+    readln();
+}
+
+struct BasisPoints
 {
     immutable size_t dimension;
     immutable ulong length;
@@ -19,16 +33,16 @@ struct RandomPoints
     {
         return _position;
     }
-    this(size_t dimension, size_t bits)
+    this(ulong[][] basis)
     {
-        this.dimension = dimension;
-        this.length = 1UL << bits;
-        this.bits = bits;
+        this.dimension = basis.length;
+        this.bits = basis[0].length;
+        this.length = 1UL << this.bits;
         this._position = 0;
-        this.current.length = dimension;
-        this.basis = dimension.random_basis(bits);
+        this.current.length = this.dimension;
+        this.basis = basis;
     }
-    this(RandomPoints other)
+    this(BasisPoints other)
     {
         this.dimension = other.dimension;
         this.length = other.length;
@@ -59,9 +73,9 @@ struct RandomPoints
     {
         return this.length <= this.position;
     }
-    @property RandomPoints save()
+    @property BasisPoints save()
     {
-        return RandomPoints(this);
+        return BasisPoints(this);
     }
 }
 
@@ -84,11 +98,3 @@ ulong[][] random_basis(size_t dimension, size_t bits)
     return ret;
 }
 
-debug unittest
-{
-    foreach (x; RandomPoints(3, 4))
-    {
-        x.writeln();
-    }
-    readln();
-}

@@ -13,7 +13,7 @@ version (2) {alias tvalue2 tvalue;}
 
 Algorithm:
 Algorithm 1 of MacWilliams.
-* 1: input P = (x[n] : 0 <= n < b^m) in [0..1)^s
+* 1: input P = (x[n] : 0 <= n < b^m) in [0..1)^s.
 ** b = 2
 ** m = P.bits
 ** s = P.dimension
@@ -25,13 +25,15 @@ Algorithm 1 of MacWilliams.
 * and
 *     nu*(x) = ceil(-lg x)
 *
-* 3: t = m - min(a : 0 < a <= m; N[a] = 0)
+* 3: t = m + 1 - min(a : 0 < a <= m; N[a] = 0)
 *
 * 4: return t.
 
 Params:
-P = a subset of [0..(2^m))^s
-actual P is [0..1)^s
+P = a subset of [0..(2^m))^s whose cardinality is 2^m
+
+Remarks:
+If one uses this function for a general point set, then the returned value of t is a lower bound on the quality parameter of the point set, i.e., it implies that P is not a (t-1, m, s)-net in base two.
 */
 ulong tvalue1(R)(R P)
 {
@@ -70,10 +72,10 @@ ulong tvalue1(R)(R P)
         }
         if (x.toLong)
         {
-            return P.bits - i /**/ + 1 /* why?*/;
+            return P.bits + 1 - i;
         }
     }
-    return 0; // all zero, t = m - (m+1) according to Algorithm 1.
+    return 0; // all zero, t = m + 1 - (m+1) according to Algorithm 1.
 }
 
 /** Compute t-value of a digital net formed from Sobol sequences.
@@ -99,8 +101,7 @@ by computing the m+1 lowest coefficients of the product of the reciprocal
 prod[i in s](-1 + y^(m+1-mu(x))) = prod[i in s](-1 + y^nu*(x))
 
 Params:
-P = a subset of  [0..(1<<m))^s
-actual P is [0..1)^s
+P = a subset of  [0..2^m)^s
 */
 ulong tvalue2(R)(R P)
 {
@@ -211,8 +212,7 @@ body
 
 private BigInt[] square(BigInt[] f)
 {
-    BigInt[] ret;
-    ret.length = f.length;
+    auto ret = new BigInt[f.length];
     foreach (i, c; f)
     {
         if (i << 1 < ret.length)

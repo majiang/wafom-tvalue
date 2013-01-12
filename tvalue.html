@@ -11,7 +11,7 @@
 <br><br>
 <b>Algorithm:</b><br>
 Algorithm 1 of MacWilliams.
- 1: input P = (x[n] : 0 &lt;= n &lt; b^m) in [0..1)^s
+ 1: input P = (x[n] : 0 &lt;= n &lt; b^m) in [0..1)^s.
 * b = 2
 * m = P.bits
 * s = P.dimension
@@ -25,7 +25,7 @@ Algorithm 1 of MacWilliams.
      nu*(x) = ceil(-lg x)
 <br><br>
 
- 3: t = m - min(a : 0 &lt; a &lt;= m; N[a] = 0)
+ 3: t = m + 1 - min(a : 0 &lt; a &lt;= m; N[a] = 0)
 <br><br>
 
  4: return t.
@@ -33,9 +33,10 @@ Algorithm 1 of MacWilliams.
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>P</td>
-<td>a subset of [0..(2^m))^s
-actual P is [0..1)^s</td></tr>
+<td>a subset of [0..(2^m))^s whose cardinality is 2^m</td></tr>
 </table><br>
+<b>Remarks:</b><br>
+If one uses this function for a general point set, then the returned value of t is a lower bound on the quality parameter of the point set, i.e., it implies that P is not a (t-1, m, s)-net in base two.<br><br>
 
 </dd>
 <dt><big>ulong <u>tvalue2</u>(R)(R <i>P</i>);
@@ -69,8 +70,7 @@ prod[i in s](-1 + y^(m+1-mu(x))) = prod[i in s](-1 + y^nu*(x))
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>P</td>
-<td>a subset of  [0..(1&lt;&lt;m))^s
-actual P is [0..1)^s</td></tr>
+<td>a subset of  [0..2^m)^s</td></tr>
 </table><br>
 
 </dd>

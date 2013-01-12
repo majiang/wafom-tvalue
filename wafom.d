@@ -3,22 +3,28 @@ module wafom;
 import sobol : Sobols;
 
 
-/** Compute wafom of a digital net formed from Sobol sequences.
+/** Compute wafom of a general quasi-Monte Carlo point set.
 
-R must support iteration and have properties bits, length, dimension.
+Algorithm:
+Equation (4.2) of wafom-arxiv.
+* 1: input P = (x[n] : 0 <= n < b^m) in [0..1)^s.
+** b = 2
+** m = P.bits
+** s = P.dimenson
+*
+* 2: return sum[n in b^m](prod[t in s][j in m](1+(-1)^x[n,t,j]2^(-j-1))-1) / b^m.
 
 Params:
-P = a subset of  [0..(1<<m))^s
+P = a subset of  [0..2^m)^s
 */
-double wafom(R)(R P)//, size_t bits, size_t dimension)
+double wafom(R)(R P)
 {
     double ret = 0;
-    double[] power_of_half;
-    power_of_half.length = P.bits;
-    power_of_half[0] = 0.5;
+    auto power_of_half = new double[P.bits];
+    power_of_half[$-1] = 0.5;
     foreach (i; 1..P.bits)
     {
-        power_of_half[i] = power_of_half[i - 1] * 0.5;
+        power_of_half[i - 1] = power_of_half[i] * 0.5;
     }
     foreach (B; P)
     {

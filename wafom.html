@@ -7,14 +7,22 @@
 <br><br>
 <dl><dt><big>double <u>wafom</u>(R)(R <i>P</i>);
 </big></dt>
-<dd>Compute <u>wafom</u> of a digital net formed from Sobol sequences.
+<dd>Compute <u>wafom</u> of a general quasi-Monte Carlo point set.
 <br><br>
-R must support iteration and have properties bits, length, dimension.
+<b>Algorithm:</b><br>
+Equation (4.2) of <u>wafom</u>-arxiv.
+ 1: input P = (x[n] : 0 &lt;= n &lt; b^m) in [0..1)^s.
+* b = 2
+* m = P.bits
+* s = P.dimenson
+<br><br>
+
+ 2: return sum[n in b^m](prod[t in s][j in m](1+(-1)^x[n,t,j]2^(-j-1))-1) / b^m.
 
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>P</td>
-<td>a subset of  [0..(1&lt;&lt;m))^s</td></tr>
+<td>a subset of  [0..2^m)^s</td></tr>
 </table><br>
 
 </dd>
