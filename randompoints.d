@@ -6,6 +6,8 @@ import std.random : uniform;
 
 import graycode;
 
+/** Generate a point set of dimension and precision specified by choosing its basis randomly.
+*/
 auto randomPoints(size_t dimension, size_t bits)
 {
     return BasisPoints(dimension.random_basis(bits));
@@ -17,9 +19,14 @@ unittest
     {
         x.writeln();
     }
+    "Press Enter to continue:".writeln();
     readln();
 }
 
+/** Input Range for point set.
+
+Generate linear combinations of basis using gray code algorithm.
+*/
 struct BasisPoints
 {
     immutable size_t dimension;
@@ -79,7 +86,7 @@ struct BasisPoints
     }
 }
 
-ulong[][] random_basis(size_t dimension, size_t bits)
+private ulong[][] random_basis(size_t dimension, size_t bits)
 {
     ulong[][] ret;
     ret.length = dimension;

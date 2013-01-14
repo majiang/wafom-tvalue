@@ -1,7 +1,7 @@
 module wafom;
 
 import sobol : Sobols;
-
+debug import std.stdio;
 
 /** Compute wafom of a general quasi-Monte Carlo point set.
 
@@ -22,7 +22,7 @@ double wafom(R)(R P)
     double ret = 0;
     auto power_of_half = new double[P.bits];
     power_of_half[$-1] = 0.5;
-    foreach (i; 1..P.bits)
+    foreach_reverse (i; 1..P.bits)
     {
         power_of_half[i - 1] = power_of_half[i] * 0.5;
     }
@@ -45,6 +45,7 @@ double wafom(R)(R P)
         }
         ret += cur - 1;
     }
+//    debug "wafom is returning %f.".writefln(ret / P.length);
     return ret / P.length;
 }
 

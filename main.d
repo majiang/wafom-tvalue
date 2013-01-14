@@ -3,10 +3,25 @@ module main;
 import tvalue : tvalue1, tvalue2;
 import wafom : wafom;
 import sobol : Sobol, Sobols, direction_numbers;
+import randompoints;
+import std.algorithm : min, max, reduce;
 
 import std.stdio;
+version = tmp;
+version (tmp) void main()
+{
+    double[] wafoms;
+    immutable n = 100, dimension = 2, bits = 10;
 
-void main()
+    foreach (i; 0..n)
+    {
+        wafoms ~= dimension.randomPoints(bits).wafom();
+    }
+    "after %d times of iteration, min-wafom = %f and av-wafom = %f for %d-dimensional %d-bit point set.".writefln(
+        n, wafoms.reduce!min(), wafoms.reduce!q{a+b} / n, dimension, bits
+    );
+}
+else version (tvaluedebug) void main()
 {
     foreach (length; [4, 6, 8, 10, 12, 14, 16]) // m
     {
@@ -37,4 +52,7 @@ void main()
             writeln();
         }
     }
+}
+else void main()
+{
 }
