@@ -2,6 +2,18 @@ module sobol;
 
 debug import std.stdio;
 import graycode : bottom_zeros;
+import pointset : BasisPoints;
+
+auto sobols(ulong[][] direction_numbers)
+{
+    ulong[][] _direction_numbers;
+    _direction_numbers.length = direction_numbers.length;
+    foreach (i, c; direction_numbers)
+    {
+        _direction_numbers[i] = c.shift();
+    }
+    return BasisPoints(_direction_numbers, _direction_numbers[0].length);
+}
 
 /** Sobol Sequence generator: Multidimensional version.
 
@@ -15,11 +27,12 @@ foreach (x; sobol) integral += x.f();
 Remarks:
 t <= (primitive).(degree-1).sum
 */
+version (old){
 struct Sobols
 {
     immutable size_t dimension;
     immutable ulong length;
-    immutable size_t bits;
+    immutable size_t precision;
     alias length opDollar;
     private ulong[][] direction_numbers;
     private size_t _position;
@@ -28,11 +41,11 @@ struct Sobols
         return _position;
     }
     private ulong[] current;
-    this(ulong[][] direction_numbers)
+    this(ulong[][] direction_numbers, size_t precision)
     {
         this.dimension = direction_numbers.length;
-        this.bits = direction_numbers[0].length;
-        this.length = 1UL << this.bits;
+        this.precision = precision;
+        this.length = 1UL << direction_numbers[0].length;
         this.current.length = this.direction_numbers.length = this.dimension;
         foreach (i, c; direction_numbers)
         {
@@ -45,7 +58,7 @@ struct Sobols
     {
         this.dimension = other.dimension;
         this.length = other.length;
-        this.bits = other.bits;
+        this.precision = other.precision;
         this.current.length = other.current.length;
         this.current[] = other.current[];
         this.direction_numbers = other.direction_numbers;
@@ -113,6 +126,16 @@ struct Sobol
     {
         return 1 << this.direction_numbers.length <= this.position;
     }
+}
+debug unittest
+{
+    "Sobol sequence formed from direction numbers [1, 3, 7, 5]: ".write;
+    foreach (x; Sobol([1, 3, 7, 5]))
+    {
+        x.write(", ");
+    }
+    writeln();
+}
 }
 
 private ulong[] shift(ulong[] x)
@@ -185,12 +208,3 @@ unittest
     debug "degree: unittest passed!".writeln();
 }
 
-debug unittest
-{
-    "Sobol sequence formed from direction numbers [1, 3, 7, 5]: ".write;
-    foreach (x; Sobol([1, 3, 7, 5]))
-    {
-        x.write(", ");
-    }
-    writeln();
-}

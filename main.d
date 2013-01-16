@@ -2,8 +2,8 @@ module main;
 
 import tvalue : tvalue1, tvalue2;
 import wafom : wafom;
-import sobol : Sobol, Sobols, direction_numbers;
-import randompoints;
+import sobol : sobols, direction_numbers;
+import pointset;
 import std.algorithm : min, max, reduce;
 
 import std.stdio;
@@ -11,15 +11,16 @@ version = tmp;
 version (tmp) void main()
 {
     double[] wafoms;
-    immutable n = 100, dimension = 2, bits = 10;
+    immutable n = 1000, dimension = 4, precision = 16, lg_length = 10;
 
     foreach (i; 0..n)
     {
-        wafoms ~= dimension.randomPoints(bits).wafom();
+        wafoms ~= dimension.randomPoints(precision, lg_length).wafom();
     }
     "after %d times of iteration, min-wafom = %f and av-wafom = %f for %d-dimensional %d-bit point set.".writefln(
-        n, wafoms.reduce!min(), wafoms.reduce!q{a+b} / n, dimension, bits
+        n, wafoms.reduce!min(), wafoms.reduce!q{a+b} / n, dimension, precision
     );
+    "full data: %s".writefln(wafoms);
 }
 else version (tvaluedebug) void main()
 {

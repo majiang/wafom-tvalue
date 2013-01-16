@@ -1,21 +1,21 @@
-module randompoints;
+module pointset;
 
 debug import std.stdio;
 
 import std.random : uniform;
-
+public import sobol : sobols, direction_numbers;
 import graycode;
 
-/** Generate a point set of dimension and precision specified by choosing its basis randomly.
+/** Generate a point set of dimension, precision and lg(length) specified by choosing its basis randomly.
 */
-auto randomPoints(size_t dimension, size_t bits)
+auto randomPoints(size_t dimension, size_t precision, size_t lg_length)
 {
-    return BasisPoints(dimension.random_basis(bits));
+    return BasisPoints(dimension.random_basis(precision, lg_length), precision);
 }
 
 unittest
 {
-    debug foreach (x; randomPoints(3, 4))
+    debug foreach (x; randomPoints(3, 10, 4))
     {
         x.writeln();
     }
@@ -26,12 +26,14 @@ unittest
 /** Input Range for point set.
 
 Generate linear combinations of basis using gray code algorithm.
+
+TODO: dimension over F2 < precision
 */
 struct BasisPoints
 {
     immutable size_t dimension;
     immutable ulong length;
-    immutable size_t bits;
+    immutable size_t precision;
     alias length opDollar;
     private size_t _position;
     private ulong[][] basis;
@@ -40,11 +42,11 @@ struct BasisPoints
     {
         return _position;
     }
-    this(ulong[][] basis)
+    this(ulong[][] basis, size_t precision)
     {
         this.dimension = basis.length;
-        this.bits = basis[0].length;
-        this.length = 1UL << this.bits;
+        this.precision = precision;
+        this.length = 1UL << basis[0].length;
         this._position = 0;
         this.current.length = this.dimension;
         this.basis = basis;
@@ -53,7 +55,7 @@ struct BasisPoints
     {
         this.dimension = other.dimension;
         this.length = other.length;
-        this.bits = other.bits;
+        this.precision = other.precision;
         this._position = other._position;
         this.basis = other.basis;
         this.current.length = other.current.length;
@@ -86,22 +88,21 @@ struct BasisPoints
     }
 }
 
-private ulong[][] random_basis(size_t dimension, size_t bits)
+private ulong[][] random_basis(size_t dimension, size_t precision, size_t lg_length)
 {
     ulong[][] ret;
     ret.length = dimension;
     foreach (i; 0..dimension)
     {
-        ret[i].length = bits;
-        foreach (j; 0..bits)
+        ret[i].length = lg_length;
+        foreach (j; 0..lg_length)
         {
             ret[i][j] = uniform(0UL, 1UL << 32UL) << 32UL ^ uniform(0UL, 1UL << 32UL);
-            if (bits != 64)
+            if (precision != 64)
             {
-                ret[i][j] &= (1UL << bits) - 1;
+                ret[i][j] &= (1UL << precision) - 1;
             }
         }
     }
     return ret;
 }
-

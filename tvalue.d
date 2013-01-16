@@ -1,6 +1,7 @@
 module tvalue;
 
-import sobol : Sobols;
+import std.functional : memoize;
+
 debug import std.stdio;
 import std.bigint;
 
@@ -15,7 +16,7 @@ Algorithm:
 Algorithm 1 of MacWilliams.
 * 1: input P = (x[n] : 0 <= n < b^m) in [0..1)^s.
 ** b = 2
-** m = P.bits
+** m = P.precision
 ** s = P.dimension
 *
 * 2: compute the coefficients N[a] of z^a for 0 <= a <= m of the polynomial
@@ -37,16 +38,16 @@ If one uses this function for a general point set, then the returned value of t 
 */
 ulong tvalue1(R)(R P)
 {
-    auto total = new BigInt[P.bits + 1] ; // sum
+    auto total = new BigInt[P.precision + 1] ; // sum
     foreach (x; P)
     {
-        auto current = P.bits.empty_product(); // prod
+        auto current = P.precision.empty_product(); // prod
         foreach (e; x)
         {
-            auto nu = e.reciprocal(P.bits);
-            foreach_reverse (i; 0..(P.bits+1))
+            auto nu = e.reciprocal(P.precision);
+            foreach_reverse (i; 0..(P.precision+1))
             {
-                if (P.bits < i + nu)
+                if (P.precision < i + nu)
                 {
                     continue;
                 }
@@ -57,9 +58,9 @@ ulong tvalue1(R)(R P)
     }
     // construct Q.
     BigInt[] Q;
-    Q.length = P.bits + 1;
+    Q.length = P.precision + 1;
     Q[0] = 1;
-    foreach (i; 0..P.bits)
+    foreach (i; 0..P.precision)
     {
         Q[i+1] = 1;
         Q[i+1] <<= i;
@@ -72,7 +73,7 @@ ulong tvalue1(R)(R P)
         }
         if (x.toLong)
         {
-            return P.bits + 1 - i;
+            return P.precision + 1 - i;
         }
     }
     return 0; // all zero, t = m + 1 - (m+1) according to Algorithm 1.
@@ -84,7 +85,7 @@ Algorithm:
 Algorithm 2 of MacWilliams.
 * 1: input P = (x[n] : 0 <= n < b^m) in [0..1)^s
 ** b = 2
-** m = P.bits
+** m = P.precision
 ** s = P.dimension
 *
 * 2: compute the coefficients of z^a for (s-1)(m+1) <= a < s(m+1) of the polynomial
@@ -105,28 +106,28 @@ P = a subset of  [0..2^m)^s
 */
 ulong tvalue2(R)(R P)
 {
-    auto total = new BigInt[P.bits + 1];
+    auto total = new BigInt[P.precision + 1];
     foreach (x; P)
     {
-        auto current = P.bits.empty_product();
+        auto current = P.precision.empty_product();
         foreach (e; x)
         {
-            current = current.times_sparse(e.reciprocal(P.bits));
+            current = current.times_sparse(e.reciprocal(P.precision));
             assert (current[0].toLong); // 最上位の係数は0であってはならない。
         }
         total = total.plus(current);
         assert (total[0].toLong); // ditto
     }
-    foreach (i, c; P.bits.power_part().power(P.dimension))
+    foreach (i, c; P.precision.power_part().power(P.dimension))
     {
-        total[i] = (total[i] << ((P.dimension - 1) * P.bits)) - c;
+        total[i] = (total[i] << ((P.dimension - 1) * P.precision)) - c;
     }
     assert (!(total[0].toLong)); // 最上位の係数は (ここでは) 0でなければならない。
     foreach (i, c; total)
     {
         if (c.toLong)
         {
-            return P.bits + 1 - i;
+            return P.precision + 1 - i;
         }
     }
     return 0;
