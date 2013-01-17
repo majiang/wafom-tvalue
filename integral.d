@@ -1,13 +1,26 @@
 import std.stdio;
+import pointset : BasisPoints;
 
 /** Perform integration of a function f: [0..1)<sup><var>s</var></sup> -> R by the point set P.
 
 <var>s</var> is implicitly given as P.dimension.
 f must support double opCall(double[] x)).
-*/
-double integral(R, alias f)(R P)
+
+Usage:
+----------------
+immutable size_t dimension;
+double f(double[] x)
 {
-    double factor = 1.0 / P.precision;
+    assert (x.length == dimension);
+    //...
+    return something;
+}
+double result = integral!f(randomPoints(dimension, precision, lg_length));
+----------------
+*/
+double integral(alias f)(BasisPoints P)
+{
+    double factor = 1.0 / (1UL << P.precision);
     double shift = 0.5 * factor;
     double result = 0;
     foreach (x; P)

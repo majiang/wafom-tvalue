@@ -3,6 +3,60 @@ module sobol;
 debug import std.stdio;
 import graycode : bottom_zeros;
 import pointset : BasisPoints;
+import std.typecons : Tuple;
+alias Tuple!(ulong[], "initialTerms", ulong, "primitivePolynomial") DirectionNumbersGenerator;
+
+auto defaultSobols(immutable size_t dimension, immutable size_t precision, immutable size_t lg_length)
+{
+    assert (precision <= lg_length);
+    ulong[][] _direction_numbers;
+    auto trailing_zeros = precision - lg_length;
+    foreach (i; 0..dimension)
+    {
+        _direction_numbers ~= direction_numbers(defaultDirectionNumbers(i), lg_length).all_left_shift(trailing_zeros);
+
+    }
+    return sobols(_direction_numbers);
+}
+
+debug unittest
+{
+    "default sobol sequence of dimension 3 and precision 4:".writeln();
+    foreach (x; defaultSobols(3, 4, 4))
+    {
+        x.writeln();
+    }
+}
+
+ulong[] all_left_shift(ulong[] x, immutable size_t trailing_zeros)
+{
+    auto ret = new ulong[x.length];
+    foreach (i, c; x)
+    {
+        ret[i] = c << trailing_zeros;
+    }
+    return ret;
+}
+
+import std.array : split;
+import std.algorithm : map;
+import std.conv : to;
+
+private DirectionNumbersGenerator defaultDirectionNumbers(immutable size_t dimension)
+{
+    ulong[] initial_terms;
+    foreach (x; "1,,1,1,,1,3,7,,1,1,5,,1,3,1,1,,1,1,3,7,,1,3,3,9,9,,1,3,7,13,3,,1,1,5,11,27,,1,3,5,1,15"
+        .split(",,")[dimension]
+        .split(","))
+    {
+        initial_terms ~= x.to!ulong();
+    }
+    auto primitive_polynomial = "3,7,11,13,19,25,37,59,47,61"
+        .split(",")[dimension]
+        .to!ulong();
+    return DirectionNumbersGenerator(initial_terms, primitive_polynomial);
+}
+
 
 auto sobols(ulong[][] direction_numbers)
 {
@@ -15,6 +69,7 @@ auto sobols(ulong[][] direction_numbers)
     return BasisPoints(_direction_numbers, _direction_numbers[0].length);
 }
 
+version (old){
 /** Sobol Sequence generator: Multidimensional version.
 
 Examples:
@@ -27,7 +82,6 @@ foreach (x; sobol) integral += x.f();
 Remarks:
 t <= (primitive).(degree-1).sum
 */
-version (old){
 struct Sobols
 {
     immutable size_t dimension;
@@ -157,8 +211,10 @@ unittest
 
 /** Compute direction numbers from initial terms and a primitive polynomial which represents the recurrence relation.
 */
-ulong[] direction_numbers(ulong[] initial_terms, immutable ulong primitive_polynomial, immutable size_t length)
+ulong[] direction_numbers(DirectionNumbersGenerator generator, immutable size_t length)
 {
+    auto initial_terms = generator.initialTerms;
+    auto primitive_polynomial = generator.primitivePolynomial;
     //debug writeln("direction_numbers(initial_terms=", initial_terms, ", primitive_polynomial=", primitive_polynomial, ", length=", length);
     auto ret = initial_terms;
     ret.length = length;
@@ -180,8 +236,8 @@ ulong[] direction_numbers(ulong[] initial_terms, immutable ulong primitive_polyn
 
 unittest
 {
-    assert (direction_numbers([1, 3, 7], (1 << 3) + (1 << 1) + 1, 6) == [1, 3, 7, 5, 7, 43]);
-    assert (direction_numbers([1, 3, 7], (1 << 3) + (1 << 1) + 1, 2) == [1, 3]);
+    assert (direction_numbers(DirectionNumbersGenerator([1UL, 3, 7], (1 << 3) + (1 << 1) + 1), 6) == [1, 3, 7, 5, 7, 43]);
+    assert (direction_numbers(DirectionNumbersGenerator([1UL, 3, 7], (1 << 3) + (1 << 1) + 1), 2) == [1, 3]);
     debug "direction_numbers: unittest passed!".writeln();
 }
 

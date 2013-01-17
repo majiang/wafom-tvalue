@@ -8,7 +8,28 @@ import std.algorithm : min, max, reduce;
 
 import std.stdio;
 version = tmp;
-version (tmp) void main()
+version (tmp) 
+{
+import integral : integral;
+immutable size_t dimension = 2;
+double f(double[] x)
+{
+    assert (x.length == dimension);
+    foreach (e; x)
+    {
+        assert (0 < e && e < 1);
+    }
+    return x[0] ^^ 2 + x[1] ^^ 3;
+}
+void main()
+{
+    immutable size_t precision = 5;
+    immutable size_t lg_length = 10;
+    "integral[x^2+y^3] = %f".writefln(
+        integral!f(randomPoints(dimension, precision, lg_length)));
+}
+}
+else version (random_search_wafom) void main()
 {
     double[] wafoms;
     immutable n = 1000, dimension = 4, precision = 16, lg_length = 10;

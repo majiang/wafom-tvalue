@@ -26,8 +26,6 @@ unittest
 /** Input Range for point set.
 
 Generate linear combinations of basis using gray code algorithm.
-
-TODO: dimension over F2 < precision
 */
 struct BasisPoints
 {
@@ -45,6 +43,7 @@ struct BasisPoints
     this(ulong[][] basis, size_t precision)
     {
         this.dimension = basis.length;
+        assert (0 < this.dimension);
         this.precision = precision;
         this.length = 1UL << basis[0].length;
         this._position = 0;
