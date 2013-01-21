@@ -2,13 +2,23 @@ module main;
 
 import tvalue : tvalue1, tvalue2;
 import wafom : wafom;
-import sobol : sobols, direction_numbers;
+import sobol : sobols, direction_numbers, defaultSobols;
 import pointset;
 import std.algorithm : min, max, reduce;
 
 import std.stdio;
-version = tmp;
-version (tmp) 
+version = random_search_wafom;
+version (arc)
+{
+    void main()
+    {
+        foreach (x; defaultSobols(2, 10, 10))
+        {
+            writeln(x, ",");
+        }
+    }
+}
+else version (tmp) 
 {
 import integral : integral;
 immutable size_t dimension = 2;

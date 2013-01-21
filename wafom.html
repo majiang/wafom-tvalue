@@ -24,6 +24,13 @@ Equation (4.2) of <u>wafom</u>-arxiv.
 <table><tr><td>P</td>
 <td>a subset of  [0..2^m)^s</td></tr>
 </table><br>
+<b>Remarks:</b><br>
+Using double, precision &gt; 54 means factor = 1.<br><br>
+
+</dd>
+<dt><big>void <u>test_speedup</u>(int <i>t_max</i>);
+</big></dt>
+<dd>speedup for foreach (j, c; f) cur *= c[(l &gt;&gt; j) &amp; 1].<br><br>
 
 </dd>
 </dl>
