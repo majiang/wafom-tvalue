@@ -95,72 +95,73 @@ double wafom_factor(ulong x, ptrdiff_t precision)
     return ret;
 }
 
-/// speedup for foreach (j, c; f) cur *= c[(l >> j) & 1].
-void test_speedup(int t_max)
-{
-    import std.datetime : StopWatch;
-    double[256] memo_first; double[256] memo_second;
-    auto f = factors(16);
-    foreach (i; 0..256)
-    {
-        memo_first[i] = 1;
-        foreach (j, c; f[8..$])
-        {
-            memo_first[i] *= c[(i >> j) & 1];
-        }
-        memo_second[i] = 1;
-        foreach (j, c; f[0..8])
-        {
-            memo_second[i] *= c[(i >> j) & 1];
-        }
-    }
-    "memo_first = ".writeln;
-    memo_first.writeln();
-    "memo_second = ".writeln;
-    memo_second.writeln();
-    foreach (i; 0..65536)
-    {
-        double cur = 1;
-        foreach (j, c; f)
-        {
-            cur *= c[(i >> j) & 1];
-        }
-        auto diff = (memo_first[i >> 8] * memo_second[i & 255] - cur);
-        assert (diff * diff < 1e-15);
-    }
-    StopWatch sw;
-    sw.start();
-    double total = 0;
-    foreach (t; 0..t_max)
-    foreach (i; 0..65536)
-    {
-        auto cur = 1;
-        foreach (j, c; f)
-        {
-            cur *= c[(i >> j) & 1];
-        }
-        //total += cur;
-    }
-    sw.stop();
-    sw.peek().msecs.writeln(" ms by naive");
-    total = 0;
-    StopWatch swn;
-    swn.start();
-    foreach (t; 0..t_max)
-    {
-        foreach (i; 0..65536)
-        {
-            auto cur = memo_first[i >> 8] * memo_second[i & 255];
-            //total += cur;
-        }
-    }
-    swn.stop();
-    swn.peek().msecs.writeln(" ms by memo-256");
-}
 
 unittest
 {
-    version (speedup){
+    /// speedup for foreach (j, c; f) cur *= c[(l >> j) & 1].
+    void test_speedup(int t_max)
+    {
+        import std.datetime : StopWatch;
+        double[256] memo_first; double[256] memo_second;
+        auto f = factors(16);
+        foreach (i; 0..256)
+        {
+            memo_first[i] = 1;
+            foreach (j, c; f[8..$])
+            {
+                memo_first[i] *= c[(i >> j) & 1];
+            }
+            memo_second[i] = 1;
+            foreach (j, c; f[0..8])
+            {
+                memo_second[i] *= c[(i >> j) & 1];
+            }
+        }
+        "memo_first = ".writeln;
+        memo_first.writeln();
+        "memo_second = ".writeln;
+        memo_second.writeln();
+        foreach (i; 0..65536)
+        {
+            double cur = 1;
+            foreach (j, c; f)
+            {
+                cur *= c[(i >> j) & 1];
+            }
+            auto diff = (memo_first[i >> 8] * memo_second[i & 255] - cur);
+            assert (diff * diff < 1e-15);
+        }
+        StopWatch sw;
+        sw.start();
+        double total = 0;
+        foreach (t; 0..t_max)
+            foreach (i; 0..65536)
+            {
+                auto cur = 1;
+                foreach (j, c; f)
+                {
+                    cur *= c[(i >> j) & 1];
+                }
+                //total += cur;
+            }
+        sw.stop();
+        sw.peek().msecs.writeln(" ms by naive");
+        total = 0;
+        StopWatch swn;
+        swn.start();
+        foreach (t; 0..t_max)
+        {
+            foreach (i; 0..65536)
+            {
+                auto cur = memo_first[i >> 8] * memo_second[i & 255];
+                //total += cur;
+            }
+        }
+        swn.stop();
+        swn.peek().msecs.writeln(" ms by memo-256");
+    }
+    version (speedup)
+    {
         "test_speedup returns:".writeln();
         test_speedup(1000);
     }
@@ -179,14 +180,14 @@ private double[256][64] get_memo()
             ret[i][j] = 1;
             foreach (k, c; f[$-(i+1)..$-max(0, i-7)])
             {
-                ret[i][j] *= c[(j >> k) & 1];// TODO
+                ret[i][j] *= c[(j >> k) & 1];
             }
         }
     }
     return ret;
 }
 
-debug = debug_memo;
+//debug = debug_memo;
 debug (debug_memo) unittest
 {
     "get_memo returns:".writeln();

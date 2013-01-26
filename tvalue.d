@@ -34,7 +34,16 @@ Params:
 P = a subset of [0..(2^m))^s whose cardinality is 2^m
 
 Remarks:
-If one uses this function for a general point set, then the returned value of t is a lower bound on the quality parameter of the point set, i.e., it implies that P is not a (t-1, m, s)-net in base two.
+Remark 2 of the paper states that:<blockquote>
+<p>If one uses this function for a general point set, then the returned 
+value of t is a lower bound on the t-value of the point set, 
+i.e., it implies that P is not a (t-1, m, s)-net in base two.</p></blockquote>
+but this function may have a bug for general point set.
+
+TODO (for developper):
+Check whether lower t-value bound of a point set is properly calculated
+by this function. P.precision is used in some code, but P.length.lg may
+be suitable.
 */
 ulong tvalue1(R)(R P)
 {
@@ -45,18 +54,15 @@ ulong tvalue1(R)(R P)
         foreach (e; x)
         {
             auto nu = e.reciprocal(P.precision);
-            foreach_reverse (i; 0..(P.precision+1))
+            foreach_reverse (i; 0..(P.precision+1-nu))
             {
-                if (P.precision < i + nu)
-                {
-                    continue;
-                }
                 current[i+nu] -= current[i] << nu;
             }
         }
         total = total.plus(current);
     }
     // construct Q.
+    // TODO: compare with power_part.
     BigInt[] Q;
     Q.length = P.precision + 1;
     Q[0] = 1;
@@ -112,24 +118,39 @@ ulong tvalue2(R)(R P)
         auto current = P.precision.empty_product();
         foreach (e; x)
         {
-            current = current.times_sparse(e.reciprocal(P.precision));
+            auto nu = e.reciprocal(P.precision);
+            foreach_reverse (i; nu..total.length)
+            {
+                current[i] = current[i - nu] - current[i];
+            }
+            foreach_reverse (i; 0..nu)
+            {
+                current[i] = -current[i];
+            }
             assert (current[0].toLong); // 最上位の係数は0であってはならない。
         }
         total = total.plus(current);
         assert (total[0].toLong); // ditto
     }
+    auto shift = (P.dimension - 1) * P.precision;
+    // BigInt mask = (BigInt(1) << shift) - 1;
     foreach (i, c; P.precision.power_part().power(P.dimension))
     {
-        total[i] = (total[i] << ((P.dimension - 1) * P.precision)) - c;
-    }
-    assert (!(total[0].toLong)); // 最上位の係数は (ここでは) 0でなければならない。
-    foreach (i, c; total)
-    {
-        if (c.toLong)
+        if (total[i] << shift != c)
+        //if ((c & mask) || total[i] != c >> shift) と書きたいが、BigInt が cast(bool) や &, |, ^ を持っていないのでできない。
         {
+            assert (i);
             return P.precision + 1 - i;
         }
     }
+    //assert (!(total[0].toLong)); // 最上位の係数は (ここでは) 0でなければならない。
+    //foreach (i, c; total)
+    //{
+        //if (c.toLong)
+        //{
+            //return P.precision + 1 - i;
+        //}
+    //}
     return 0;
 }
 
@@ -161,7 +182,7 @@ private size_t reciprocal(ulong x, immutable size_t m)
 in
 {
     assert (0 <= x);
-    if (!(x < 1UL << m))
+    if (m != 64 && !(x < 1UL << m))
     {
         x.writeln(".reciprocal illegally called where m = ", m);
         assert (false);
@@ -183,6 +204,48 @@ body
     return ret;
 }
 
+private size_t reciprocal_binary_search(ulong x, immutable size_t m)
+{
+    if (x == 0) return m + 1;
+    size_t ret = m + 1;
+    size_t current = 32;
+    while (current)
+    {
+        if (x >> current)
+        {
+            ret -= current;
+            x >>= current;
+        }
+        current >>= 1;
+    }
+    return ret - 1;
+}
+
+unittest
+{
+    "testing reciprocal: binary-search version".writeln();
+    foreach (x; 0..10000)
+    {
+        assert (reciprocal(x, 14) == reciprocal_binary_search(x, 14));
+        assert (reciprocal(x, 15) == reciprocal_binary_search(x, 15));
+        assert (reciprocal(x, 16) == reciprocal_binary_search(x, 16));
+        assert (reciprocal(x, 17) == reciprocal_binary_search(x, 17));
+        assert (reciprocal(x, 32) == reciprocal_binary_search(x, 32));
+        assert (reciprocal(x, 33) == reciprocal_binary_search(x, 33));
+        assert (reciprocal(x, 60) == reciprocal_binary_search(x, 60));
+        assert (reciprocal(x, 63) == reciprocal_binary_search(x, 63));
+        assert (reciprocal(x, 64) == reciprocal_binary_search(x, 64));
+    }
+    foreach (m; 1..65)
+    {
+        foreach (x; 0..m)
+        {
+            assert (reciprocal(1UL << x, m) == reciprocal_binary_search(1UL << x, m));
+            assert (reciprocal((1UL << x) - 1, m) == reciprocal_binary_search((1UL << x) - 1, m));
+        }
+    }
+    "...OK.".writeln();
+}
 
 private BigInt[] empty_product(immutable size_t m)
 {
@@ -251,7 +314,7 @@ private BigInt[] power(BigInt[] f, ulong s)
     return ret;
 }
 
-private BigInt[] times_sparse(BigInt[] f, size_t g)
+version (old) {private BigInt[] times_sparse(BigInt[] f, size_t g) // in-place なものに置き換えた
 in
 {
     assert (f[0].toLong);
@@ -278,7 +341,7 @@ body
         ret[i + g] += c;
     }
     return ret;
-}
+}}
 
 private BigInt[] plus(BigInt[] f, BigInt[] g)
 in

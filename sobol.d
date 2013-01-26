@@ -14,7 +14,6 @@ auto defaultSobols(immutable size_t dimension, immutable size_t precision, immut
     foreach (i; 0..dimension)
     {
         _direction_numbers ~= direction_numbers(defaultDirectionNumbers(i), lg_length).all_left_shift(trailing_zeros);
-
     }
     return sobols(_direction_numbers);
 }
