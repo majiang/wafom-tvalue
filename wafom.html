@@ -10,19 +10,15 @@
 <dd>Compute <u>wafom</u> of a general quasi-Monte Carlo point set.
 <br><br>
 <b>Algorithm:</b><br>
-Equation (4.2) of <u>wafom</u>-arxiv.
- 1: input P = (x[n] : 0 &lt;= n &lt; b^m) in [0..1)^s.
-* b = 2
-* m = P.precision
-* s = P.dimenson
-<br><br>
-
- 2: return sum[n in b^m](prod[t in s][j in m](1+(-1)^x[n,t,j]2^(-j-1))-1) / b^m.
+Equation (4.2) of <u>wafom</u>-arxiv.<ul>
+   <li>input P = (x[n] : 0 &lt;= n &lt; b<sup>m</sup>) in [0..1)<sup>s</sup>.</li>
+   <li>return sum[x in P](prod[i in s][j in m](1+(-1)<sup>x[i,j]</sup>2<sup>-j-1</sup>)-1) / |P|.</li>
+ </ul>
 
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>P</td>
-<td>a subset of  [0..2^m)^s</td></tr>
+<td>a subset of  [0..2<sup>m</sup>)<sup>s</sup></td></tr>
 </table><br>
 <b>Remarks:</b><br>
 Using double, precision &gt; 54 means factor = 1.<br><br>

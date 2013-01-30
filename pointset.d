@@ -104,6 +104,32 @@ struct BasisPoints
     }
 }
 
+/// BasisPoints.truncatePrecision for general point sets which support lg_length and precision.
+auto truncatePrecision(R)(R P)
+{
+    static if (is (R == BasisPoints))
+    {
+        return P.truncatePrecision();
+    }
+    else
+    {
+        struct Result
+        {
+            R P;
+            alias P this;
+            auto front()
+            {
+                auto ret = P.front().dup();
+                foreach (i; 0..ret.length)
+                {
+                    ret[i] >>= P.precision - P.lg_length;
+                }
+                return ret;
+            }
+        }
+    }
+}
+
 private ulong[][] random_basis(size_t dimension, size_t precision, size_t lg_length)
 {
     ulong[][] ret;

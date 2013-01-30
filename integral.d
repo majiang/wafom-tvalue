@@ -1,10 +1,9 @@
 import std.stdio;
 import pointset : BasisPoints;
 
-/** Perform integration of a function f: [0..1)<sup><var>s</var></sup> -> R by the point set P.
+/** Perform integration of a function f: [0..1)<sup>s</sup> -> R by the point set P.
 
-<var>s</var> is implicitly given as P.dimension.
-f must support double opCall(double[] x)).
+* s is implicitly given as P.dimension. f must support double opCall(double[] x)).
 
 Usage:
 ----------------

@@ -43,17 +43,14 @@ unittest
 
 /** Compute wafom of a general quasi-Monte Carlo point set.
 
-Algorithm:
-Equation (4.2) of wafom-arxiv.
-* 1: input P = (x[n] : 0 <= n < b^m) in [0..1)^s.
-** b = 2
-** m = P.precision
-** s = P.dimenson
-*
-* 2: return sum[n in b^m](prod[t in s][j in m](1+(-1)^x[n,t,j]2^(-j-1))-1) / b^m.
+* Algorithm:
+* Equation (4.2) of wafom-arxiv.<ul>
+*   <li>input P = (x[n] : 0 <= n < b<sup>m</sup>) in [0..1)<sup>s</sup>.</li>
+*   <li>return sum[x in P](prod[i in s][j in m](1+(-1)<sup>x[i,j]</sup>2<sup>-j-1</sup>)-1) / |P|.</li>
+* </ul>
 
-Params:
-P = a subset of  [0..2^m)^s
+* Params:
+* P = a subset of  [0..2<sup>m</sup>)<sup>s</sup>
 
 Remarks:
 Using double, precision > 54 means factor = 1.
@@ -61,7 +58,7 @@ Using double, precision > 54 means factor = 1.
 double wafom(R)(R P)
 {
     double ret = 0;
-    //auto f = factors(P.precision);
+    debug (speedup) auto f = factors(P.precision);
     foreach (B; P)
     {
         double cur = 1;
@@ -78,7 +75,6 @@ double wafom(R)(R P)
         debug (speedup) assert (diff * diff < 1e-10);
         ret += cur - 1;
     }
-//    debug "wafom is returning %f.".writefln(ret / P.length);
     return ret / P.length;
 }
 
@@ -99,79 +95,6 @@ double wafom_factor(ulong x, ptrdiff_t precision)
     return ret;
 }
 
-
-unittest
-{
-    /// speedup for foreach (j, c; f) cur *= c[(l >> j) & 1].
-    void test_speedup(int t_max)
-    {
-        import std.datetime : StopWatch;
-        double[256] memo_first; double[256] memo_second;
-        auto f = factors(16);
-        foreach (i; 0..256)
-        {
-            memo_first[i] = 1;
-            foreach (j, c; f[8..$])
-            {
-                memo_first[i] *= c[(i >> j) & 1];
-            }
-            memo_second[i] = 1;
-            foreach (j, c; f[0..8])
-            {
-                memo_second[i] *= c[(i >> j) & 1];
-            }
-        }
-        "memo_first = ".writeln;
-        memo_first.writeln();
-        "memo_second = ".writeln;
-        memo_second.writeln();
-        foreach (i; 0..65536)
-        {
-            double cur = 1;
-            foreach (j, c; f)
-            {
-                cur *= c[(i >> j) & 1];
-            }
-            auto diff = (memo_first[i >> 8] * memo_second[i & 255] - cur);
-            assert (diff * diff < 1e-15);
-        }
-        StopWatch sw;
-        sw.start();
-        double total = 0;
-        foreach (t; 0..t_max)
-            foreach (i; 0..65536)
-            {
-                auto cur = 1;
-                foreach (j, c; f)
-                {
-                    cur *= c[(i >> j) & 1];
-                }
-                //total += cur;
-            }
-        sw.stop();
-        sw.peek().msecs.writeln(" ms by naive");
-        total = 0;
-        StopWatch swn;
-        swn.start();
-        foreach (t; 0..t_max)
-        {
-            foreach (i; 0..65536)
-            {
-                auto cur = memo_first[i >> 8] * memo_second[i & 255];
-                //total += cur;
-            }
-        }
-        swn.stop();
-        swn.peek().msecs.writeln(" ms by memo-256");
-    }
-    version (speedup)
-    {
-        "test_speedup returns:".writeln();
-        test_speedup(1000);
-    }
-    else test_speedup(0);
-}
-
 double[256][64] get_memo()
 {
     import std.algorithm : min, max;
@@ -189,72 +112,4 @@ double[256][64] get_memo()
         }
     }
     return ret;
-}
-
-//debug = debug_memo;
-debug (debug_memo) unittest
-{
-    "get_memo returns:".writeln();
-    foreach (line; get_memo())
-    {
-        foreach (x; line)
-        {
-            x.write(", ");
-        }
-        writeln();
-    }
-    ".".writeln();
-}
-
-
-version (digitalnet){
-double wafom(ulong n, ulong b, ulong m, ulong s)(ulong[s][b ^^ m] P)
-{
-    double ret = 0;
-    foreach (B; P)
-    {
-        double cur = 1;
-        foreach (l; B)
-        {
-            foreach (j; 0..n)
-            {
-                if (l >> j & 1)
-                {
-                    cur *= 1 - 0.5 ^^ (j + 1);
-                }
-                else
-                {
-                    cur *= 1 + 0.5 ^^ (j + 1);
-                }
-            }
-        }
-        ret += cur - 1;
-    }
-    return ret / N;
-}
-
-double wafom(ulong n, ulong s, ulong N)(bool[n][s][N] P)
-{
-    double ret = 0;
-    foreach (B; P)
-    {
-        double cur = 1;
-        foreach (l; B)
-        {
-            foreach (j, e; l)
-            {
-                if (e)
-                {
-                    cur *= 1 - 0.5 ^^ (j + 1);
-                }
-                else
-                {
-                    cur *= 1 + 0.5 ^^ (j + 1);
-                }
-            }
-        }
-        ret += cur - 1;
-    }
-    return ret / N;
-}
 }

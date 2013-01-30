@@ -3,12 +3,25 @@ module main;
 import tvalue : tvalue1, tvalue2;
 import wafom : wafom;
 import sobol : sobols, direction_numbers, defaultSobols;
-import pointset;
+import pointset : randomPoints;
 import std.algorithm : min, max, reduce;
 
 import std.stdio;
-version = tvaluedebug;
-version (arc)
+version = tvaluegeneral;
+version (tvaluegeneral)
+{
+    void main()
+    {
+        size_t dimension = 2;
+        size_t precision = 12;
+        size_t lg_length = 10;
+        foreach (i; 0..100)
+        {
+            randomPoints(dimension, precision, lg_length).tvalue2().writeln();
+        }
+    }
+}
+else version (arc)
 {
     void main()
     {

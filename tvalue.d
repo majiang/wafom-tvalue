@@ -19,10 +19,10 @@ version (2) {alias tvalue2 tvalue;}
 *       <li>m = P.lg_length</li>
 *       <li>s = P.dimension</li>
 *   </ul></li>
-*   <li>2: compute the coefficients N[a] of z<sup>a</sup> for 0 <= a <= m of the polynomial<ul>
+*   <li>compute the coefficients N[a] of z<sup>a</sup> for 0 <= a <= m of the polynomial<ul>
 *       <li>b<sup>-m</sup>Q[m](z)sum[x in P]prod[i in s](1-(bz)<sup>nu(x[i])</sup>)</li>
 *   </ul>modulo z<sup>(m+1)</sup>, where<ul>
-*       <li>Q[m](z) := (1+(b-1)z+(b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup> = (1+z+2z<sup>2</sup> + ... + b<sup>m-1</sup>z<sup>m</sup>)<sup>s</sup></li>
+*       <li>Q[m](z) := (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup> = (1 + z + 2z<sup>2</sup> + ... + b<sup>m-1</sup>z<sup>m</sup>)<sup>s</sup></li>
 *   </ul>and<ul>
 *       <li>nu(x) = ceil(-lg x)</li>
 *   </ul></li>
@@ -30,7 +30,7 @@ version (2) {alias tvalue2 tvalue;}
 * </ol>
 
 * Params:
-* P = a InputRange which yields ulong[]s, and have properties length, lg_length, precision, dimension.
+* P = an InputRange which yields ulong[]s, and have properties length, lg_length, precision, dimension.
 
 * Conditions:
 * P must satisfy three conditions:<ul>
@@ -51,10 +51,10 @@ ulong tvalue1(R)(R P)
         auto current = P.lg_length.empty_product(); // prod
         foreach (e; x)
         {
-            auto nu = e.nu_star(P.lg_length);
-            foreach_reverse (i; 0..(P.lg_length + 1 - nu))
+            immutable nu = e.nu_star(P.lg_length);
+            foreach_reverse (i; nu..current.length)
             {
-                current[i + nu] -= current[i] << nu;
+                current[i] -= current[i - nu] << nu;
             }
         }
         total = total.plus(current);
@@ -69,7 +69,7 @@ ulong tvalue1(R)(R P)
     return 0; // all zero, t = m + 1 - (m+1) according to Algorithm 1.
 }
 
-/** Compute Q[m](z) for Algorithm 1..
+/** Compute Q[m](z) for Algorithm 1.
 
 Q[m](z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup> mod z<sup>m+1</sup> = [1, 2<sup>0</sup>, 2<sup>1</sup>, ..., 2<sup>m</sup>]<sup>s</sup>
 */
@@ -113,23 +113,28 @@ BigInt[] Q1(immutable size_t lg_length, immutable size_t dimension)
 */
 ulong tvalue2(R)(R P)
 {
-    auto total = new BigInt[P.precision + 1];
+    if (P.lg_length < P.precision)
+    {
+        import pointset : truncatePrecision;
+        return truncatePrecision(P).tvalue2();
+    }
+    auto total = new BigInt[P.lg_length + 1];
     foreach (x; P)
     {
-        auto current = P.precision.empty_product();
+        auto current = P.lg_length.empty_product();
         foreach (e; x)
         {
-            auto nu = e.nu_star(P.precision);
-            foreach_reverse (i; nu..total.length)
+            immutable nu = e.nu_star(P.lg_length);
+            foreach_reverse (i; nu..current.length)
             {
                 current[i] -= current[i - nu];
-            } assert (current[0].toLong); // 最上位の係数は0であってはならない。
+            }
         }
-        total = total.plus(current); assert (total[0].toLong); // ditto
+        total = total.plus(current);
     }
-    auto shift = (P.dimension - 1) * P.precision;
+    auto shift = (P.dimension - 1) * P.lg_length;
     // BigInt mask = (BigInt(1) << shift) - 1; // としたい
-    foreach (i, c; P.precision.Q2(P.dimension))
+    foreach (i, c; P.lg_length.Q2(P.dimension))
     {
         if (total[i] << shift != c)
         //if ((c & mask) || total[i] != c >> shift) // と書きたいが、BigInt が cast(bool) や &, |, ^ を持っていないのでできない。まあ大したパフォーマンスダウンにはならないだろう。
@@ -138,7 +143,7 @@ ulong tvalue2(R)(R P)
             {
                 total[i].writeln(" != ", c);
             }
-            assert (i); return P.precision + 1 - i;
+            assert (i); return P.lg_length + 1 - i;
         }
     }
     return 0;
@@ -147,7 +152,7 @@ ulong tvalue2(R)(R P)
 /** Compute Q(z) for algorithm 2.
 
 Definition:
-Q(z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup> - b<sup>m</sup>z<sup>m+1</sup>)<sup>s</sup>
+Q(z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup> - b<sup>m</sup>z<sup>m+1</sup>)<sup>s</sup> = (1 + z + 2z<sup>2</sup> + ... + 2<sup>m-1</sup>z<sup>m</sup> - 2<sup>m</sup>z<sup>m+1</sup>)<sup>s</sup>
 
 Computation:
 This function computes the reciprocal of Q, namely, R(y) := (-y<sup>m+1</sup>)<sup>s</sup>Q(1/y), modulo y<sup>m+1</sup>.
@@ -155,7 +160,7 @@ This function computes the reciprocal of Q, namely, R(y) := (-y<sup>m+1</sup>)<s
 Returns:
 [b<sup>m</sup>, -b<sup>m-1</sup>, -b<sup>m-2</sup>, ..., -b<sup>0</sup><del>, -1</del>]<sup>s</sup>
 */
-private BigInt[] Q2(immutable size_t lg_length, immutable size_t dimension)
+BigInt[] Q2(immutable size_t lg_length, immutable size_t dimension)
 {
     auto ret = new BigInt[lg_length + 1];
     ret[$ - 1] = -1;
@@ -167,7 +172,7 @@ private BigInt[] Q2(immutable size_t lg_length, immutable size_t dimension)
     return ret.power(dimension);
 }
 
-/** Construct reciprocal polynomial.
+/** Compute ceil(-lg(x >> m))
 *
 * Params:
 *     m = lg|P|
@@ -176,7 +181,7 @@ private BigInt[] Q2(immutable size_t lg_length, immutable size_t dimension)
 *     m + 1 if x = 0
 *     m - (x.lg.floor) otherwise
 */
-private size_t nu_star(ulong x, immutable size_t m)
+size_t nu_star(ulong x, immutable size_t m)
 in
 {
     assert (0 <= x);
