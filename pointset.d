@@ -57,6 +57,7 @@ struct BasisPoints
         this.dimension = other.dimension;
         this.length = other.length;
         this.precision = other.precision;
+        this.lg_length = other.lg_length;
         this._position = other._position;
         this.basis = other.basis;
         this.current.length = other.current.length;
@@ -86,6 +87,20 @@ struct BasisPoints
     @property BasisPoints save()
     {
         return BasisPoints(this);
+    }
+    BasisPoints truncatePrecision()
+    {
+        ulong[][] new_basis;
+        new_basis.length = this.basis.length;
+        foreach (i; 0..new_basis.length)
+        {
+            new_basis[i].length = this.lg_length;
+            foreach (j, c; this.basis[i])
+            {
+                new_basis[i][j] = c >> (this.precision - this.lg_length);
+            }
+        }
+        return BasisPoints(new_basis, this.lg_length);
     }
 }
 

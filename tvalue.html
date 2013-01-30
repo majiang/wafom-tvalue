@@ -11,38 +11,44 @@
 <br><br>
 <b>Algorithm:</b><br>
 Algorithm 1 of MacWilliams.<ol>
- <li>input P = (x[n] : 0 &lt;= n &lt; b^m) in [0..1)^s. This function requires P to have three properties: lg_length, precision and dimension. Here,<ul>
-* <li><var>b</var> = 2,</li>
-* <li><var>m</var> = <code>P.precision</code> = <code>P.lg_length</code></li>
-* <li><var>s</var> = <code>P.dimension</code></li></ul></li>
- <li>2: compute the coefficients N[a] of z<sup>a</sup> for 0 &lt;= a &lt;= m of the polynomial<ul><li>
-     Q[m](z)(b<sup>-m</sup>)sum[n in b<sup>m</sup]prod[i in s](1-(bz)<sup>nu*(x[n,i])</sup>)
- </li></ul>modulo z<sup>(m+1)</sup>, where<ul><li>
-     Q[m](z) := (1+(b-1)z+(b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup></li><li>
-     = (1+z+2z<sup>2</sup> + ... + b<sup>m-1</sup>z<sup>m</sup>)<sup>s</sup>
- </li></ul>and
-     nu*(x) = ceil(-lg x)</li>
- <li>t := m + 1 - min(a : 0 &lt; a &lt;= m; N[a] = 0)</li>
- <li>return t.</li>
+   <li>input P = (x[n] : 0 &lt;= n &lt; b<sup>m</sup>), a subset of [0..1)<sup>s</sup>. This function requires P to have three properties: lg_length, precision and dimension. Here,<ul>
+       <li>b = 2</li>
+       <li>m = P.lg_length</li>
+       <li>s = P.dimension</li>
+   </ul></li>
+   <li>2: compute the coefficients N[a] of z<sup>a</sup> for 0 &lt;= a &lt;= m of the polynomial<ul>
+       <li>b<sup>-m</sup>Q[m](z)sum[x in P]prod[i in s](1-(bz)<sup>nu(x[i])</sup>)</li>
+   </ul>modulo z<sup>(m+1)</sup>, where<ul>
+       <li>Q[m](z) := (1+(b-1)z+(b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup> = (1+z+2z<sup>2</sup> + ... + b<sup>m-1</sup>z<sup>m</sup>)<sup>s</sup></li>
+   </ul>and<ul>
+       <li>nu(x) = ceil(-lg x)</li>
+   </ul></li>
+   <li>return t := m + 1 - min{a : 0 &lt; a &lt;= m; N[a] = 0}</li>
  </ol>
 
 <br><br>
 <b>Params:</b><br>
 <table><tr><td>P</td>
-<td>a subset of [0..(2^m))^s whose cardinality is 2^m</td></tr>
+<td>a InputRange which yields ulong[]s, and have properties length, lg_length, precision, dimension.</td></tr>
 </table><br>
-<b>Remarks:</b><br>
-Remark 2 of the paper states that:<blockquote>
-<p>If one uses this function for a general point set, then the returned
-value of t is a lower bound on the t-value of the point set,
-i.e., it implies that P is not a (t-1, m, s)-net in base two.</p></blockquote>
-but this function may have a bug for general point set.
-<br><br>
+<b>Conditions:</b><br>
+P must satisfy three conditions:<ul>
+   <li>1UL &lt;&lt; P.lg_length == P.length</li>
+   <li>P.front.length == P.dimension</li>
+   <li>0 &lt;= P.front &lt; (1 &lt;&lt; P.precision)</li>
+ </ul>
 
-TODO (for developper):
-Check whether lower t-value bound of a point set is properly calculated
-by this function. P.precision is used in some code, but P.length.lg may
-be suitable.<br><br>
+<br><br>
+<b>Remarks:</b><br>
+Remark 2 of the paper is the following:<blockquote>
+ <p>If one uses this function for a general point set, then the returned value of t is a lower bound on the t-value of the point set, i.e., it implies that P is not a (t-1, m, s)-net in base two.</p></blockquote><br><br>
+
+</dd>
+<dt><big><a name="Q1"></a>BigInt[] <u>Q1</u>(immutable size_t <i>lg_length</i>, immutable size_t <i>dimension</i>);
+</big></dt>
+<dd>Compute Q[m](z) for Algorithm 1..
+<br><br>
+Q[m](z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup> mod z<sup>m+1</sup> = [1, 2<sup>0</sup>, 2<sup>1</sup>, ..., 2<sup>m</sup>]<sup>s</sup><br><br>
 
 </dd>
 <dt><big><a name="tvalue2"></a>ulong <u>tvalue2</u>(R)(R <i>P</i>);
@@ -50,34 +56,29 @@ be suitable.<br><br>
 <dd>Compute t-value of a digital net.
 <br><br>
 <b>Algorithm:</b><br>
-Algorithm 2 of MacWilliams.
- 1: input P = (x[n] : 0 &lt;= n &lt; b^m) in [0..1)^s
-* b = 2
-* m = P.precision
-* s = P.dimension
-<br><br>
+Algorithm 2 of MacWilliams.<ol>
+   <li>input P = (x[n] : 0 &lt;= n &lt; b<sup>m</sup>), a subset of [0..1)<sup>s</sup>. Remarks are the same as Algorithm 1.</li>
+   <li>compute the coefficients of z<sup>a</sup> for (s-1)(m+1) &lt;= a &lt; s(m+1) of the polynomial<ul>
+       <li>Q(z) = b<sup>(s-1)m</sup>sum[x in P]prod[i in s](z<sup>mu(x[i])</sup>-z<sup>m+1</sup>) - (1+(b-1)z+...+(b<sup>m</sup>-b<sup>m-1</sup>)-b<sup>m</sup>z<sup>m+1</sup>)<sup>s</sup></li>
+   </ul>where<ul>
+       <li>mu(x) = 1+floor(lg(b<sup>m</sup>x)) = m+1 + floor(lg x) = m+1 - ceil(-lg x) = m+1 - nu(x)</li>
+   </ul></li>
+   <li>return t = (1 - s)(m + 1) + Q.degree</li>
+ </ol>
 
- 2: compute the coefficients of z^a for (s-1)(m+1) &lt;= a &lt; s(m+1) of the polynomial
-     Q(z) = b^{(s-1)m}sum[n in b^m]prod[i in s](z^mu(x[n,i])-z^(m+1))
-                 - (1+(b-1)z+...+(b^m-b^{m-1})-b^mz^{m+1})^s
- where mu(x) = 1+floor(lg(b^m x)) = m+1 + floor(lg x) = m+1 - ceil(-lg x)
 <br><br>
-
- 3: t = (1 - s)(m + 1) + Q.degree
-<br><br>
-
- 4: return t.
-<br><br>
-
-This function computes only the m+1 most significant coefficients
-by computing the m+1 lowest coefficients of the product of the reciprocal
-prod[i in s](-1 + y^(m+1-mu(x))) = prod[i in s](-1 + y^nu*(x))
+<b>Computation:</b><br>
+This function computes the reciprocal, namely,<ul>
+   <li>sum[x in P]prod[i in s](1-y<sup>nu(x[i])</sup>)</li>
+ </ul>modulo y<sup>m+1</sup>, instead of<ul>
+   <li>sum[x in P]prod[i in s](z<sup>mu(x[i])</sup>-z<sup>m+1</sup>)</li>
+ </ul> and compare the result with Q2.
 
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>P</td>
-<td>a subset of  [0..2^m)^s</td></tr>
-</table><br>
+<table></table><br>
+<b>Conditions:</b><br>
+same as Algorithm 1.<br><br>
 
 </dd>
 </dl>

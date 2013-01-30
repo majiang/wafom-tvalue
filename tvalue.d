@@ -12,98 +12,104 @@ version (2) {alias tvalue2 tvalue;}
 
 /** Compute t-value of a digital net.
 
-Algorithm:
-Algorithm 1 of MacWilliams.<ol>
-* <li>input P = (x[n] : 0 <= n < b^m) in [0..1)^s. This function requires P to have three properties: lg_length, precision and dimension. Here,<ul>
-** <li><var>b</var> = 2,</li>
-** <li><var>m</var> = <code>P.precision</code> = <code>P.lg_length</code></li>
-** <li><var>s</var> = <code>P.dimension</code></li></ul></li>
-* <li>2: compute the coefficients N[a] of z<sup>a</sup> for 0 <= a <= m of the polynomial<ul><li>
-*     Q[m](z)(b<sup>-m</sup>)sum[n in b<sup>m</sup]prod[i in s](1-(bz)<sup>nu*(x[n,i])</sup>)
-* </li></ul>modulo z<sup>(m+1)</sup>, where<ul><li>
-*     Q[m](z) := (1+(b-1)z+(b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup></li><li>
-*     = (1+z+2z<sup>2</sup> + ... + b<sup>m-1</sup>z<sup>m</sup>)<sup>s</sup>
-* </li></ul>and
-*     nu*(x) = ceil(-lg x)</li>
-* <li>t := m + 1 - min(a : 0 < a <= m; N[a] = 0)</li>
-* <li>return t.</li>
+* Algorithm:
+* Algorithm 1 of MacWilliams.<ol>
+*   <li>input P = (x[n] : 0 <= n < b<sup>m</sup>), a subset of [0..1)<sup>s</sup>. This function requires P to have three properties: lg_length, precision and dimension. Here,<ul>
+*       <li>b = 2</li>
+*       <li>m = P.lg_length</li>
+*       <li>s = P.dimension</li>
+*   </ul></li>
+*   <li>2: compute the coefficients N[a] of z<sup>a</sup> for 0 <= a <= m of the polynomial<ul>
+*       <li>b<sup>-m</sup>Q[m](z)sum[x in P]prod[i in s](1-(bz)<sup>nu(x[i])</sup>)</li>
+*   </ul>modulo z<sup>(m+1)</sup>, where<ul>
+*       <li>Q[m](z) := (1+(b-1)z+(b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup> = (1+z+2z<sup>2</sup> + ... + b<sup>m-1</sup>z<sup>m</sup>)<sup>s</sup></li>
+*   </ul>and<ul>
+*       <li>nu(x) = ceil(-lg x)</li>
+*   </ul></li>
+*   <li>return t := m + 1 - min{a : 0 < a <= m; N[a] = 0}</li>
 * </ol>
 
-Params:
-P = a subset of [0..(2^m))^s whose cardinality is 2^m
+* Params:
+* P = a InputRange which yields ulong[]s, and have properties length, lg_length, precision, dimension.
 
-Remarks:
-Remark 2 of the paper states that:<blockquote>
-<p>If one uses this function for a general point set, then the returned 
-value of t is a lower bound on the t-value of the point set, 
-i.e., it implies that P is not a (t-1, m, s)-net in base two.</p></blockquote>
-but this function may have a bug for general point set.
+* Conditions:
+* P must satisfy three conditions:<ul>
+*   <li>1UL << P.lg_length == P.length</li>
+*   <li>P.front.length == P.dimension</li>
+*   <li>0 <= P.front < (1 << P.precision)</li>
+* </ul>
 
-TODO (for developper):
-Check whether lower t-value bound of a point set is properly calculated
-by this function. P.precision is used in some code, but P.length.lg may
-be suitable.
+* Remarks:
+* Remark 2 of the paper is the following:<blockquote>
+* <p>If one uses this function for a general point set, then the returned value of t is a lower bound on the t-value of the point set, i.e., it implies that P is not a (t-1, m, s)-net in base two.</p></blockquote>
 */
 ulong tvalue1(R)(R P)
 {
-    auto total = new BigInt[P.precision + 1] ; // sum
+    auto total = new BigInt[P.lg_length + 1] ; // sum
     foreach (x; P)
     {
-        auto current = P.precision.empty_product(); // prod
+        auto current = P.lg_length.empty_product(); // prod
         foreach (e; x)
         {
-            auto nu = e.reciprocal(P.precision);
-            foreach_reverse (i; 0..(P.precision+1-nu))
+            auto nu = e.nu_star(P.lg_length);
+            foreach_reverse (i; 0..(P.lg_length + 1 - nu))
             {
-                current[i+nu] -= current[i] << nu;
+                current[i + nu] -= current[i] << nu;
             }
         }
         total = total.plus(current);
     }
-    // construct Q.
-    // TODO: compare with power_part.
-    BigInt[] Q;
-    Q.length = P.precision + 1;
-    Q[0] = 1;
-    foreach (i; 0..P.precision)
-    {
-        Q[i+1] = 1;
-        Q[i+1] <<= i;
-    }
-    foreach (i, x; Q.power(P.dimension).times(total)) // (b^-m) is unnecessary
+    foreach (i, x; P.lg_length.Q1(P.dimension).times(total)) // (b^-m) is unnecessary
     {
         if (i && x.toLong)
         {
-            return P.precision + 1 - i;
+            return P.lg_length + 1 - i;
         }
     }
     return 0; // all zero, t = m + 1 - (m+1) according to Algorithm 1.
 }
 
+/** Compute Q[m](z) for Algorithm 1..
+
+Q[m](z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup> mod z<sup>m+1</sup> = [1, 2<sup>0</sup>, 2<sup>1</sup>, ..., 2<sup>m</sup>]<sup>s</sup>
+*/
+BigInt[] Q1(immutable size_t lg_length, immutable size_t dimension)
+{
+    auto ret = new BigInt[lg_length + 1];
+    ret[0] = 1;
+    ret[1] = 1;
+    foreach (i; 1..lg_length)
+    {
+        ret[i + 1] = ret[i] << 1;
+    }
+    return ret.power(dimension);
+}
+
 /** Compute t-value of a digital net.
 
-Algorithm:
-Algorithm 2 of MacWilliams.
-* 1: input P = (x[n] : 0 <= n < b^m) in [0..1)^s
-** b = 2
-** m = P.precision
-** s = P.dimension
-*
-* 2: compute the coefficients of z^a for (s-1)(m+1) <= a < s(m+1) of the polynomial
-*     Q(z) = b^{(s-1)m}sum[n in b^m]prod[i in s](z^mu(x[n,i])-z^(m+1))
-*                 - (1+(b-1)z+...+(b^m-b^{m-1})-b^mz^{m+1})^s
-* where mu(x) = 1+floor(lg(b^m x)) = m+1 + floor(lg x) = m+1 - ceil(-lg x)
-*
-* 3: t = (1 - s)(m + 1) + Q.degree
-*
-* 4: return t.
+* Algorithm:
+* Algorithm 2 of MacWilliams.<ol>
+*   <li>input P = (x[n] : 0 <= n < b<sup>m</sup>), a subset of [0..1)<sup>s</sup>. Remarks are the same as Algorithm 1.</li>
+*   <li>compute the coefficients of z<sup>a</sup> for (s-1)(m+1) <= a < s(m+1) of the polynomial<ul>
+*       <li>Q(z) = b<sup>(s-1)m</sup>sum[x in P]prod[i in s](z<sup>mu(x[i])</sup>-z<sup>m+1</sup>) - (1+(b-1)z+...+(b<sup>m</sup>-b<sup>m-1</sup>)-b<sup>m</sup>z<sup>m+1</sup>)<sup>s</sup></li>
+*   </ul>where<ul>
+*       <li>mu(x) = 1+floor(lg(b<sup>m</sup>x)) = m+1 + floor(lg x) = m+1 - ceil(-lg x) = m+1 - nu(x)</li>
+*   </ul></li>
+*   <li>return t = (1 - s)(m + 1) + Q.degree</li>
+* </ol>
 
-This function computes only the m+1 most significant coefficients
-by computing the m+1 lowest coefficients of the product of the reciprocal
-prod[i in s](-1 + y^(m+1-mu(x))) = prod[i in s](-1 + y^nu*(x))
+* Computation:
+* This function computes the reciprocal, namely,<ul>
+*   <li>sum[x in P]prod[i in s](1-y<sup>nu(x[i])</sup>)</li>
+* </ul>modulo y<sup>m+1</sup>, instead of<ul>
+*   <li>sum[x in P]prod[i in s](z<sup>mu(x[i])</sup>-z<sup>m+1</sup>)</li>
+* </ul> and compare the result with Q2.
 
-Params:
-P = a subset of  [0..2^m)^s
+* Params:
+* same as Algorithm 1.
+
+* Conditions:
+* same as Algorithm 1.
 */
 ulong tvalue2(R)(R P)
 {
@@ -113,55 +119,52 @@ ulong tvalue2(R)(R P)
         auto current = P.precision.empty_product();
         foreach (e; x)
         {
-            auto nu = e.reciprocal(P.precision);
+            auto nu = e.nu_star(P.precision);
             foreach_reverse (i; nu..total.length)
             {
-                current[i] = current[i - nu] - current[i];
-            }
-            foreach_reverse (i; 0..nu)
-            {
-                current[i] = -current[i];
-            }
-            assert (current[0].toLong); // 最上位の係数は0であってはならない。
+                current[i] -= current[i - nu];
+            } assert (current[0].toLong); // 最上位の係数は0であってはならない。
         }
-        total = total.plus(current);
-        assert (total[0].toLong); // ditto
+        total = total.plus(current); assert (total[0].toLong); // ditto
     }
     auto shift = (P.dimension - 1) * P.precision;
-    // BigInt mask = (BigInt(1) << shift) - 1;
-    foreach (i, c; P.precision.power_part().power(P.dimension))
+    // BigInt mask = (BigInt(1) << shift) - 1; // としたい
+    foreach (i, c; P.precision.Q2(P.dimension))
     {
         if (total[i] << shift != c)
-        //if ((c & mask) || total[i] != c >> shift) と書きたいが、BigInt が cast(bool) や &, |, ^ を持っていないのでできない。
+        //if ((c & mask) || total[i] != c >> shift) // と書きたいが、BigInt が cast(bool) や &, |, ^ を持っていないのでできない。まあ大したパフォーマンスダウンにはならないだろう。
         {
-            assert (i);
-            return P.precision + 1 - i;
+            if (i == 0)
+            {
+                total[i].writeln(" != ", c);
+            }
+            assert (i); return P.precision + 1 - i;
         }
     }
-    //assert (!(total[0].toLong)); // 最上位の係数は (ここでは) 0でなければならない。
-    //foreach (i, c; total)
-    //{
-        //if (c.toLong)
-        //{
-            //return P.precision + 1 - i;
-        //}
-    //}
     return 0;
 }
 
+/** Compute Q(z) for algorithm 2.
 
-private BigInt[] power_part(immutable size_t m)
+Definition:
+Q(z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup> - b<sup>m</sup>z<sup>m+1</sup>)<sup>s</sup>
+
+Computation:
+This function computes the reciprocal of Q, namely, R(y) := (-y<sup>m+1</sup>)<sup>s</sup>Q(1/y), modulo y<sup>m+1</sup>.
+
+Returns:
+[b<sup>m</sup>, -b<sup>m-1</sup>, -b<sup>m-2</sup>, ..., -b<sup>0</sup><del>, -1</del>]<sup>s</sup>
+*/
+private BigInt[] Q2(immutable size_t lg_length, immutable size_t dimension)
 {
-    BigInt[] ret;
-    ret.length = m + 1;
-    ret[0] = -1;
-    ret[0] <<= m;
-    foreach (i; 1..m+1)
+    auto ret = new BigInt[lg_length + 1];
+    ret[$ - 1] = -1;
+    foreach_reverse (i; 1..lg_length)
     {
-        ret[i] = 1;
-        ret[i] <<= m - i;
+        ret[i] = ret[i + 1] << 1;
     }
-    return ret;
+    ret[0] = -(ret[1] << 1);
+    return ret.power(dimension);
 }
 
 /** Construct reciprocal polynomial.
@@ -173,7 +176,7 @@ private BigInt[] power_part(immutable size_t m)
 *     m + 1 if x = 0
 *     m - (x.lg.floor) otherwise
 */
-private size_t reciprocal(ulong x, immutable size_t m)
+private size_t nu_star(ulong x, immutable size_t m)
 in
 {
     assert (0 <= x);
@@ -199,7 +202,7 @@ body
     return ret;
 }
 
-private size_t reciprocal_binary_search(ulong x, immutable size_t m)
+private size_t nu_star_bs(ulong x, immutable size_t m)
 {
     if (x == 0) return m + 1;
     size_t ret = m + 1;
@@ -221,32 +224,34 @@ unittest
     "testing reciprocal: binary-search version".writeln();
     foreach (x; 0..10000)
     {
-        assert (reciprocal(x, 14) == reciprocal_binary_search(x, 14));
-        assert (reciprocal(x, 15) == reciprocal_binary_search(x, 15));
-        assert (reciprocal(x, 16) == reciprocal_binary_search(x, 16));
-        assert (reciprocal(x, 17) == reciprocal_binary_search(x, 17));
-        assert (reciprocal(x, 32) == reciprocal_binary_search(x, 32));
-        assert (reciprocal(x, 33) == reciprocal_binary_search(x, 33));
-        assert (reciprocal(x, 60) == reciprocal_binary_search(x, 60));
-        assert (reciprocal(x, 63) == reciprocal_binary_search(x, 63));
-        assert (reciprocal(x, 64) == reciprocal_binary_search(x, 64));
+        assert (nu_star(x, 14) == nu_star_bs(x, 14));
+        assert (nu_star(x, 15) == nu_star_bs(x, 15));
+        assert (nu_star(x, 16) == nu_star_bs(x, 16));
+        assert (nu_star(x, 17) == nu_star_bs(x, 17));
+        assert (nu_star(x, 32) == nu_star_bs(x, 32));
+        assert (nu_star(x, 33) == nu_star_bs(x, 33));
+        assert (nu_star(x, 60) == nu_star_bs(x, 60));
+        assert (nu_star(x, 63) == nu_star_bs(x, 63));
+        assert (nu_star(x, 64) == nu_star_bs(x, 64));
     }
     foreach (m; 1..65)
     {
         foreach (x; 0..m)
         {
-            assert (reciprocal(1UL << x, m) == reciprocal_binary_search(1UL << x, m));
-            assert (reciprocal((1UL << x) - 1, m) == reciprocal_binary_search((1UL << x) - 1, m));
+            assert (nu_star(1UL << x, m) == nu_star_bs(1UL << x, m));
+            assert (nu_star((1UL << x) - 1, m) == nu_star_bs((1UL << x) - 1, m));
         }
     }
     "...OK.".writeln();
 }
 
+/// '1' as polynomial
 private BigInt[] empty_product(immutable size_t m)
 {
     return [BigInt(1)] ~ new BigInt[m];
 }
 
+/// polynomial multiplication
 private BigInt[] times(BigInt[] f, BigInt[] g)
 in
 {
@@ -269,6 +274,9 @@ body
     return ret;
 }
 
+import std.algorithm : min;
+
+/// polynomial squaring
 private BigInt[] square(BigInt[] f)
 {
     auto ret = new BigInt[f.length];
@@ -278,21 +286,15 @@ private BigInt[] square(BigInt[] f)
         {
             ret[i << 1] = c * c;
         }
-        foreach (j; 0..i)
+        foreach (j; 0..i.min(ret.length-i))
         {
-            if (i + j < ret.length)
-            {
-                ret[i + j] += (c * f[j]) << 1;
-            }
-            else
-            {
-                break;
-            }
+            ret[i + j] += (c * f[j]) << 1;
         }
     }
     return ret;
 }
 
+/// polynomial power
 private BigInt[] power(BigInt[] f, ulong s)
 {
     auto ret = (f.length - 1).empty_product();
@@ -309,35 +311,7 @@ private BigInt[] power(BigInt[] f, ulong s)
     return ret;
 }
 
-version (old) {private BigInt[] times_sparse(BigInt[] f, size_t g) // in-place なものに置き換えた
-in
-{
-    assert (f[0].toLong);
-    assert (g);
-}
-out (result)
-{
-    assert (result[0].toLong);
-}
-body
-{
-    BigInt[] ret;
-    ret.length = f.length;
-    foreach (i, c; f)
-    {
-        ret[i] = -c;
-    }
-    foreach (i, c; f)
-    {
-        if (ret.length <= i + g)
-        {
-            break;
-        }
-        ret[i + g] += c;
-    }
-    return ret;
-}}
-
+/// polynomial addition
 private BigInt[] plus(BigInt[] f, BigInt[] g)
 in
 {
@@ -352,41 +326,3 @@ body
     }
     return ret;
 }
-
-version (digitalnet){
-    /** Compute t-value of digital net.
-
-    Algorithm 2 of MacWilliams12.pdf
-
-    Params:
-    b = |G|
-    P = digital net, subset of [0..b^m) ^ s
-
-    Returns:
-    t-value
-    */
-    ulong tvalue(ulong b, ulong m, ulong s)(ulong[s][b ^^ m] P)
-    {
-        ulong[m+1] total;
-        ulong[m+1] current;
-        foreach (x; P)
-        {
-            current = empty_product!m();
-            foreach (e; x)
-            {
-                current = current.times_sparse(reciprocal!(cast(size_t)m, b)(e));
-            }
-            total = total.plus!m(current);
-        }
-        total[] *= b ^^ ((s - 1) * m);
-        auto rest = power_part!(b, m)().power!m(s);
-        rest[] *= -1;
-        foreach (i, c; total.plus!m(rest))
-        {
-            if (c)
-            {
-                return m + 1 - i;
-            }
-        }
-        return 0;
-    }}
