@@ -61,7 +61,7 @@ Using double, precision > 54 means factor = 1.
 double wafom(R)(R P)
 {
     double ret = 0;
-    auto f = factors(P.precision);
+    //auto f = factors(P.precision);
     foreach (B; P)
     {
         double cur = 1;
@@ -84,7 +84,11 @@ double wafom(R)(R P)
 
 double wafom_factor(ulong x, ptrdiff_t precision)
 {
-    static memo = get_memo();
+    debug {
+        auto memo = memoize!get_memo();
+    } else {
+        static memo = get_memo();
+    }
     double ret = 1;
     while (0 < precision)
     {
@@ -168,7 +172,7 @@ unittest
     else test_speedup(0);
 }
 
-private double[256][64] get_memo()
+double[256][64] get_memo()
 {
     import std.algorithm : min, max;
     double[256][64] ret;

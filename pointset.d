@@ -30,6 +30,7 @@ Generate linear combinations of basis using gray code algorithm.
 struct BasisPoints
 {
     immutable size_t dimension;
+    immutable size_t lg_length;
     immutable ulong length;
     immutable size_t precision;
     alias length opDollar;
@@ -45,7 +46,8 @@ struct BasisPoints
         this.dimension = basis.length;
         assert (0 < this.dimension);
         this.precision = precision;
-        this.length = 1UL << basis[0].length;
+        this.lg_length = basis[0].length;
+        this.length = 1UL << this.lg_length;
         this._position = 0;
         this.current.length = this.dimension;
         this.basis = basis;

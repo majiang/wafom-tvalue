@@ -7,28 +7,24 @@
 <br><br>
 <dl><dt><big><a name="tvalue1"></a>ulong <u>tvalue1</u>(R)(R <i>P</i>);
 </big></dt>
-<dd>Compute t-value of a digital net formed from Sobol sequences.
+<dd>Compute t-value of a digital net.
 <br><br>
 <b>Algorithm:</b><br>
-Algorithm 1 of MacWilliams.
- 1: input P = (x[n] : 0 &lt;= n &lt; b^m) in [0..1)^s.
-* b = 2
-* m = P.precision
-* s = P.dimension
-<br><br>
-
- 2: compute the coefficients N[a] of z^a for 0 &lt;= a &lt;= m of the polynomial
-     Q[m](z)(b^-m)sum[n in b^m]prod[i in s](1-(bz)^nu*(x[n,i]))
- modulo z^(m+1), where
-     Q[m](z) := (1+(b-1)z+(b^2-b)z^2 + ... + (b^m-b^{m-1})z^m)^s
- and
-     nu*(x) = ceil(-lg x)
-<br><br>
-
- 3: t = m + 1 - min(a : 0 &lt; a &lt;= m; N[a] = 0)
-<br><br>
-
- 4: return t.
+Algorithm 1 of MacWilliams.<ol>
+ <li>input P = (x[n] : 0 &lt;= n &lt; b^m) in [0..1)^s. This function requires P to have three properties: lg_length, precision and dimension. Here,<ul>
+* <li><var>b</var> = 2,</li>
+* <li><var>m</var> = <code>P.precision</code> = <code>P.lg_length</code></li>
+* <li><var>s</var> = <code>P.dimension</code></li></ul></li>
+ <li>2: compute the coefficients N[a] of z<sup>a</sup> for 0 &lt;= a &lt;= m of the polynomial<ul><li>
+     Q[m](z)(b<sup>-m</sup>)sum[n in b<sup>m</sup]prod[i in s](1-(bz)<sup>nu*(x[n,i])</sup>)
+ </li></ul>modulo z<sup>(m+1)</sup>, where<ul><li>
+     Q[m](z) := (1+(b-1)z+(b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup></li><li>
+     = (1+z+2z<sup>2</sup> + ... + b<sup>m-1</sup>z<sup>m</sup>)<sup>s</sup>
+ </li></ul>and
+     nu*(x) = ceil(-lg x)</li>
+ <li>t := m + 1 - min(a : 0 &lt; a &lt;= m; N[a] = 0)</li>
+ <li>return t.</li>
+ </ol>
 
 <br><br>
 <b>Params:</b><br>
@@ -51,7 +47,7 @@ be suitable.<br><br>
 </dd>
 <dt><big><a name="tvalue2"></a>ulong <u>tvalue2</u>(R)(R <i>P</i>);
 </big></dt>
-<dd>Compute t-value of a digital net formed from Sobol sequences.
+<dd>Compute t-value of a digital net.
 <br><br>
 <b>Algorithm:</b><br>
 Algorithm 2 of MacWilliams.

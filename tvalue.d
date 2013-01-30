@@ -10,25 +10,24 @@ version (1) {alias tvalue1 tvalue;}
 version (2) {alias tvalue2 tvalue;}
 
 
-/** Compute t-value of a digital net formed from Sobol sequences.
+/** Compute t-value of a digital net.
 
 Algorithm:
-Algorithm 1 of MacWilliams.
-* 1: input P = (x[n] : 0 <= n < b^m) in [0..1)^s.
-** b = 2
-** m = P.precision
-** s = P.dimension
-*
-* 2: compute the coefficients N[a] of z^a for 0 <= a <= m of the polynomial
-*     Q[m](z)(b^-m)sum[n in b^m]prod[i in s](1-(bz)^nu*(x[n,i]))
-* modulo z^(m+1), where
-*     Q[m](z) := (1+(b-1)z+(b^2-b)z^2 + ... + (b^m-b^{m-1})z^m)^s
-* and
-*     nu*(x) = ceil(-lg x)
-*
-* 3: t = m + 1 - min(a : 0 < a <= m; N[a] = 0)
-*
-* 4: return t.
+Algorithm 1 of MacWilliams.<ol>
+* <li>input P = (x[n] : 0 <= n < b^m) in [0..1)^s. This function requires P to have three properties: lg_length, precision and dimension. Here,<ul>
+** <li><var>b</var> = 2,</li>
+** <li><var>m</var> = <code>P.precision</code> = <code>P.lg_length</code></li>
+** <li><var>s</var> = <code>P.dimension</code></li></ul></li>
+* <li>2: compute the coefficients N[a] of z<sup>a</sup> for 0 <= a <= m of the polynomial<ul><li>
+*     Q[m](z)(b<sup>-m</sup>)sum[n in b<sup>m</sup]prod[i in s](1-(bz)<sup>nu*(x[n,i])</sup>)
+* </li></ul>modulo z<sup>(m+1)</sup>, where<ul><li>
+*     Q[m](z) := (1+(b-1)z+(b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup></li><li>
+*     = (1+z+2z<sup>2</sup> + ... + b<sup>m-1</sup>z<sup>m</sup>)<sup>s</sup>
+* </li></ul>and
+*     nu*(x) = ceil(-lg x)</li>
+* <li>t := m + 1 - min(a : 0 < a <= m; N[a] = 0)</li>
+* <li>return t.</li>
+* </ol>
 
 Params:
 P = a subset of [0..(2^m))^s whose cardinality is 2^m
@@ -73,11 +72,7 @@ ulong tvalue1(R)(R P)
     }
     foreach (i, x; Q.power(P.dimension).times(total)) // (b^-m) is unnecessary
     {
-        if (i == 0)
-        {
-            continue;
-        }
-        if (x.toLong)
+        if (i && x.toLong)
         {
             return P.precision + 1 - i;
         }
@@ -85,7 +80,7 @@ ulong tvalue1(R)(R P)
     return 0; // all zero, t = m + 1 - (m+1) according to Algorithm 1.
 }
 
-/** Compute t-value of a digital net formed from Sobol sequences.
+/** Compute t-value of a digital net.
 
 Algorithm:
 Algorithm 2 of MacWilliams.
