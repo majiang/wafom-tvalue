@@ -45,6 +45,11 @@ version (2) {alias tvalue2 tvalue;}
 */
 ulong tvalue1(R)(R P)
 {
+    if (P.lg_length < P.precision)
+    {
+        import pointset : truncatePrecision;
+        return truncatePrecision(P).tvalue1();
+    }
     auto total = new BigInt[P.lg_length + 1] ; // sum
     foreach (x; P)
     {
@@ -207,7 +212,9 @@ body
     return ret;
 }
 
-private size_t nu_star_bs(ulong x, immutable size_t m)
+/// ditto
+/// binary search version. maybe faster.
+size_t nu_star_bs(ulong x, immutable size_t m)
 {
     if (x == 0) return m + 1;
     size_t ret = m + 1;
@@ -251,13 +258,13 @@ unittest
 }
 
 /// '1' as polynomial
-private BigInt[] empty_product(immutable size_t m)
+BigInt[] empty_product(immutable size_t m)
 {
     return [BigInt(1)] ~ new BigInt[m];
 }
 
 /// polynomial multiplication
-private BigInt[] times(BigInt[] f, BigInt[] g)
+BigInt[] times(BigInt[] f, BigInt[] g)
 in
 {
     assert (f.length == g.length);
@@ -282,7 +289,7 @@ body
 import std.algorithm : min;
 
 /// polynomial squaring
-private BigInt[] square(BigInt[] f)
+BigInt[] square(BigInt[] f)
 {
     auto ret = new BigInt[f.length];
     foreach (i, c; f)
@@ -300,7 +307,7 @@ private BigInt[] square(BigInt[] f)
 }
 
 /// polynomial power
-private BigInt[] power(BigInt[] f, ulong s)
+BigInt[] power(BigInt[] f, ulong s)
 {
     auto ret = (f.length - 1).empty_product();
     BigInt[] sq = f.dup;
@@ -317,7 +324,7 @@ private BigInt[] power(BigInt[] f, ulong s)
 }
 
 /// polynomial addition
-private BigInt[] plus(BigInt[] f, BigInt[] g)
+BigInt[] plus(BigInt[] f, BigInt[] g)
 in
 {
     assert (f.length == g.length);

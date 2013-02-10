@@ -80,11 +80,8 @@ double wafom(R)(R P)
 
 double wafom_factor(ulong x, ptrdiff_t precision)
 {
-    debug {
-        auto memo = memoize!get_memo();
-    } else {
-        static memo = get_memo();
-    }
+    debug auto memo = memoize!get_memo(); // memoize
+    else static memo = get_memo(); // CTFE
     double ret = 1;
     while (0 < precision)
     {
