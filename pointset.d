@@ -3,7 +3,7 @@ module pointset;
 debug import std.stdio;
 
 import std.random : uniform;
-public import sobol : sobols, direction_numbers;
+//public import sobol : sobols, direction_numbers;
 import graycode;
 
 /** Generate a point set of dimension, precision and lg(length) specified by choosing its basis randomly.

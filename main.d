@@ -2,13 +2,28 @@ module main;
 
 import tvalue : tvalue1, tvalue2;
 import wafom : wafom;
-import sobol : sobols, direction_numbers, defaultSobols;
+import sobol : defaultSobols;
 import pointset : randomPoints;
 import std.algorithm : min, max, reduce;
+import integral;
 
 import std.stdio;
-version = tvaluegeneral;
-version (tvaluegeneral)
+version = asianoption;
+version (asianoption)
+{
+    void main()
+    {
+        auto P = defaultSobols(4, 16, 16);
+        P.integral_sobol();
+    }
+}
+else version (unittest_only)
+{
+    void main()
+    {
+    }
+}
+else version (tvaluegeneral)
 {
     void main()
     {

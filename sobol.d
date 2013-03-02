@@ -262,4 +262,3 @@ unittest
     }
     debug "degree: unittest passed!".writeln();
 }
-
