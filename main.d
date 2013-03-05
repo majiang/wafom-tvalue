@@ -14,7 +14,7 @@ version (asianoption)
     void main()
     {
         auto P = defaultSobols(4, 16, 16);
-        P.integral_sobol();
+//        P.integral_sobol();
     }
 }
 else version (unittest_only)
