@@ -48,7 +48,11 @@ Remark 2 of the paper is the following:<blockquote>
 </big></dt>
 <dd>Compute Q[m](z) for Algorithm 1.
 <br><br>
-Q[m](z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup> mod z<sup>m+1</sup> = [1, 2<sup>0</sup>, 2<sup>1</sup>, ..., 2<sup>m</sup>]<sup>s</sup><br><br>
+Q[m](z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup> mod z<sup>m+1</sup> = [1, 2<sup>0</sup>, 2<sup>1</sup>, ..., 2<sup>m</sup>]<sup>s</sup>
+
+<br><br>
+<b>Remarks:</b><br>
+This function should memoized for repeated t-value computation for a fixed (<i>lg_length</i>, <i>dimension</i>) and for different basis.<br><br>
 
 </dd>
 <dt><big><a name="tvalue2"></a>ulong <u>tvalue2</u>(R)(R <i>P</i>);
@@ -94,7 +98,11 @@ This function computes the reciprocal of Q, namely, R(y) := (-y<sup>m+1</sup>)<s
 
 <br><br>
 <b>Returns:</b><br>
-[b<sup>m</sup>, -b<sup>m-1</sup>, -b<sup>m-2</sup>, ..., -b<sup>0</sup><del>, -1</del>]<sup>s</sup><br><br>
+[b<sup>m</sup>, -b<sup>m-1</sup>, -b<sup>m-2</sup>, ..., -b<sup>0</sup><del>, -1</del>]<sup>s</sup>
+
+<br><br>
+<b>Remarks:</b><br>
+This function should memoized for repeated t-value computation for a fixed (<i>lg_length</i>, <i>dimension</i>) and for different basis.<br><br>
 
 </dd>
 <dt><big><a name="nu_star"></a>size_t <u>nu_star</u>(ulong <i>x</i>, immutable size_t <i>m</i>);

@@ -4,7 +4,7 @@ import std.math;
 import std.typecons : Tuple;
 alias Tuple!(double, "x", double, "y") Double;
 
-/** risk-neutral rate = 3%
+/** risk-neutral rate = 3%/year
 maturity = 1/3 year = 4 month
 average = 4 times discrete monitoring (monthly)
 initial price = $40
@@ -23,8 +23,7 @@ body
 {
     immutable A = exp((r - sigma * sigma / 2) * T / S);
     auto y = gaussinv(S >> 1, x);
-    double B = exp(sigma * sqrt(T) * y[$ - 1]);
-    double v = A * B;
+    double v = A * exp(sigma * sqrt(T) * y[$ - 1]);
     foreach_reverse(i; 1..S)
     {
         v += 1;
@@ -101,6 +100,8 @@ Double gaussinv_(Double x)// [0..1)^2 -> gauss
     return Double(r * cos(theta), r * sin(theta));
 }
 
+version (none)
+{
 import std.stdio;
 import integral : integral;
 import pointset : randomPoints;
@@ -108,4 +109,5 @@ import pointset : randomPoints;
 unittest
 {
     "asian option price = ".writeln(integral!default_integrand(randomPoints(4, 20, 20)));
+}
 }

@@ -5,11 +5,24 @@ import wafom : wafom;
 import sobol : defaultSobols;
 import pointset : randomPoints;
 import std.algorithm : min, max, reduce;
-import integral;
 
 import std.stdio;
-version = asianoption;
-version (asianoption)
+version = integral;
+version (integral)
+{
+    import asianoption : default_integrand;
+    import integral : integral;
+    void main()
+    {
+        "description\tt-value\twafom\tintegral".writeln();
+        foreach (d; 8..24)
+        {
+            auto P = defaultSobols(4, d, d);
+            "Sobol(%d)\t%d\t%f\t%f".writefln(d, P.save.tvalue1(), P.save.wafom(), integral!default_integrand(P));
+        }
+    }
+}
+else version (asianoption)
 {
     void main()
     {

@@ -3,12 +3,12 @@ module pointset;
 debug import std.stdio;
 
 import std.random : uniform;
-//public import sobol : sobols, direction_numbers;
+public import sobol : defaultSobols;
 import graycode;
 
 /** Generate a point set of dimension, precision and lg(length) specified by choosing its basis randomly.
 */
-auto randomPoints(size_t dimension, size_t precision, size_t lg_length)
+auto randomPoints(immutable size_t dimension, immutable size_t precision, immutable size_t lg_length)
 {
     return BasisPoints(dimension.random_basis(precision, lg_length), precision);
 }
@@ -131,6 +131,11 @@ auto truncatePrecision(R)(R P)
 }
 
 private ulong[][] random_basis(size_t dimension, size_t precision, size_t lg_length)
+in
+{
+    assert (precision <= 64);
+}
+body
 {
     ulong[][] ret;
     ret.length = dimension;
@@ -140,7 +145,7 @@ private ulong[][] random_basis(size_t dimension, size_t precision, size_t lg_len
         foreach (j; 0..lg_length)
         {
             ret[i][j] = uniform(0UL, 1UL << 32UL) << 32UL ^ uniform(0UL, 1UL << 32UL);
-            if (precision != 64)
+            if (precision < 64)
             {
                 ret[i][j] &= (1UL << precision) - 1;
             }
