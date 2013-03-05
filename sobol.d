@@ -55,22 +55,19 @@ struct DirectionNumbersGenerator
     }
 }
 
-
-ulong[] all_left_shift(ulong[] x, immutable size_t trailing_zeros)
+unittest
 {
-    auto ret = new ulong[x.length];
-    foreach (i, c; x)
-    {
-        ret[i] = c << trailing_zeros;
-    }
-    return ret;
+    assert (DirectionNumbersGenerator([1UL, 3, 7], (1 << 3) + (1 << 1) + 1).generate(6) == [1, 3, 7, 5, 7, 43]);
+    assert (DirectionNumbersGenerator([1UL, 3, 7], (1 << 3) + (1 << 1) + 1).generate(2) == [1, 3]);
+    debug "direction_numbers: unittest passed!".writeln();
 }
 
+
 import std.array : split;
-//import std.algorithm : map;
 import std.conv : to;
 
-private auto defaultDirectionNumbers(immutable size_t dimension)
+/// Provide direction numbers from kuo: http://web.maths.unsw.edu.au/~fkuo/sobol/joe-kuo-old.1111
+auto defaultDirectionNumbers(immutable size_t dimension)
 in
 {
     assert (dimension <= 10);
@@ -78,17 +75,14 @@ in
 body
 {
     ulong[] initial_terms;
-    foreach (x; "1,,1,1,,1,3,7,,1,1,5,,1,3,1,1,,1,1,3,7,,1,3,3,9,9,,1,3,7,13,3,,1,1,5,11,27,,1,3,5,1,15"
-        .split(",,")[dimension]
-        .split(","))
+    foreach (x; "1,,1,1,,1,3,7,,1,1,5,,1,3,1,1,,1,1,3,7,,1,3,3,9,9,,1,3,7,13,3,,1,1,5,11,27,,1,3,5,1,15".split(",,")[dimension].split(","))
     {
         initial_terms ~= x.to!ulong();
     }
-    auto primitive_polynomial = "3,7,11,13,19,25,37,59,47,61"
-        .split(",")[dimension]
-        .to!ulong();
+    auto primitive_polynomial = "3,7,11,13,19,25,37,59,47,61".split(",")[dimension].to!ulong();
     return DirectionNumbersGenerator(initial_terms, primitive_polynomial);
 }
+
 
 /// Generate point set for the direction numbers specified.
 auto sobols(ulong[][] direction_numbers)
@@ -100,6 +94,17 @@ auto sobols(ulong[][] direction_numbers)
         _direction_numbers[i] = c.shift();
     }
     return BasisPoints(_direction_numbers, _direction_numbers[0].length);
+}
+
+
+ulong[] all_left_shift(ulong[] x, immutable size_t trailing_zeros)
+{
+    auto ret = new ulong[x.length];
+    foreach (i, c; x)
+    {
+        ret[i] = c << trailing_zeros;
+    }
+    return ret;
 }
 
 
@@ -120,13 +125,6 @@ unittest
     debug "shift: unittest passed!".writeln();
 }
 
-
-unittest
-{
-    assert (DirectionNumbersGenerator([1UL, 3, 7], (1 << 3) + (1 << 1) + 1).generate(6) == [1, 3, 7, 5, 7, 43]);
-    assert (DirectionNumbersGenerator([1UL, 3, 7], (1 << 3) + (1 << 1) + 1).generate(2) == [1, 3]);
-    debug "direction_numbers: unittest passed!".writeln();
-}
 
 private size_t degree(ulong polynomial)
 {
@@ -149,127 +147,4 @@ unittest
         assert (x.degree() == q[i]);
     }
     debug "degree: unittest passed!".writeln();
-}
-
-version (old){
-    /** Sobol Sequence generator: Multidimensional version.
-
-    Examples:
-    ----------------
-    double integral = 0;
-    auto sobol = Sobol([direction_numbers(...), ...]);
-    foreach (x; sobol) integral += x.f();
-    ----------------
-
-    Remarks:
-    t <= (primitive).(degree-1).sum
-    */
-    struct Sobols
-    {
-        immutable size_t dimension;
-        immutable ulong length;
-        immutable size_t precision;
-        alias length opDollar;
-        private ulong[][] direction_numbers;
-        private size_t _position;
-        @property size_t position()
-        {
-            return _position;
-        }
-        private ulong[] current;
-        this(ulong[][] direction_numbers, size_t precision)
-        {
-            this.dimension = direction_numbers.length;
-            this.precision = precision;
-            this.length = 1UL << direction_numbers[0].length;
-            this.current.length = this.direction_numbers.length = this.dimension;
-            foreach (i, c; direction_numbers)
-            {
-                this.direction_numbers[i] = c.shift();
-                assert (1UL << c.length == this.length);
-            }
-            this._position = 0;
-        }
-        this(Sobols other)
-        {
-            this.dimension = other.dimension;
-            this.length = other.length;
-            this.precision = other.precision;
-            this.current.length = other.current.length;
-            this.current[] = other.current[];
-            this.direction_numbers = other.direction_numbers;
-            this._position = other._position;
-        }
-        @property ulong[] front()
-        {
-            return this.current;
-        }
-        void popFront()
-        {
-            this._position += 1;
-            if (this.empty())
-            {
-                return;
-            }
-            auto j = this.position.bottom_zeros();
-            foreach (i, c; this.direction_numbers)
-            {
-                this.current[i] ^= c[j];
-            }
-        }
-        @property bool empty()
-        {
-            return this.length <= this.position;
-        }
-        @property Sobols save()
-        {
-            return Sobols(this);
-        }
-    }
-
-    import std.range;
-    static assert (isInputRange!Sobols);
-    static assert (isForwardRange!Sobols);
-    static assert (!isBidirectionalRange!Sobols);
-    static assert (!isRandomAccessRange!Sobols);
-
-
-    struct Sobol
-    {
-        ulong[] direction_numbers;
-        size_t position;
-        ulong current;
-        this(ulong[] direction_numbers)
-        {
-            this.direction_numbers = direction_numbers.shift();
-            this.position = 0;
-            this.current = 0;
-        }
-        ulong front()
-        {
-            return this.current;
-        }
-        void popFront()
-        {
-            this.position += 1;
-            if (this.empty())
-            {
-                return;
-            }
-            this.current ^= direction_numbers[this.position.bottom_zeros()];
-        }
-        bool empty()
-        {
-            return 1 << this.direction_numbers.length <= this.position;
-        }
-    }
-    debug unittest
-    {
-        "Sobol sequence formed from direction numbers [1, 3, 7, 5]: ".write;
-        foreach (x; Sobol([1, 3, 7, 5]))
-        {
-            x.write(", ");
-        }
-        writeln();
-    }
 }
