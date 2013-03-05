@@ -4,42 +4,6 @@ import std.functional : memoize;
 
 debug import std.stdio;
 
-double[2][] _factors(size_t precision)
-{
-    auto ret = new double[2][precision];
-    foreach (i; 0..2)
-    {
-        ret[$-1][i] = 0.5;
-        foreach_reverse (j; 1..precision)
-        {
-            ret[j-1][i] = ret[j][i] * 0.5;
-        }
-    }
-    foreach (j; 0..precision)
-    {
-        ret[j][0] += 1;
-        ret[j][1] *= -1;
-        ret[j][1] += 1;
-    }
-    return ret;
-}
-alias memoize!_factors factors;
-
-unittest
-{
-    "factors(64) = ".writeln();
-    foreach (x; factors(64))
-    {
-        if (x[0] == 1.0 && x[1] == 1.0)
-        {
-            // pass
-        }
-        else
-        {
-            x.writeln();
-        }
-    }
-}
 
 /** Compute wafom of a general quasi-Monte Carlo point set.
 
@@ -78,10 +42,11 @@ double wafom(R)(R P)
     return ret / P.length;
 }
 
+
 double wafom_factor(ulong x, ptrdiff_t precision)
 {
-    debug auto memo = memoize!get_memo(); // memoize
-    else static memo = get_memo(); // CTFE
+    debug auto memo = memoize!get_memo(); // just memoize for debug, to compile faster.
+    else static memo = get_memo(); // CTFE for release, to execute faster.
     double ret = 1;
     while (0 < precision)
     {
@@ -91,6 +56,7 @@ double wafom_factor(ulong x, ptrdiff_t precision)
     }
     return ret;
 }
+
 
 double[256][64] get_memo()
 {
@@ -109,4 +75,42 @@ double[256][64] get_memo()
         }
     }
     return ret;
+}
+
+
+double[2][] _factors(size_t precision)
+{
+    auto ret = new double[2][precision];
+    foreach (i; 0..2)
+    {
+        ret[$-1][i] = 0.5;
+        foreach_reverse (j; 1..precision)
+        {
+            ret[j-1][i] = ret[j][i] * 0.5;
+        }
+    }
+    foreach (j; 0..precision)
+    {
+        ret[j][0] += 1;
+        ret[j][1] *= -1;
+        ret[j][1] += 1;
+    }
+    return ret;
+}
+alias memoize!_factors factors;
+
+unittest
+{
+    "factors(64) = ".writeln();
+    foreach (x; factors(64))
+    {
+        if (x[0] == 1.0 && x[1] == 1.0)
+        {
+            // pass
+        }
+        else
+        {
+            x.writeln();
+        }
+    }
 }
