@@ -77,6 +77,9 @@ ulong tvalue1(R)(R P)
 /** Compute Q[m](z) for Algorithm 1.
 
 Q[m](z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<sup>m-1</sup>)z<sup>m</sup>)<sup>s</sup> mod z<sup>m+1</sup> = [1, 2<sup>0</sup>, 2<sup>1</sup>, ..., 2<sup>m</sup>]<sup>s</sup>
+
+Remarks:
+This function should memoized for repeated t-value computation for a fixed (lg_length, dimension) and for different basis.
 */
 BigInt[] Q1(immutable size_t lg_length, immutable size_t dimension)
 {
@@ -164,6 +167,9 @@ This function computes the reciprocal of Q, namely, R(y) := (-y<sup>m+1</sup>)<s
 
 Returns:
 [b<sup>m</sup>, -b<sup>m-1</sup>, -b<sup>m-2</sup>, ..., -b<sup>0</sup><del>, -1</del>]<sup>s</sup>
+
+Remarks:
+This function should memoized for repeated t-value computation for a fixed (lg_length, dimension) and for different basis.
 */
 BigInt[] Q2(immutable size_t lg_length, immutable size_t dimension)
 {
