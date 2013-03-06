@@ -198,7 +198,7 @@ in
     assert (0 <= x);
     if (m != 64 && !(x < 1UL << m))
     {
-        x.writeln(".reciprocal illegally called where m = ", m);
+        debug x.writeln(".reciprocal illegally called where m = ", m);
         assert (false);
     }
 }

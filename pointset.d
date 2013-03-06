@@ -13,9 +13,9 @@ auto randomPoints(immutable size_t dimension, immutable size_t precision, immuta
     return BasisPoints(dimension.random_basis(precision, lg_length), precision);
 }
 
-unittest
+debug unittest
 {
-    debug foreach (x; randomPoints(3, 10, 4))
+    foreach (x; randomPoints(3, 10, 4))
     {
         x.writeln();
     }
@@ -35,7 +35,7 @@ struct BasisPoints
     immutable size_t precision;
     alias length opDollar;
     private size_t _position;
-    private ulong[][] basis;
+    /*private /**/ulong[][] basis;
     private ulong[] current;
     @property size_t position()
     {

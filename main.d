@@ -15,10 +15,20 @@ version (integral)
     void main()
     {
         "description\tt-value\twafom\tintegral".writeln();
-        foreach (d; 8..24)
+        foreach (d; 8..17)
         {
             auto P = defaultSobols(4, d, d);
-            "Sobol(%d)\t%d\t%f\t%f".writefln(d, P.save.tvalue1(), P.save.wafom(), integral!default_integrand(P));
+            "Sobol(%d)\t%d\t%f\t%.15f".writefln(
+                d, P.save.tvalue1(), P.save.wafom(), integral!default_integrand(P));
+        }
+        foreach (d; 8..17)
+        {
+            foreach (t; 0..1000)
+            {
+                auto P = randomPoints(4, d, d);
+                "random(%d)\t%d\t%f\t%.15f\t%s".writefln(
+                    d, P.save.tvalue1(), P.save.wafom(), integral!default_integrand(P), P.basis);
+            }
         }
     }
 }
