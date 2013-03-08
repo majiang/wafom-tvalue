@@ -19,7 +19,7 @@ double result = integral!f(randomPoints(dimension, precision, lg_length));
 */
 double integral(alias f)(BasisPoints P)
 {
-    double factor = 1.0 / (1UL << P.lg_length);
+    double factor = 1.0 / (1UL << P.precision);
     double shift = 0.5 / (1UL << P.precision);
     double result = 0;
     foreach (x; P)
