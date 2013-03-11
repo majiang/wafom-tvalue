@@ -34,14 +34,14 @@ struct BasisPoints
     immutable ulong length;
     immutable size_t precision;
     alias length opDollar;
-    private size_t _position;
+    private ulong _position;
     /*private /**/ulong[][] basis;
     private ulong[] current;
-    @property size_t position()
+    @property ulong position()
     {
         return _position;
     }
-    this(ulong[][] basis, size_t precision)
+    this(ulong[][] basis, size_t precision) // TODO: basis[i][j] -> basis[j][i] is better?
     {
         this.dimension = basis.length;
         assert (0 < this.dimension);
