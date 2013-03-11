@@ -239,7 +239,7 @@ size_t nu_star_bs(ulong x, immutable size_t m)
 
 unittest
 {
-    "testing reciprocal: binary-search version".writeln();
+    debug "testing reciprocal: binary-search version".writeln();
     foreach (x; 0..10000)
     {
         assert (nu_star(x, 14) == nu_star_bs(x, 14));
@@ -260,7 +260,7 @@ unittest
             assert (nu_star((1UL << x) - 1, m) == nu_star_bs((1UL << x) - 1, m));
         }
     }
-    "...OK.".writeln();
+    debug "...OK.".writeln();
 }
 
 /// '1' as polynomial

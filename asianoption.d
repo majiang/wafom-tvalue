@@ -100,14 +100,14 @@ Double gaussinv_(Double x)// [0..1)^2 -> gauss
     return Double(r * cos(theta), r * sin(theta));
 }
 
-version (none)
+debug
 {
-import std.stdio;
-import integral : integral;
-import pointset : randomPoints;
+    import std.stdio;
+    import integral : integral;
+    import pointset : randomPoints;
 
-unittest
-{
-    "asian option price = ".writeln(integral!default_integrand(randomPoints(4, 20, 20)));
-}
+    unittest
+    {
+        "asian option price = ".writeln(integral!default_integrand(randomPoints(4, 20, 20)));
+    }
 }

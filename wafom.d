@@ -99,7 +99,7 @@ double[2][] _factors(size_t precision)
 }
 alias memoize!_factors factors;
 
-unittest
+debug unittest
 {
     "factors(64) = ".writeln();
     foreach (x; factors(64))
