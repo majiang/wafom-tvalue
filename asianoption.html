@@ -15,14 +15,27 @@ voratility = 20%
 strike price = 35<br><br>
 
 </dd>
-<dt><big><a name="integrand"></a>double <u>integrand</u>(double <i>r</i>, double <i>T</i>, int <i>S</i>, double <i>P0</i>, double <i>sigma</i>, double <i>K</i>, double[] <i>x</i>);
+<dt><big><a name="integrand"></a>double <u>integrand</u>(in double <i>r</i>, in double <i>T</i>, in int <i>S</i>, in double <i>P0</i>, in double <i>sigma</i>, in double <i>K</i>, in double[] <i>x</i>);
 </big></dt>
-<dd>Asian option <u>integrand</u>: ordinary function version. <br><br>
+<dd>Asian option <u>integrand</u>: ordinary function version.
+<br><br>
+sum[1 &lt;= i &lt;= <i>S</i>] exp (ai+by[i])
+= exp(a+by[1]) (1+exp(a+by[2]) (1+exp() ... ))
+<br><br>
+
+to calculate this efficiently we can write
+v &lt;- exp(a+by[<i>S</i>])
+foreach i in [1..<i>S</i>-1]:
+    v &lt;- v+1
+    v &lt;- exp(a+by[i])<br><br>
 
 </dd>
 <dt><big><a name="ctintegrand"></a>double <u>ctintegrand</u>(double r, double T, int S, double P0, double sigma, double K)(double[] <i>x</i>);
 </big></dt>
-<dd>Asian option integrand: template version. <br><br>
+<dd>Asian option integrand: template version.
+<br><br>
+<b>TODO:</b><br>
+Speedup by CTFE.<br><br>
 
 </dd>
 </dl>

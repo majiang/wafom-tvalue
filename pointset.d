@@ -35,13 +35,13 @@ struct BasisPoints
     immutable size_t precision;
     alias length opDollar;
     private ulong _position;
-    /*private /**/ulong[][] basis;
+    /*private /**/ulong[][] basis; /// baisis[i][j] = i-th component of v[j]
     private ulong[] current;
     @property ulong position()
     {
         return _position;
     }
-    this(ulong[][] basis, size_t precision) // TODO: basis[i][j] -> basis[j][i] is better?
+    this (ulong[][] basis, size_t precision) // TODO: basis[i][j] -> basis[j][i] is better?
     {
         this.dimension = basis.length;
         assert (0 < this.dimension);
@@ -52,7 +52,7 @@ struct BasisPoints
         this.current.length = this.dimension;
         this.basis = basis;
     }
-    this(BasisPoints other)
+    this (BasisPoints other)
     {
         this.dimension = other.dimension;
         this.length = other.length;
@@ -104,6 +104,35 @@ struct BasisPoints
     }
 }
 
+version (none) auto shift(R)(R P, ulong[] x)
+{
+    struct Result
+    {
+        auto inner = P;
+        auto front()
+        {
+            auto ret = P.front().dup();
+            foreach (i; 0..ret.length)
+            {
+                ret[i] ^= x[i];
+            }
+            return ret;
+        }
+    }
+    return Result();
+}
+
+version (none) auto truncate(R)(R P)
+{
+    struct Result
+    {
+        R inner = P.save;
+        alias inner this;
+
+    }
+}
+
+
 /// BasisPoints.truncatePrecision for general point sets which support lg_length and precision.
 auto truncatePrecision(R)(R P)
 {
@@ -113,20 +142,20 @@ auto truncatePrecision(R)(R P)
     }
     else
     {
-        struct Result
-        {
-            R P;
-            alias P this;
-            auto front()
-            {
-                auto ret = P.front().dup();
-                foreach (i; 0..ret.length)
-                {
-                    ret[i] >>= P.precision - P.lg_length;
-                }
-                return ret;
-            }
-        }
+        //struct Result
+        //{
+        //    R P;
+        //    alias P this;
+        //    auto front()
+        //    {
+        //        auto ret = P.front().dup();
+        //        foreach (i; 0..ret.length)
+        //        {
+        //            ret[i] >>= P.precision - P.lg_length;
+        //        }
+        //        return ret;
+        //    }
+        //}
     }
 }
 

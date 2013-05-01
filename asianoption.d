@@ -13,21 +13,33 @@ strike price = 35
 */
 alias ctintegrand!(0.0295588022, 1.0/3.0, 4, 40, 0.2, 35) default_integrand;
 
-/** Asian option integrand: ordinary function version. */
-double integrand(double r, double T, int S, double P0, double sigma, double K, double[] x)
+/** Asian option integrand: ordinary function version.
+
+sum[1 <= i <= S] exp (ai+by[i])
+= exp(a+by[1]) (1+exp(a+by[2]) (1+exp() ... ))
+
+to calculate this efficiently we can write
+v <- exp(a+by[S])
+foreach i in [1..S-1]:
+    v <- v+1
+    v <- exp(a+by[i])
+*/
+double integrand(in double r, in double T, in int S, in double P0, in double sigma, in double K, in double[] x)
 in
 {
     assert (S == x.length);
 }
 body
 {
-    immutable A = exp((r - sigma * sigma / 2) * T / S);
-    auto y = gaussinv(S >> 1, x);
-    double v = A * exp(sigma * sqrt(T) * y[$ - 1]);
-    foreach_reverse(i; 1..S)
+    immutable t = T / S;
+    immutable stdv = sigma * sqrt(t);
+    const y = gaussinv(S >> 1, x);
+    immutable A = exp((r - sigma * sigma / 2) * t);
+    double v = A * exp(stdv * y[0]);
+    foreach_reverse (i; 1..S)
     {
         v += 1;
-        v *= A * exp(sigma * sqrt(T * i / S) * y[i - 1]);
+        v *= A * exp(stdv * y[i]);
     }
     v *= P0 / S;
     v -= K;
@@ -35,30 +47,16 @@ body
     return 0;
 }
 
-/** Asian option integrand: template version. */
+/** Asian option integrand: template version.
+
+TODO: Speedup by CTFE.
+*/
 double ctintegrand(double r, double T, int S, double P0, double sigma, double K)(double[] x)
-in
 {
-    assert (S == x.length);
-}
-body
-{
-    immutable A = exp((r - sigma * sigma / 2) * T / S);
-    auto y = ctgaussinv!(S >> 1)(x);
-    double B = exp(sigma * sqrt(T) * y[S - 1]);
-    double v = A * B;
-    foreach_reverse(i; 1..S)
-    {
-        v += 1;
-        v *= A * exp(sigma * sqrt(T * i / S) * y[i - 1]);
-    }
-    v *= P0 / S;
-    v -= K;
-    if (v > 0) return v * exp(-r * T);
-    return 0;
+    return integrand(r, T, S, P0, sigma, K, x);
 }
 
-double[] gaussinv(int n, double[] x)
+double[] gaussinv(in int n, in double[] x)
 in
 {
     assert(n << 1 == x.length);

@@ -19,6 +19,7 @@ debug import std.stdio;
 Remarks:
 Using double, precision > 54 means factor = 1.
 */
+debug = speedup;
 double wafom(R)(R P)
 {
     double ret = 0;
@@ -37,9 +38,9 @@ double wafom(R)(R P)
         }
         debug (speedup) auto diff = cur - cur_backup;
         debug (speedup) assert (diff * diff < 1e-10);
-        ret += cur - 1;
+        ret += cur;
     }
-    return ret / P.length;
+    return (ret / P.length) - 1;
 }
 
 
