@@ -5,6 +5,7 @@ import std.functional : memoize;
 debug import std.stdio;
 
 
+debug = speedup;
 /** Compute wafom of a general quasi-Monte Carlo point set.
 
 * Algorithm:
@@ -19,7 +20,6 @@ debug import std.stdio;
 Remarks:
 Using double, precision > 54 means factor = 1.
 */
-debug = speedup;
 double wafom(R)(R P)
 {
     double ret = 0;

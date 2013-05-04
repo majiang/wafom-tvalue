@@ -13,6 +13,8 @@ import std.algorithm : min, max, reduce;
 
 
 import std.stdio;
+import std.conv : to;
+import std.string : strip;
 
 version = large_sobol;
 void main()
@@ -33,8 +35,16 @@ void main()
     }
     version (large_sobol)
     {
-        foreach (j; 25..33)
+        auto stoptime = readln().strip().to!int();
+        foreach (j; 2..33)
+        {
             defaultSobols(4, j, j).write_performance();
+            if (j == stoptime) 
+            {
+                readln();
+                return;
+            }
+        }
     }
 }
 
@@ -43,7 +53,6 @@ void write_performance(R)(R P)
     "%d,%.15f,%.15f%s".writefln(P.save.tvalue(), P.save.wafom(), P.save.tf(), P.basis.tocsv());
 }
 
-import std.conv : to;
 string tocsv(ulong[][] basis)
 {
     immutable m = basis.length;

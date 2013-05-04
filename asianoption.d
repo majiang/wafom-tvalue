@@ -47,13 +47,64 @@ body
     return 0;
 }
 
+
+// compile-time exponential
+real ctexp(real x)
+{
+    real ret = 0.0;
+    real current = 1.0;
+    int i = 1;
+    while (true)
+    {
+        auto oret = ret;
+        ret += current;
+        if (ret == oret) return ret;
+        current *= x / i;
+        i += 1;
+    }
+}
+
+version = speedup;
 /** Asian option integrand: template version.
 
-TODO: Speedup by CTFE.
+Remarks:
+Not so fast though many constants are CTFEed.
 */
-double ctintegrand(double r, double T, int S, double P0, double sigma, double K)(double[] x)
+template ctintegrand(double r, double T, int S, double P0, double sigma, double K)
 {
-    return integrand(r, T, S, P0, sigma, K, x);
+    static immutable t = T / S;
+    static immutable stdv = sigma * sqrt(t);
+    static immutable halfS = S >> 1;
+    static immutable A = ctexp((r - sigma * sigma / 2) * t);
+    static immutable factor = P0 / S;
+    static immutable present_value = ctexp(-r * T);
+    version (speedup) double ctintegrand(double[] x)
+    {
+        const y = gaussinv(halfS, x);
+        double v = A * exp(stdv * y[0]);
+        static if (S == 4) // loop unrolling
+        {
+            v += 1;
+            v *= A * exp(stdv * y[1]);
+            v += 1;
+            v *= A * exp(stdv * y[2]);
+            v += 1;
+            v *= A * exp(stdv * y[3]);
+        }
+        else foreach_reverse (i; 1..S)
+        {
+            v += 1;
+            v *= A * exp(stdv * y[i]);
+        }
+        v *= factor;
+        v -= K;
+        if (v > 0) return v * present_value;
+        return 0;
+    }
+    else double ctintegrand(double[] x)
+    {
+        return integrand(r, T, S, P0, sigma, K, x);
+    }
 }
 
 double[] gaussinv(in int n, in double[] x)

@@ -30,12 +30,11 @@ foreach i in [1..<i>S</i>-1]:
     v &lt;- exp(a+by[i])<br><br>
 
 </dd>
-<dt><big><a name="ctintegrand"></a>double <u>ctintegrand</u>(double r, double T, int S, double P0, double sigma, double K)(double[] <i>x</i>);
-</big></dt>
+<dt><big><a name="ctintegrand"></a>template <u>ctintegrand</u>(double r, double T, int S, double P0, double sigma, double K)</big></dt>
 <dd>Asian option integrand: template version.
 <br><br>
-<b>TODO:</b><br>
-Speedup by CTFE.<br><br>
+<b>Remarks:</b><br>
+Not so fast though many constants are CTFEed.<br><br>
 
 </dd>
 </dl>
