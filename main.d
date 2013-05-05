@@ -16,7 +16,7 @@ import std.stdio;
 import std.conv : to;
 import std.string : strip;
 
-version = large_sobol;
+version = small_wafom;
 void main()
 {
     version (unittest_only)
@@ -43,6 +43,21 @@ void main()
             {
                 readln();
                 return;
+            }
+        }
+    }
+    version (small_wafom)
+    {
+        foreach (i; 0..100)
+        {
+            auto P = randomPoints(2, 6, 6);
+            auto w = P.save.wafom();
+            writeln(i, ",", w);
+            auto f = File("small-" ~ i.to!string() ~ "-" ~ (w * 10000).to!int().to!string() ~ ".csv", "w");
+            f.writeln(w);
+            foreach (x; P)
+            {
+                f.writefln("%d,%d", x[0], x[1]);
             }
         }
     }
