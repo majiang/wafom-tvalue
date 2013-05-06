@@ -8,6 +8,7 @@ import pointset : randomPoints;
 import integral : integral;
 import asianoption : default_integrand;
 alias integral!default_integrand tf;
+import testfunction;
 
 import std.algorithm : min, max, reduce;
 
@@ -16,7 +17,7 @@ import std.stdio;
 import std.conv : to;
 import std.string : strip;
 
-version = small_wafom;
+version = unittest_only;
 void main()
 {
     version (unittest_only)
