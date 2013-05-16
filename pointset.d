@@ -104,13 +104,6 @@ struct BasisPoints
     }
 }
 
-ulong[] copyarray(ulong[] x)
-{
-    ulong[] ret;
-    foreach (e; x)
-        ret ~= e;
-    return ret;
-}
 
 auto shift(R)(R P, ulong[] x)
 {
@@ -118,9 +111,9 @@ auto shift(R)(R P, ulong[] x)
     {
         R PS;
         alias PS this;
-        auto front()
+        @property auto front()
         {
-            auto ret = PS.front().copyarray();//auto ret = PS.front().dup();
+            auto ret = PS.front.dup;
             foreach (i; 0..ret.length)
             {
                 ret[i] ^= x[i];
