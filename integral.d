@@ -17,7 +17,7 @@ double f(double[] x)
 double result = integral!f(randomPoints(dimension, precision, lg_length));
 ----------------
 */
-double integral(alias f)(BasisPoints P)
+double integral(alias f, R)(R P)
 {
     double factor = 1.0 / (1UL << P.precision);
     double shift = 0.5 / (1UL << P.precision);

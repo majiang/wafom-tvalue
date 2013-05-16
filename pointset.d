@@ -13,7 +13,7 @@ auto randomPoints(immutable size_t dimension, immutable size_t precision, immuta
     return BasisPoints(dimension.random_basis(precision, lg_length), precision);
 }
 
-debug unittest
+debug (none) unittest
 {
     foreach (x; randomPoints(3, 10, 4))
     {
@@ -104,14 +104,23 @@ struct BasisPoints
     }
 }
 
-version (none) auto shift(R)(R P, ulong[] x)
+ulong[] copyarray(ulong[] x)
+{
+    ulong[] ret;
+    foreach (e; x)
+        ret ~= e;
+    return ret;
+}
+
+auto shift(R)(R P, ulong[] x)
 {
     struct Result
     {
-        auto inner = P;
+        R PS;
+        alias PS this;
         auto front()
         {
-            auto ret = P.front().dup();
+            auto ret = PS.front().copyarray();//auto ret = PS.front().dup();
             foreach (i; 0..ret.length)
             {
                 ret[i] ^= x[i];
@@ -119,7 +128,29 @@ version (none) auto shift(R)(R P, ulong[] x)
             return ret;
         }
     }
-    return Result();
+    return Result(P.save);
+}
+
+debug unittest
+{
+    auto P = randomPoints(2, 10, 5);
+    auto Q = shift(P, random_vector(2, 10));
+    "P =".writeln();
+    int i;
+    foreach (x; P)
+    {
+        i.writeln(" -> ", x);
+        i += 1;
+    }
+    i = 0;
+    "\nQ =".writeln();
+    foreach (x; Q)
+    {
+        i.writeln(" -> ", x);
+        i += 1;
+    }
+    "OK?".writeln();
+    readln();
 }
 
 version (none) auto truncate(R)(R P)
@@ -159,6 +190,34 @@ auto truncatePrecision(R)(R P)
     }
 }
 
+ulong[] random_vector(size_t count, size_t precision)
+{
+    ulong[] ret;
+    foreach (i; 0..count)
+        ret ~= precision.random_bits();
+    return ret;
+}
+
+ulong random_bits(size_t precision)
+in
+{
+    assert (precision <= 64);
+}
+body
+{
+    ulong ret;
+    ret = uniform(0UL, 1UL << 32UL);
+    if (precision == 32)
+        return ret;
+    if (precision & 31)
+    {
+        ret &= (1UL << (precision & 31)) - 1;
+        if (precision < 32)
+            return ret;
+    }
+    return (ret << 32) ^ uniform(0UL, 1UL << 32UL);
+}
+
 private ulong[][] random_basis(size_t dimension, size_t precision, size_t lg_length)
 in
 {
@@ -167,18 +226,79 @@ in
 body
 {
     ulong[][] ret;
-    ret.length = dimension;
     foreach (i; 0..dimension)
+        ret ~= random_vector(lg_length, precision);
+    return ret;
+}
+
+
+import std.array : split;
+import std.conv : to;
+import std.typecons : Tuple;
+import std.string : strip;
+bool lesst(DigitalNet x, DigitalNet y)
+{
+    return x.t < y.t;
+}
+bool lessw(DigitalNet x, DigitalNet y)
+{
+    return x.wafom < y.wafom;
+}
+struct DigitalNet
+{
+    BasisPoints ps;
+    double wafom;
+    ulong t;
+}
+
+DigitalNet lineToBP(string line)
+{
+    ulong[][] basis;
+    double wafom;
+    ulong t;
+    foreach (i, bufs; line.strip().split(",,"))
     {
-        ret[i].length = lg_length;
-        foreach (j; 0..lg_length)
+        auto buf = bufs.split(",");
+        if (i == 0)
         {
-            ret[i][j] = uniform(0UL, 1UL << 32UL) << 32UL ^ uniform(0UL, 1UL << 32UL);
-            if (precision < 64)
-            {
-                ret[i][j] &= (1UL << precision) - 1;
-            }
+            t = buf[0].to!ulong();
+            wafom = buf[1].to!double();
+            continue;
+        }
+        basis.length += 1;
+        foreach (s; bufs.split(","))
+        {
+            basis[$-1] ~= s.to!ulong();
         }
     }
-    return ret;
+    assert (basis.length);
+    return DigitalNet(BasisPoints(basis, basis.guess_precision()), wafom, t);
+}
+
+import std.algorithm : max;
+size_t guess_precision(ulong[][] basis)
+{
+    ulong x = 0;
+    foreach (l; basis)
+        foreach (c; l)
+            x = x.max(c);
+    size_t precision;
+    while (x)
+    {
+        precision += 1;
+        x >>= 1;
+    }
+    return precision;
+}
+
+debug (lineToBP) unittest
+{
+    auto c = 0;
+    foreach (x; "5,0.002124192556608,5.236969948020973,,2600265188,692020818,1829963221,894032275,1090497089,651123054,2898340559,1909687544,843513215,1542217271,39519261,3977641622,,2144888475,2941401343,1387697674,1986117176,3702571292,2647056038,3871827325,2263216594,3008901273,4224148358,3048652205,3799831373,,737302895,1233368001,1654098828,2764743171,239054234,249267380,1039474368,3378013260,2468295934,902812364,993745693,2410603677,,3726908047,3018079636,1719761848,2421945980,8259646,1793582138,3611200899,137680621,2493595579,2004711502,1809926346,2378246536\n".
+        lineToBP().ps)
+    {
+        "%s".writefln(x);
+        c += 1;
+    }
+    "unittest passed with %d elements".writefln(c);
 }
