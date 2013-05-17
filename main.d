@@ -64,26 +64,68 @@ void main()
     }
     version (test_funx)
     {
-        DigitalNet[] x, ts, ws;
+        DigitalNet[] x;
         double[] wafoms;
+        ulong[] tvalues;
         foreach (line; stdin.byLine())
         {
             auto ps = line.to!string().lineToBP();
-            if (ps.t == 3)
-                ts ~= ps;
             x ~= ps;
             wafoms ~= ps.wafom;
+            tvalues ~= ps.t;
         }
-        topN(wafoms, ts.length + 1);
-        //writeln(wafoms.length);
-        //writeln(ts.length);
-        assert (wafoms[ts.length-1] < wafoms[ts.length]);
+        sort(tvalues);
+        sort(wafoms);
+        ulong current_t = 0;
+        ulong[] thresholdt;
+        double[] thresholdw;
+        foreach (i; 0..x.length)
+        {
+            if (current_t < tvalues[i])
+            {
+                current_t = tvalues[i];
+                thresholdt ~= tvalues[i];
+                thresholdw ~= wafoms[i];
+            }
+        }
+        thresholdt ~= tvalues[$ - 1] + 1;
+        thresholdw ~= wafoms[$ - 1] * 2;
+        DigitalNet[][] ts, ws;
+        ts.length = thresholdt.length;
+        ws.length = thresholdw.length;
         foreach (ps; x)
-            if (ps.wafom < wafoms[ts.length])
-                ws ~= ps;
-        // compare performance of ts and ws
-        manytest("t-small", ts);
-        manytest("wafom-small", ws);
+        {
+            foreach (i, t; thresholdt)
+            {
+                if (ps.t < t)
+                {
+                    ts[i] ~= ps;
+                    break;
+                }
+            }
+            foreach (i, w; thresholdw)
+            {
+                if (ps.wafom < w)
+                {
+                    ws[i] ~= ps;
+                    break;
+                }
+            }
+        }
+        foreach (l; ts)
+        {
+            stderr.write(l.length, ", ");
+        }
+        stderr.writeln();
+        foreach (l; ws)
+        {
+            stderr.write(l.length, ", ");
+        }
+        foreach (i; 1..thresholdw.length)
+        {
+            manytest("t-small", ts[i]);
+            manytest("wafom-small", ws[i]);
+        }
     }
 }
 import pointset : lineToBP, DigitalNet, lesst, lessw;
