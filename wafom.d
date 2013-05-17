@@ -23,7 +23,7 @@ Using double, precision > 54 means factor = 1.
 double wafom(R)(R P)
 {
     double ret = 0;
-    debug (speedup) auto f = factors(P.precision);
+    debug (speedup) auto f = factors(P.precision, 2);
     foreach (B; P)
     {
         double cur = 1;
@@ -41,6 +41,36 @@ double wafom(R)(R P)
         ret += cur;
     }
     return (ret / P.length) - 1;
+}
+
+double mswafom(R)(R P)
+{
+    import std.math : sqrt;
+    double ret = 0;
+    auto f = factors(P.precision, 4);
+    foreach (B; P)
+    {
+        double cur = 1;
+        foreach (l; B)
+        {
+            foreach (j, c; f)
+            {
+                cur *= c[(l >> j) & 1];
+            }
+        }
+        ret += cur;
+    }
+    return sqrt((ret / P.length) - 1);
+}
+
+unittest
+{
+    import pointset : randomPoints;
+    foreach (i; 0..10)
+    {
+        auto P = randomPoints(4, 32, 12);
+        debug "wafom = %.15f; mswfm = %.15f".writefln(P.save.wafom(), P.mswafom());
+    }    
 }
 
 
@@ -79,15 +109,16 @@ double[256][64] get_memo()
 }
 
 
-double[2][] _factors(size_t precision)
+double[2][] _factors(size_t precision, size_t base = 2)
 {
     auto ret = new double[2][precision];
+    double recip = 1.0 / base;
     foreach (i; 0..2)
     {
-        ret[$-1][i] = 0.5;
+        ret[$-1][i] = recip;
         foreach_reverse (j; 1..precision)
         {
-            ret[j-1][i] = ret[j][i] * 0.5;
+            ret[j-1][i] = ret[j][i] * recip;
         }
     }
     foreach (j; 0..precision)
@@ -103,7 +134,7 @@ alias memoize!_factors factors;
 debug unittest
 {
     "factors(64) = ".writeln();
-    foreach (x; factors(64))
+    foreach (x; factors(64, 2))
     {
         if (x[0] == 1.0 && x[1] == 1.0)
         {
