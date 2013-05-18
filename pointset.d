@@ -211,7 +211,7 @@ body
     return (ret << 32) ^ uniform(0UL, 1UL << 32UL);
 }
 
-private ulong[][] random_basis(size_t dimension, size_t precision, size_t lg_length)
+ulong[][] random_basis(size_t dimension, size_t precision, size_t lg_length)
 in
 {
     assert (precision <= 64);

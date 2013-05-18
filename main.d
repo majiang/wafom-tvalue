@@ -121,10 +121,19 @@ void main()
         {
             stderr.write(l.length, ", ");
         }
+        stderr.writeln();
         foreach (i; 1..thresholdw.length)
         {
-            manytest("t-small", ts[i]);
-            manytest("wafom-small", ws[i]);
+            if (ts[i].length > 100)
+            {
+                ts[i] = ts[i][0..100];
+                ws[i] = ws[i][0..100];
+            }
+            writeln("t-ordered");
+            shifttest(ts[i]);
+            writeln("wafom-ordered");
+            shifttest(ws[i]);
+            if (i == 2) break;
         }
     }
 }
@@ -183,5 +192,52 @@ version (test_funx)
         pss.test_one!(ra3);
         pss.test_one!(hmo);
         pss.test_one!(hme);
+    }
+    import pointset : shift, random_basis;
+    import std.typecons : Tuple;
+    void shifttest(DigitalNet[] pss)
+    {
+        auto shifter = random_basis(1000, 32, 4);
+        stderr.writeln(shifter.length);
+        assert (pss.length);
+        foreach (ps; pss)
+        {
+            ps.shifted!hel(shifter).toString.write(",,");
+            ps.shifted!s01(shifter).toString.write(",,");
+            ps.shifted!s94(shifter).toString.write(",,");
+            ps.shifted!own(shifter).toString.write(",,");
+            ps.shifted!ra1(shifter).toString.write(",,");
+            ps.shifted!ra2(shifter).toString.write(",,");
+            ps.shifted!ra3(shifter).toString.write(",,");
+            ps.shifted!hmo(shifter).toString.write(",,");
+            ps.shifted!hme(shifter).toString.writeln();
+        }
+    }
+    import wafom : mswafom;
+    struct Stats
+    {
+        double wafom; double ms_wafom; double ms_error; ulong t;
+        string toString()
+        {
+            return wafom.to!string()
+                ~ "," ~ ms_wafom.to!string()
+                ~ "," ~ ms_error.to!string()
+                ~ "," ~ t.to!string();
+        }
+    }
+    auto shifted(alias tf)(DigitalNet ps, ulong[][] shifter)
+    {
+        import std.math : sqrt;
+        auto bp = ps.ps.save;
+        auto mswafom = bp.save.mswafom();
+        auto wafom = ps.wafom;
+        auto t = ps.t;
+        double sse = 0;
+        foreach (s; shifter)
+        {
+            debug stderr.writeln("...");
+            sse += (integral!(tf.f)(bp.shift(s)) - tf.I) ^^ 2;
+        }
+        return Stats(wafom, mswafom, sqrt(sse / shifter.length), t);
     }
 }
