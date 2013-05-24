@@ -3,6 +3,7 @@ module pointset;
 debug import std.stdio;
 
 import std.exception : enforce;
+import std.traits : isUnsigned;
 
 import std.random : uniform;
 public import sobol : defaultSobols;
@@ -120,7 +121,7 @@ if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
     private immutable T[] shifter;
     private T[] current;
 
-    this (in immutable (T[])[] basis, in size_t precision, in T[] shifter)
+    this (immutable (T[])[] basis, in size_t precision, in T[] shifter)
     {
         this.dimensionF2 = basis.length;
         this.dimensionR = shifter.length;
@@ -134,7 +135,7 @@ if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
         this.shifter = shifter.idup;
         this.current = this.shifter.dup;
     }
-    this (in immutable (T[])[] basis, in size_t precision)
+    this (immutable (T[])[] basis, in size_t precision)
     {
         enforce(basis.length);
         this (basis, precision, new T[basis[0].length]);
@@ -161,13 +162,33 @@ if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
     {
         return 0 < basis.length;
     }
-    Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T) half()
+    Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T) bisect()
     {
         enforce(bisectable);
         return Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T)(
             ShiftedBasisPoints!T(basis[1..$], precision, shifter),
             ShiftedBasisPoints!T(basis[1..$], precision, shifter.XOR(basis[0]))
         );
+    }
+    ShiftedBasisPoints!T shift(in T[] shifter)
+    {
+        return ShiftedBasisPoints!T(basis.idup, precision, shifter);
+    }
+    ShiftedBasisPoints!T changePrecision(in size_t new_precision)
+    {
+        if (precision < new_precision)
+        {
+            // each vector shifts left
+        }
+        else if (new_precision < precision)
+        {
+            // each vector shifts right
+        }
+        else
+        {
+            return this;
+        }
+        assert (false);
     }
 }
 
@@ -187,8 +208,8 @@ if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
     return ret;
 }
 
-immutable (T[])[] randomVectors(T)(size_t precision, size_t dimensionR, size_t count)
-if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
+immutable (T[])[] randomVectors(T)(in size_t precision, in size_t dimensionR, in size_t count)
+if (isUnsigned!T)
 {
     immutable (T[])[] ret;
     foreach (i; 0..count)
@@ -199,9 +220,16 @@ if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
 unittest
 {
     auto P = ShiftedBasisPoints!ubyte(randomVectors!ubyte(6, 2, 6), 6);
+    auto S = P.bisect();
     foreach (X; P)
         X.writeln();
-    " ... SBP output".writeln();
+    " = P".writeln();
+    foreach (X; S[0])
+        X.writeln();
+    " = P.bisect()[0]".writeln();
+    foreach (X; S[1])
+        X.writeln();
+    " = P.bisect()[1]".writeln();
     readln();
 }
 
