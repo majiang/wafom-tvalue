@@ -2,6 +2,8 @@ module pointset;
 
 debug import std.stdio;
 
+import std.exception : enforce;
+
 import std.random : uniform;
 public import sobol : defaultSobols;
 import graycode;
@@ -102,6 +104,114 @@ struct BasisPoints
         }
         return BasisPoints(new_basis, this.lg_length);
     }
+}
+
+struct ShiftedBasisPoints(T)
+if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
+{
+    immutable size_t dimensionF2;
+    immutable size_t dimensionR;
+    immutable size_t precision;
+    immutable ulong length;
+    alias length opDollar;
+
+    private ulong position;
+    private immutable (T[])[] basis; /// baisis[i][j] = __j-th__ component of __v[i]__
+    private immutable T[] shifter;
+    private T[] current;
+
+    this (in immutable (T[])[] basis, in size_t precision, in T[] shifter)
+    {
+        this.dimensionF2 = basis.length;
+        this.dimensionR = shifter.length;
+        this.precision = precision;
+        this.length = 1UL << this.dimensionF2;
+
+        this.position = 0;
+        foreach (b; basis)
+            enforce(this.dimensionR == b.length);
+        this.basis = basis.idup;
+        this.shifter = shifter.idup;
+        this.current = this.shifter.dup;
+    }
+    this (in immutable (T[])[] basis, in size_t precision)
+    {
+        enforce(basis.length);
+        this (basis, precision, new T[basis[0].length]);
+    }
+
+    @property T[] front()
+    {
+        return current.dup;
+    }
+    @property bool empty()
+    {
+        return position == length;
+    }
+    void popFront()
+    {
+        enforce(!empty);
+        position += 1;
+        if (this.empty)
+            return;
+        current[] ^= basis[position.bottom_zeros()][];
+    }
+
+    @property bool bisectable()
+    {
+        return 0 < basis.length;
+    }
+    Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T) half()
+    {
+        enforce(bisectable);
+        return Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T)(
+            ShiftedBasisPoints!T(basis[1..$], precision, shifter),
+            ShiftedBasisPoints!T(basis[1..$], precision, shifter.XOR(basis[0]))
+        );
+    }
+}
+
+T[] randomVector(T)(size_t precision, size_t dimensionR)
+if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
+{
+    T[] ret;
+    foreach (i; 0..dimensionR)
+    {
+        auto x = uniform!("[]", T, T)(T.min, T.max);
+        foreach (j; precision..(x.sizeof << 3))
+        {
+            x >>= 1;
+        }
+        ret ~= x;
+    }
+    return ret;
+}
+
+immutable (T[])[] randomVectors(T)(size_t precision, size_t dimensionR, size_t count)
+if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
+{
+    immutable (T[])[] ret;
+    foreach (i; 0..count)
+        ret ~= precision.randomVector!T(dimensionR).idup;
+    return ret;
+}
+
+unittest
+{
+    auto P = ShiftedBasisPoints!ubyte(randomVectors!ubyte(6, 2, 6), 6);
+    foreach (X; P)
+        X.writeln();
+    " ... SBP output".writeln();
+    readln();
+}
+
+auto XOR(T)(in T[] x, in T[] y)
+if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
+{
+    enforce(x.length == y.length);
+    auto ret = new T[x.length];
+    ret[] = x[] ^ y[];
+    return ret.idup;
 }
 
 
