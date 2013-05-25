@@ -22,6 +22,7 @@ Using double, precision > 54 means factor = 1.
 */
 double wafom(R)(R P)
 {
+    assert (P.precision);
     double ret = 0;
     debug (speedup) auto f = factors(P.precision, 2);
     foreach (B; P)
@@ -120,6 +121,7 @@ double[256][64] get_memo()
 
 double[2][] _factors(size_t precision, size_t base = 2)
 {
+    assert (precision);
     auto ret = new double[2][precision];
     double recip = 1.0 / base;
     foreach (i; 0..2)

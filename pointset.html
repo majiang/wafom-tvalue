@@ -34,7 +34,64 @@ If 64 &lt;= dimensionF2, position and length being ulong, foreach (x; P) gives w
 <dd>baisis[i][j] = (i-th vector of <u>basis</u>)'s _j-th__ component<br><br>
 
 </dd>
+<dt><big><a name="front"></a>const T[] <u>front</u>();
+<br><a name="empty"></a>const bool <u>empty</u>();
+<br><a name="popFront"></a>void <u>popFront</u>();
+</big></dt>
+<dd>Input range primitives.<br><br>
+
+</dd>
+<dt><big><a name="bisectable"></a>const bool <u>bisectable</u>();
+</big></dt>
+<dd>bisectability<br><br>
+
+</dd>
+<dt><big><a name="bisect"></a>const PSBP <u>bisect</u>();
+</big></dt>
+<dd>Return a two-element array of ShiftedBasisPoints.
+<br><br>
+Outputs of elements joined together is equal as multiset to output of this.<br><br>
+
+</dd>
+<dt><big><a name="shift"></a>const SBP <u>shift</u>(in T[] <i>further_shifter</i>);
+</big></dt>
+<dd>ShiftedBasisPoints with its outputs digital-shifted.<br><br>
+
+</dd>
+<dt><big><a name="opBinary"></a>SBP <u>opBinary</u>(string op)(in int <i>amount</i>);
+</big></dt>
+<dd>ShiftedBasisPoints with its outputs bit-shifted.<br><br>
+
+</dd>
+<dt><big><a name="changePrecision"></a>SBP <u>changePrecision</u>(in size_t <i>new_precision</i>);
+</big></dt>
+<dd>utility for bit-shifts.<br><br>
+
+</dd>
 </dl>
+</dd>
+<dt><big><a name="randomBits"></a>T <u>randomBits</u>(T)(in size_t <i>precision</i>);
+</big></dt>
+<dd>Return a T with random lower precision bits.<br><br>
+
+</dd>
+<dt><big><a name="randomVector"></a>T[] <u>randomVector</u>(T)(in size_t <i>precision</i>, in size_t <i>dimensionR</i>);
+</big></dt>
+<dd>Return an array of length dimensionR, each element is precision.randomBits.<br><br>
+
+</dd>
+<dt><big><a name="randomVectors"></a>T[][] <u>randomVectors</u>(T)(in size_t <i>precision</i>, in size_t <i>dimensionR</i>, in size_t <i>count</i>);
+</big></dt>
+<dd>Return an array of length count, each element is precision.randomVector(dimensionR).<br><br>
+
+</dd>
+<dt><big><a name="randomBasisPoints"></a>ShiftedBasisPoints!(T) <u>randomBasisPoints</u>(T)(in size_t <i>precision</i>, in size_t <i>dimensionR</i>, in size_t <i>dimensionF2</i>, Flag!("<i>shift</i>") <i>shift</i>);
+<br><a name="nonshiftedRandomBasisPoints"></a>ShiftedBasisPoints!(T) <u>nonshiftedRandomBasisPoints</u>(T)(in size_t <i>precision</i>, in size_t <i>dimensionR</i>, in size_t <i>dimensionF2</i>);
+<br><a name="shiftedRandomBasisPoints"></a>ShiftedBasisPoints!(T) <u>shiftedRandomBasisPoints</u>(T)(in size_t <i>precision</i>, in size_t <i>dimensionR</i>, in size_t <i>dimensionF2</i>);
+<br><a name="XOR"></a>T[] <u>XOR</u>(T)(in T[] <i>x</i>, in T[] <i>y</i>);
+</big></dt>
+<dd>Utility for point set generation.<br><br>
+
 </dd>
 <dt><big><a name="randomPoints"></a>auto <u>randomPoints</u>(immutable size_t <i>dimension</i>, immutable size_t <i>precision</i>, immutable size_t <i>lg_length</i>);
 </big></dt>

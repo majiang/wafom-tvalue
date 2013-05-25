@@ -51,10 +51,15 @@ version (sbp)
         private T[] current;
 
         this (in T[][] basis, in size_t precision, in T[] shifter)
+        in
         {
-            enforce(precision <= T.sizeof << 3);
+            enforce(precision <= (T.sizeof << 3));
+        }
+        body
+        {
             this.dimensionF2 = basis.length;
             this.dimensionR = shifter.length;
+            assert (precision);
             this.precision = precision;
             this.length = 1UL << this.dimensionF2;
 
@@ -71,14 +76,17 @@ version (sbp)
             this (basis, precision, new T[basis[0].length]);
         }
 
+        /// Input range primitives.
         @property T[] front() const
         {
             return current.dup;
         }
+        /// ditto
         @property bool empty() const
         {
             return position == length;
         }
+        /// ditto
         void popFront()
         {
             enforce(!empty);
@@ -88,22 +96,36 @@ version (sbp)
             current[] ^= basis[position.bottom_zeros()][];
         }
 
+        private alias ShiftedBasisPoints!T SBP;
+
+        /// bisectability
         @property bool bisectable() const
         {
             return 0 < basis.length;
         }
-        Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T) bisect() const
+        private alias SBP[2] PSBP;
+        /** Return a two-element array of ShiftedBasisPoints.
+
+        Outputs of elements joined together is equal as multiset to output of this.*/
+        PSBP bisect() const
         {
             enforce(bisectable);
-            return Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T)
-                (ShiftedBasisPoints!T(basis[1..$], precision, shifter),
-                 ShiftedBasisPoints!T(basis[1..$], precision, shifter.XOR(basis[0])));
+            assert (precision);
+            auto former = SBP(basis[1..$], precision, shifter);
+            return [former, former.shift(basis[0])];
+            //assert (former.precision);
+            //auto ret = PSBP(former, former.shift(basis[0]));
+            //assert (ret.former.precision);
+            //return ret;
         }
-        ShiftedBasisPoints!T shift(in T[] shifter) const
+
+        /// ShiftedBasisPoints with its outputs digital-shifted.
+        SBP shift(in T[] further_shifter) const
         {
-            return ShiftedBasisPoints!T(basis, precision, this.shifter.XOR(shifter));
+            return SBP(basis, precision, shifter.XOR(further_shifter));
         }
-        ShiftedBasisPoints!T opBinary(string op)(in int amount) //const
+        /// ShiftedBasisPoints with its outputs bit-shifted.
+        SBP opBinary(string op)(in int amount) //const
         {
             if (amount == 0) return this;
             if (amount < 0)
@@ -131,7 +153,7 @@ version (sbp)
                             x = 0;
                     foreach (ref x; new_shifter)
                         x = 0;
-                    return ShiftedBasisPoints!T(new_basis, new_precision, new_shifter);
+                    return SBP(new_basis, new_precision, new_shifter);
                 }
             }
             foreach (ref l; new_basis)
@@ -149,9 +171,10 @@ version (sbp)
                 static if (op == ">>")
                     x >>= amount;
             }
-            return ShiftedBasisPoints!T(new_basis, new_precision, new_shifter);
+            return SBP(new_basis, new_precision, new_shifter);
         }
-        ShiftedBasisPoints!T changePrecision(in size_t new_precision) //const
+        /// utility for bit-shifts.
+        SBP changePrecision(in size_t new_precision) //const
         {
             if (precision < new_precision)
                 return this << (new_precision - precision);
@@ -161,6 +184,7 @@ version (sbp)
         }
     }
 
+    /// Return a T with random lower precision bits.
     T randomBits(T)(in size_t precision) if (isUnsigned!T)
     {
         enforce(precision <= T.sizeof << 3);
@@ -168,6 +192,7 @@ version (sbp)
             >> ((T.sizeof << 3) - precision);
     }
 
+    /// Return an array of length dimensionR, each element is precision.randomBits.
     T[] randomVector(T)(in size_t precision, in size_t dimensionR) if (isUnsigned!T)
     {
         T[] ret;
@@ -176,6 +201,7 @@ version (sbp)
         return ret;
     }
 
+    /// Return an array of length count, each element is precision.randomVector(dimensionR).
     T[][] randomVectors(T)(in size_t precision, in size_t dimensionR, in size_t count) if (isUnsigned!T)
     {
         T[][] ret;
@@ -184,22 +210,39 @@ version (sbp)
         return ret;
     }
 
+    /// Utility for point set generation.
+    ShiftedBasisPoints!T randomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2, Flag!"shift" shift) if (isUnsigned!T)
+    {
+        if (shift)
+            return precision.nonshiftedRandomBasisPoints(dimensionR, dimensionF2);
+        else
+            return precision.shiftedRandomBasisPoints(dimensionR, dimensionF2);
+    }
+
+    /// ditto
+    ShiftedBasisPoints!T nonshiftedRandomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2) if (isUnsigned!T)
+    {
+        return ShiftedBasisPoints!T(precision.randomVectors!T(dimensionR, dimensionF2), precision);
+    }
+
+    /// ditto
+    ShiftedBasisPoints!T shiftedRandomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2) if (isUnsigned!T)
+    {
+        return ShiftedBasisPoints!T (precision.randomVectors!T(dimensionR, dimensionF2), precision, precision.randomVector!T(dimensionR));
+    }
+
+    import wafom : wafom;
     unittest
     {
-        auto P = ShiftedBasisPoints!ubyte(randomVectors!ubyte(6, 2, 6), 6);
-        auto S = P.bisect();
-        foreach (X; P)
-            X.writeln();
-        " = P".writeln();
-        foreach (X; S[0])
-            X.writeln();
-        " = P.bisect()[0]".writeln();
-        foreach (X; S[1])
-            X.writeln();
-        " = P.bisect()[1]".writeln();
+        auto P = nonshiftedRandomBasisPoints!ubyte(6, 2, 6);
+        "P is a SBP with wafom = ".writeln(P.wafom());
+        "P.bisect[0].wafom = ".writeln(P.bisect()[0].wafom());
+        "P.bisect[1].wafom = ".writeln(P.bisect()[1].wafom());
+        "OK?".writeln();
         readln();
     }
 
+    /// ditto
     T[] XOR(T)(in T[] x, in T[] y) if (isUnsigned!T)
     {
         enforce(x.length == y.length);
@@ -433,7 +476,7 @@ body
 
 
 import std.array : split;
-import std.typecons : Tuple;
+import std.typecons : Tuple, Flag;
 import std.string : strip;
 bool lesst(DigitalNet x, DigitalNet y)
 {

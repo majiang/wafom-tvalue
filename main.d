@@ -20,8 +20,6 @@ import std.string : strip;
 version = unittest_only;
 void main()
 {
-    auto P = ShiftedBasisPoints!ubyte(randomVectors!ubyte(6, 2, 6), 6);
-    P.wafom();
     version (unittest_only)
     {
         "unittest passed!".writeln();
