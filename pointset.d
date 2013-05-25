@@ -262,15 +262,6 @@ auto randomPoints(immutable size_t dimension, immutable size_t precision, immuta
     return BasisPoints(dimension.random_basis(precision, lg_length), precision);
 }
 
-debug (none) unittest
-{
-    foreach (x; randomPoints(3, 10, 4))
-    {
-        x.writeln();
-    }
-    "Press Enter to continue:".writeln();
-    readln();
-}
 
 /** Input Range for point set.
 
@@ -354,7 +345,6 @@ struct BasisPoints
 }
 
 
-
 auto shift(R)(R P, ulong[] x)
 {
     struct Result
@@ -396,42 +386,6 @@ debug unittest
     readln();
 }
 
-version (none) auto truncate(R)(R P)
-{
-    struct Result
-    {
-        R inner = P.save;
-        alias inner this;
-
-    }
-}
-
-
-/// BasisPoints.truncatePrecision for general point sets which support lg_length and precision.
-auto truncatePrecision(R)(R P)
-{
-    static if (is (R == BasisPoints))
-    {
-        return P.truncatePrecision();
-    }
-    else
-    {
-        //struct Result
-        //{
-        //    R P;
-        //    alias P this;
-        //    auto front()
-        //    {
-        //        auto ret = P.front().dup();
-        //        foreach (i; 0..ret.length)
-        //        {
-        //            ret[i] >>= P.precision - P.lg_length;
-        //        }
-        //        return ret;
-        //    }
-        //}
-    }
-}
 
 ulong[] random_vector(size_t count, size_t precision)
 {
@@ -478,14 +432,6 @@ body
 import std.array : split;
 import std.typecons : Tuple, Flag;
 import std.string : strip;
-bool lesst(DigitalNet x, DigitalNet y)
-{
-    return x.t < y.t;
-}
-bool lessw(DigitalNet x, DigitalNet y)
-{
-    return x.wafom < y.wafom;
-}
 struct DigitalNet
 {
     BasisPoints ps;
@@ -533,13 +479,13 @@ size_t guess_precision(ulong[][] basis)
     return precision;
 }
 
-debug (lineToBP) unittest
+debug unittest
 {
     auto c = 0;
     foreach (x; "5,0.002124192556608,5.236969948020973,,2600265188,692020818,1829963221,894032275,1090497089,651123054,2898340559,1909687544,843513215,1542217271,39519261,3977641622,,2144888475,2941401343,1387697674,1986117176,3702571292,2647056038,3871827325,2263216594,3008901273,4224148358,3048652205,3799831373,,737302895,1233368001,1654098828,2764743171,239054234,249267380,1039474368,3378013260,2468295934,902812364,993745693,2410603677,,3726908047,3018079636,1719761848,2421945980,8259646,1793582138,3611200899,137680621,2493595579,2004711502,1809926346,2378246536\n".
         lineToBP().ps)
     {
-        "%s".writefln(x);
+        debug (lineToBP) "%s".writefln(x);
         c += 1;
     }
     "unittest passed with %d elements".writefln(c);

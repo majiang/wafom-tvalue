@@ -137,7 +137,7 @@ void main()
         }
     }
 }
-import pointset : lineToBP, DigitalNet, lesst, lessw;
+import pointset : lineToBP, DigitalNet;
 
 
 void write_performance(R)(R P)
