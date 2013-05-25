@@ -3,7 +3,7 @@ module main;
 import tvalue : tvalue;
 import wafom : wafom;
 import sobol : defaultSobols;
-import pointset : randomPoints;
+import pointset : randomPoints, ShiftedBasisPoints, randomVectors;
 
 import integral : integral;
 import asianoption : default_integrand;
@@ -17,9 +17,11 @@ import std.stdio;
 import std.conv : to;
 import std.string : strip;
 
-version = test_funx;
+version = unittest_only;
 void main()
 {
+    auto P = ShiftedBasisPoints!ubyte(randomVectors!ubyte(6, 2, 6), 6);
+    P.wafom();
     version (unittest_only)
     {
         "unittest passed!".writeln();

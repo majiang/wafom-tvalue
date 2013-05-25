@@ -40,7 +40,16 @@ double wafom(R)(R P)
         debug (speedup) assert (diff * diff < 1e-10);
         ret += cur;
     }
-    return (ret / P.length) - 1;
+    static if (__traits(hasMember, R, "dimensionF2"))
+    {
+        foreach (i; 0..P.dimensionF2)
+            ret *= 0.5;
+        return ret - 1;
+    }
+    else
+    {
+        return (ret / P.length) - 1;
+    }
 }
 
 double mswafom(R)(R P)

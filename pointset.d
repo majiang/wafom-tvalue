@@ -4,10 +4,213 @@ debug import std.stdio;
 
 import std.exception : enforce;
 import std.traits : isUnsigned;
+import std.algorithm : min;
 
 import std.random : uniform;
 public import sobol : defaultSobols;
 import graycode;
+import std.conv : to;
+
+/** Test whether the type has method bisect.
+
+A point-set type T is Bisectable if it has bisect method and bisectable property.
+*/
+template Bisectable(T)
+{
+    enum Bisectable = __traits(hasMember, T, "bisect") && __traits(hasMember, T, "bisectable");
+}
+
+version = sbp;
+version (sbp)
+{
+    /** Digital Shifted Net over F_2.
+    
+    Bugs:
+    If 64 <= dimensionF2, position and length being ulong, foreach (x; P) gives wrong output for p.  Always bisect in such cases, though it's rare in practice.
+    Examples:
+    -----
+    // create non-shifted digital net
+    auto P = ShiftedBasisPoints(randomVectors!uint(precision, dimensionR, dimensionF2), precision);
+    assert (P.dimensionF2 == dimensionF2);
+    assert (P.dimensionR == dimensionR);
+    assert (P.precision == precision);
+    foreach (j; P.popFront) assert (j == 0);
+    foreach (x; P) assert (x.length == dimensionR);
+    -----
+    */
+    struct ShiftedBasisPoints(T) if (isUnsigned!T)
+    {
+        immutable size_t dimensionF2;
+        immutable size_t dimensionR;
+        immutable size_t precision;
+        immutable ulong length;
+
+        private ulong position;
+        private const T[][] basis; /// baisis[i][j] = (i-th vector of basis)'s __j-th__ component
+        private const T[] shifter;
+        private T[] current;
+
+        this (in T[][] basis, in size_t precision, in T[] shifter)
+        {
+            enforce(precision <= T.sizeof << 3);
+            this.dimensionF2 = basis.length;
+            this.dimensionR = shifter.length;
+            this.precision = precision;
+            this.length = 1UL << this.dimensionF2;
+
+            this.position = 0;
+            foreach (b; basis)
+                enforce(this.dimensionR == b.length);
+            this.basis = basis;
+            this.shifter = shifter;
+            this.current = this.shifter.dup;
+        }
+        this (in T[][] basis, in size_t precision)
+        {
+            enforce(basis.length);
+            this (basis, precision, new T[basis[0].length]);
+        }
+
+        @property T[] front() const
+        {
+            return current.dup;
+        }
+        @property bool empty() const
+        {
+            return position == length;
+        }
+        void popFront()
+        {
+            enforce(!empty);
+            position += 1;
+            if (this.empty)
+                return;
+            current[] ^= basis[position.bottom_zeros()][];
+        }
+
+        @property bool bisectable() const
+        {
+            return 0 < basis.length;
+        }
+        Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T) bisect() const
+        {
+            enforce(bisectable);
+            return Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T)
+                (ShiftedBasisPoints!T(basis[1..$], precision, shifter),
+                 ShiftedBasisPoints!T(basis[1..$], precision, shifter.XOR(basis[0])));
+        }
+        ShiftedBasisPoints!T shift(in T[] shifter) const
+        {
+            return ShiftedBasisPoints!T(basis, precision, this.shifter.XOR(shifter));
+        }
+        ShiftedBasisPoints!T opBinary(string op)(in int amount) //const
+        {
+            if (amount == 0) return this;
+            if (amount < 0)
+            {
+                static if (op == "<<") return this >> -amount;
+                static if (op == ">>") return this << -amount;
+            }
+            auto new_basis = new T[][dimensionF2];
+            foreach (i; 0..dimensionF2)
+               new_basis[i] = basis[i].to!(T[]);
+            
+            size_t new_precision = precision;
+            static if (op == "<<") new_precision += amount;
+            static if (op == ">>") new_precision -= amount.min(precision);
+            auto new_shifter = shifter.to!(T[]);
+
+            static if (op == "<<")
+                enforce(new_precision <= T.sizeof << 3, "overflow: ShiftedBasisPoints <<");
+            static if (op == ">>")
+            {
+                if (new_precision == 0)
+                {
+                    foreach (ref l; new_basis)
+                        foreach (ref x; l)
+                            x = 0;
+                    foreach (ref x; new_shifter)
+                        x = 0;
+                    return ShiftedBasisPoints!T(new_basis, new_precision, new_shifter);
+                }
+            }
+            foreach (ref l; new_basis)
+                foreach (ref x; l)
+                {
+                    static if (op == "<<")
+                        x <<= amount;
+                    static if (op == ">>")
+                        x >>= amount;
+                }
+            foreach (ref x; new_shifter)
+            {
+                static if (op == "<<")
+                    x <<= amount;
+                static if (op == ">>")
+                    x >>= amount;
+            }
+            return ShiftedBasisPoints!T(new_basis, new_precision, new_shifter);
+        }
+        ShiftedBasisPoints!T changePrecision(in size_t new_precision) //const
+        {
+            if (precision < new_precision)
+                return this << (new_precision - precision);
+            if (new_precision < precision)
+                return this >> (precision - new_precision);
+            return this;
+        }
+    }
+
+    T randomBits(T)(in size_t precision) if (isUnsigned!T)
+    {
+        enforce(precision <= T.sizeof << 3);
+        return uniform!("[]", T, T)(T.min, T.max)
+            >> ((T.sizeof << 3) - precision);
+    }
+
+    T[] randomVector(T)(in size_t precision, in size_t dimensionR) if (isUnsigned!T)
+    {
+        T[] ret;
+        foreach (i; 0..dimensionR)
+            ret ~= precision.randomBits!T;
+        return ret;
+    }
+
+    T[][] randomVectors(T)(in size_t precision, in size_t dimensionR, in size_t count) if (isUnsigned!T)
+    {
+        T[][] ret;
+        foreach (i; 0..count)
+            ret ~= precision.randomVector!T(dimensionR);
+        return ret;
+    }
+
+    unittest
+    {
+        auto P = ShiftedBasisPoints!ubyte(randomVectors!ubyte(6, 2, 6), 6);
+        auto S = P.bisect();
+        foreach (X; P)
+            X.writeln();
+        " = P".writeln();
+        foreach (X; S[0])
+            X.writeln();
+        " = P.bisect()[0]".writeln();
+        foreach (X; S[1])
+            X.writeln();
+        " = P.bisect()[1]".writeln();
+        readln();
+    }
+
+    T[] XOR(T)(in T[] x, in T[] y) if (isUnsigned!T)
+    {
+        enforce(x.length == y.length);
+        T[] ret = new T[x.length];
+        ret[] = x[] ^ y[];
+        return ret;
+    }
+}
+else
+{
+}
 
 /** Generate a point set of dimension, precision and lg(length) specified by choosing its basis randomly.
 */
@@ -107,140 +310,6 @@ struct BasisPoints
     }
 }
 
-struct ShiftedBasisPoints(T)
-if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
-{
-    immutable size_t dimensionF2;
-    immutable size_t dimensionR;
-    immutable size_t precision;
-    immutable ulong length;
-    alias length opDollar;
-
-    private ulong position;
-    private immutable (T[])[] basis; /// baisis[i][j] = __j-th__ component of __v[i]__
-    private immutable T[] shifter;
-    private T[] current;
-
-    this (immutable (T[])[] basis, in size_t precision, in T[] shifter)
-    {
-        this.dimensionF2 = basis.length;
-        this.dimensionR = shifter.length;
-        this.precision = precision;
-        this.length = 1UL << this.dimensionF2;
-
-        this.position = 0;
-        foreach (b; basis)
-            enforce(this.dimensionR == b.length);
-        this.basis = basis.idup;
-        this.shifter = shifter.idup;
-        this.current = this.shifter.dup;
-    }
-    this (immutable (T[])[] basis, in size_t precision)
-    {
-        enforce(basis.length);
-        this (basis, precision, new T[basis[0].length]);
-    }
-
-    @property T[] front()
-    {
-        return current.dup;
-    }
-    @property bool empty()
-    {
-        return position == length;
-    }
-    void popFront()
-    {
-        enforce(!empty);
-        position += 1;
-        if (this.empty)
-            return;
-        current[] ^= basis[position.bottom_zeros()][];
-    }
-
-    @property bool bisectable()
-    {
-        return 0 < basis.length;
-    }
-    Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T) bisect()
-    {
-        enforce(bisectable);
-        return Tuple!(ShiftedBasisPoints!T, ShiftedBasisPoints!T)(
-            ShiftedBasisPoints!T(basis[1..$], precision, shifter),
-            ShiftedBasisPoints!T(basis[1..$], precision, shifter.XOR(basis[0]))
-        );
-    }
-    ShiftedBasisPoints!T shift(in T[] shifter)
-    {
-        return ShiftedBasisPoints!T(basis.idup, precision, shifter);
-    }
-    ShiftedBasisPoints!T changePrecision(in size_t new_precision)
-    {
-        if (precision < new_precision)
-        {
-            // each vector shifts left
-        }
-        else if (new_precision < precision)
-        {
-            // each vector shifts right
-        }
-        else
-        {
-            return this;
-        }
-        assert (false);
-    }
-}
-
-T[] randomVector(T)(size_t precision, size_t dimensionR)
-if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
-{
-    T[] ret;
-    foreach (i; 0..dimensionR)
-    {
-        auto x = uniform!("[]", T, T)(T.min, T.max);
-        foreach (j; precision..(x.sizeof << 3))
-        {
-            x >>= 1;
-        }
-        ret ~= x;
-    }
-    return ret;
-}
-
-immutable (T[])[] randomVectors(T)(in size_t precision, in size_t dimensionR, in size_t count)
-if (isUnsigned!T)
-{
-    immutable (T[])[] ret;
-    foreach (i; 0..count)
-        ret ~= precision.randomVector!T(dimensionR).idup;
-    return ret;
-}
-
-unittest
-{
-    auto P = ShiftedBasisPoints!ubyte(randomVectors!ubyte(6, 2, 6), 6);
-    auto S = P.bisect();
-    foreach (X; P)
-        X.writeln();
-    " = P".writeln();
-    foreach (X; S[0])
-        X.writeln();
-    " = P.bisect()[0]".writeln();
-    foreach (X; S[1])
-        X.writeln();
-    " = P.bisect()[1]".writeln();
-    readln();
-}
-
-auto XOR(T)(in T[] x, in T[] y)
-if (is (T == ubyte) || is (T == ushort) || is (T == uint) || is (T == ulong))
-{
-    enforce(x.length == y.length);
-    auto ret = new T[x.length];
-    ret[] = x[] ^ y[];
-    return ret.idup;
-}
 
 
 auto shift(R)(R P, ulong[] x)
@@ -364,7 +433,6 @@ body
 
 
 import std.array : split;
-import std.conv : to;
 import std.typecons : Tuple;
 import std.string : strip;
 bool lesst(DigitalNet x, DigitalNet y)
