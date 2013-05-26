@@ -17,7 +17,7 @@ import std.stdio;
 import std.conv : to;
 import std.string : strip;
 
-version = unittest_only;
+version = test_funx;
 void main()
 {
     version (unittest_only)
@@ -64,7 +64,7 @@ void main()
     }
     version (test_funx)
     {
-        DigitalNet[] x;
+        DigitalNet!ulong[] x;
         double[] wafoms;
         ulong[] tvalues;
         foreach (line; stdin.byLine())
@@ -90,7 +90,7 @@ void main()
         }
         thresholdt ~= tvalues[$ - 1] + 1;
         thresholdw ~= wafoms[$ - 1] * 2;
-        DigitalNet[][] ts, ws;
+        DigitalNet!ulong[][] ts, ws;
         ts.length = thresholdt.length;
         ws.length = thresholdw.length;
         foreach (ps; x)
@@ -137,7 +137,7 @@ void main()
         }
     }
 }
-//import pointset : lineToBP, DigitalNet;
+import pointset : lineToBP, DigitalNet;
 
 
 void write_performance(R)(R P)
@@ -172,15 +172,14 @@ version (test_funx)
     alias RooArnold3!4 ra3;
     alias Hamukazu!(5, 7, 11, 13) hmo;
     alias Hamukazu!(8, 8, 8, 8) hme;
-    import pointset : BasisPoints;
 
-    void test_one(alias tf)(DigitalNet[] pss)
+    void test_one(alias tf)(DigitalNet!ulong[] pss)
     {
         foreach (ps; pss)
-            write(integral!(tf.f, BasisPoints)(ps.ps) - tf.I, ",");
+            write(integral!(tf.f, ulong, ShiftedBasisPoints!ulong)(ps.ps) - tf.I, ",");
         writeln();
     }
-    void manytest(string header, DigitalNet[] pss)
+    void manytest(string header, DigitalNet!ulong[] pss)
     {
         header.writeln();
         pss.test_one!(hel);
@@ -193,11 +192,10 @@ version (test_funx)
         pss.test_one!(hmo);
         pss.test_one!(hme);
     }
-    import pointset : shift, random_basis;
     import std.typecons : Tuple;
-    void shifttest(DigitalNet[] pss)
+    void shifttest(DigitalNet!ulong[] pss)
     {
-        auto shifter = random_basis(1000, 32, 4);
+        auto shifter = randomVectors!ulong(32, 4, 10);
         stderr.writeln(shifter.length);
         assert (pss.length);
         foreach (ps; pss)
@@ -225,18 +223,18 @@ version (test_funx)
                 ~ "," ~ t.to!string();
         }
     }
-    auto shifted(alias tf)(DigitalNet ps, ulong[][] shifter)
+    auto shifted(alias tf)(DigitalNet!ulong ps, ulong[][] shifter)
     {
         import std.math : sqrt;
-        auto bp = ps.ps.save;
-        auto mswafom = bp.save.mswafom();
+        auto bp = ps.ps;
+        auto mswafom = bp.mswafom();
         auto wafom = ps.wafom;
         auto t = ps.t;
         double sse = 0;
         foreach (s; shifter)
         {
             debug stderr.writeln("...");
-            sse += (integral!(tf.f)(bp.shift(s)) - tf.I) ^^ 2;
+            sse += (integral!(tf.f, ulong)(bp.shift(s)) - tf.I) ^^ 2;
         }
         return Stats(wafom, mswafom, sqrt(sse / shifter.length), t);
     }

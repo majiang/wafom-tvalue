@@ -267,19 +267,18 @@ ShiftedBasisPoints!ulong transposedBasisPoints(in ulong[][] basis, in size_t pre
     return ShiftedBasisPoints!ulong(new_basis, precision);
 }
 
-version (old)
-{
+
 import std.array : split;
 import std.typecons : Tuple, Flag;
 import std.string : strip;
-struct DigitalNet
+struct DigitalNet(T)
 {
-    BasisPoints ps;
+    ShiftedBasisPoints!T ps;
     double wafom;
     ulong t;
 }
 
-DigitalNet lineToBP(string line)
+DigitalNet!ulong lineToBP(string line, size_t precision = size_t.max)
 {
     ulong[][] basis;
     double wafom;
@@ -300,7 +299,7 @@ DigitalNet lineToBP(string line)
         }
     }
     assert (basis.length);
-    return DigitalNet(BasisPoints(basis, basis.guess_precision()), wafom, t);
+    return DigitalNet!ulong(transposedBasisPoints(basis, precision = size_t.max ? basis.guess_precision() : precision), wafom, t);
 }
 
 import std.algorithm : max;
@@ -329,7 +328,6 @@ debug unittest
         c += 1;
     }
     "unittest passed with %d elements".writefln(c);
-}
 }
 
 debug unittest
