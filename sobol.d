@@ -1,7 +1,6 @@
 module sobol;
 
 debug import std.stdio;
-//import graycode : bottom_zeros;
 import pointset : transposedBasisPoints;
 
 auto defaultSobols(immutable size_t dimension, immutable size_t precision, immutable size_t lg_length)

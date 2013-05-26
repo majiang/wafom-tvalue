@@ -79,9 +79,8 @@ unittest
     foreach (i; 0..10)
     {
         auto P = randomPoints!uint(4, 32, 10);
-        debug "wafom = %.15f".writefln(P.wafom());
-        //debug "wafom = %.15f; mswfm = %.15f".writefln(P.save.wafom(), P.mswafom());
-    }    
+        debug "wafom = %.15f; mswfm = %.15f".writefln(P.wafom(), P.mswafom());
+    }
 }
 
 
@@ -147,14 +146,6 @@ debug unittest
 {
     "factors(64) = ".writeln();
     foreach (x; factors(64, 2))
-    {
-        if (x[0] == 1.0 && x[1] == 1.0)
-        {
-            // pass
-        }
-        else
-        {
+        if (!(x[0] == 1.0 && x[1] == 1.0))
             x.writeln();
-        }
-    }
 }
