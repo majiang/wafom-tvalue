@@ -20,9 +20,6 @@ template Bisectable(T)
     enum Bisectable = __traits(hasMember, T, "bisect") && __traits(hasMember, T, "bisectable");
 }
 
-version = sbp;
-version (sbp)
-{
     /** Digital Shifted Net over F_2.
     
     Bugs:
@@ -269,8 +266,8 @@ version (sbp)
         }
         return ShiftedBasisPoints!ulong(new_basis, precision);
     }
-}
-else
+
+version (old)
 {
 import std.array : split;
 import std.typecons : Tuple, Flag;
