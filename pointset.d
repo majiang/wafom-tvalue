@@ -20,252 +20,252 @@ template Bisectable(T)
     enum Bisectable = __traits(hasMember, T, "bisect") && __traits(hasMember, T, "bisectable");
 }
 
-    /** Digital Shifted Net over F_2.
-    
-    Bugs:
-    If 64 <= dimensionF2, position and length being ulong, foreach (x; P) gives wrong output for p.  Always bisect in such cases, though it's rare in practice.
-    Examples:
-    -----
-    // create non-shifted digital net
-    auto P = ShiftedBasisPoints(randomVectors!uint(precision, dimensionR, dimensionF2), precision);
-    assert (P.dimensionF2 == dimensionF2);
-    assert (P.dimensionR == dimensionR);
-    assert (P.precision == precision);
-    foreach (j; P.popFront) assert (j == 0);
-    foreach (x; P) assert (x.length == dimensionR);
-    -----
-    */
-    struct ShiftedBasisPoints(T) if (isUnsigned!T)
+/** Digital Shifted Net over F_2.
+
+Bugs:
+If 64 <= dimensionF2, position and length being ulong, foreach (x; P) gives wrong output for p.  Always bisect in such cases, though it's rare in practice.
+Examples:
+-----
+// create non-shifted digital net
+auto P = ShiftedBasisPoints(randomVectors!uint(precision, dimensionR, dimensionF2), precision);
+assert (P.dimensionF2 == dimensionF2);
+assert (P.dimensionR == dimensionR);
+assert (P.precision == precision);
+foreach (j; P.popFront) assert (j == 0);
+foreach (x; P) assert (x.length == dimensionR);
+-----
+*/
+struct ShiftedBasisPoints(T) if (isUnsigned!T)
+{
+    immutable size_t dimensionF2;
+    immutable size_t dimensionR;
+    immutable size_t precision;
+    immutable ulong length;
+
+    private ulong position;
+    private const T[][] basis; /// baisis[i][j] = (i-th vector of basis)'s __j-th__ component
+    private const T[] shifter;
+    private T[] current;
+
+    this (in T[][] basis, in size_t precision, in T[] shifter)
+    in
     {
-        immutable size_t dimensionF2;
-        immutable size_t dimensionR;
-        immutable size_t precision;
-        immutable ulong length;
+        enforce(precision <= (T.sizeof << 3));
+    }
+    body
+    {
+        this.dimensionF2 = basis.length;
+        this.dimensionR = shifter.length;
+        assert (precision);
+        this.precision = precision;
+        this.length = 1UL << this.dimensionF2;
 
-        private ulong position;
-        private const T[][] basis; /// baisis[i][j] = (i-th vector of basis)'s __j-th__ component
-        private const T[] shifter;
-        private T[] current;
+        this.position = 0;
+        foreach (b; basis)
+            enforce(this.dimensionR == b.length);
+        this.basis = basis;
+        this.shifter = shifter;
+        this.current = this.shifter.dup;
+    }
+    this (in T[][] basis, in size_t precision)
+    {
+        enforce(basis.length);
+        this (basis, precision, new T[basis[0].length]);
+    }
 
-        this (in T[][] basis, in size_t precision, in T[] shifter)
-        in
-        {
-            enforce(precision <= (T.sizeof << 3));
-        }
-        body
-        {
-            this.dimensionF2 = basis.length;
-            this.dimensionR = shifter.length;
-            assert (precision);
-            this.precision = precision;
-            this.length = 1UL << this.dimensionF2;
+    /// Input range primitives.
+    @property T[] front() const
+    {
+        return current.dup;
+    }
+    /// ditto
+    @property bool empty() const
+    {
+        return position == length;
+    }
+    /// ditto
+    void popFront()
+    {
+        enforce(!empty);
+        position += 1;
+        if (this.empty)
+            return;
+        current[] ^= basis[position.bottom_zeros()][];
+    }
 
-            this.position = 0;
-            foreach (b; basis)
-                enforce(this.dimensionR == b.length);
-            this.basis = basis;
-            this.shifter = shifter;
-            this.current = this.shifter.dup;
-        }
-        this (in T[][] basis, in size_t precision)
-        {
-            enforce(basis.length);
-            this (basis, precision, new T[basis[0].length]);
-        }
+    private alias ShiftedBasisPoints!T SBP;
 
-        /// Input range primitives.
-        @property T[] front() const
-        {
-            return current.dup;
-        }
-        /// ditto
-        @property bool empty() const
-        {
-            return position == length;
-        }
-        /// ditto
-        void popFront()
-        {
-            enforce(!empty);
-            position += 1;
-            if (this.empty)
-                return;
-            current[] ^= basis[position.bottom_zeros()][];
-        }
+    /// bisectability
+    @property bool bisectable() const
+    {
+        return 0 < basis.length;
+    }
+    private alias SBP[2] PSBP;
+    /** Return a two-element array of ShiftedBasisPoints.
 
-        private alias ShiftedBasisPoints!T SBP;
+    Outputs of elements joined together is equal as multiset to output of this.*/
+    PSBP bisect() const
+    {
+        enforce(bisectable);
+        assert (precision);
+        auto former = SBP(basis[1..$], precision, shifter);
+        return [former, former.shift(basis[0])];
+        //assert (former.precision);
+        //auto ret = PSBP(former, former.shift(basis[0]));
+        //assert (ret.former.precision);
+        //return ret;
+    }
 
-        /// bisectability
-        @property bool bisectable() const
+    /// ShiftedBasisPoints with its outputs digital-shifted.
+    SBP shift(in T[] further_shifter) const
+    {
+        return SBP(basis, precision, shifter.XOR(further_shifter));
+    }
+    /// ShiftedBasisPoints with its outputs bit-shifted.
+    SBP opBinary(string op)(in int amount) //const
+    {
+        if (amount == 0) return this;
+        if (amount < 0)
         {
-            return 0 < basis.length;
+            static if (op == "<<") return this >> -amount;
+            static if (op == ">>") return this << -amount;
         }
-        private alias SBP[2] PSBP;
-        /** Return a two-element array of ShiftedBasisPoints.
+        auto new_basis = new T[][dimensionF2];
+        foreach (i; 0..dimensionF2)
+            new_basis[i] = basis[i].to!(T[]);
 
-        Outputs of elements joined together is equal as multiset to output of this.*/
-        PSBP bisect() const
-        {
-            enforce(bisectable);
-            assert (precision);
-            auto former = SBP(basis[1..$], precision, shifter);
-            return [former, former.shift(basis[0])];
-            //assert (former.precision);
-            //auto ret = PSBP(former, former.shift(basis[0]));
-            //assert (ret.former.precision);
-            //return ret;
-        }
+        size_t new_precision = precision;
+        static if (op == "<<") new_precision += amount;
+        static if (op == ">>") new_precision -= amount.min(precision);
+        auto new_shifter = shifter.to!(T[]);
 
-        /// ShiftedBasisPoints with its outputs digital-shifted.
-        SBP shift(in T[] further_shifter) const
+        static if (op == "<<")
+            enforce(new_precision <= T.sizeof << 3, "overflow: ShiftedBasisPoints <<");
+        static if (op == ">>")
         {
-            return SBP(basis, precision, shifter.XOR(further_shifter));
-        }
-        /// ShiftedBasisPoints with its outputs bit-shifted.
-        SBP opBinary(string op)(in int amount) //const
-        {
-            if (amount == 0) return this;
-            if (amount < 0)
+            if (new_precision == 0)
             {
-                static if (op == "<<") return this >> -amount;
-                static if (op == ">>") return this << -amount;
-            }
-            auto new_basis = new T[][dimensionF2];
-            foreach (i; 0..dimensionF2)
-               new_basis[i] = basis[i].to!(T[]);
-            
-            size_t new_precision = precision;
-            static if (op == "<<") new_precision += amount;
-            static if (op == ">>") new_precision -= amount.min(precision);
-            auto new_shifter = shifter.to!(T[]);
-
-            static if (op == "<<")
-                enforce(new_precision <= T.sizeof << 3, "overflow: ShiftedBasisPoints <<");
-            static if (op == ">>")
-            {
-                if (new_precision == 0)
-                {
-                    foreach (ref l; new_basis)
-                        foreach (ref x; l)
-                            x = 0;
-                    foreach (ref x; new_shifter)
+                foreach (ref l; new_basis)
+                    foreach (ref x; l)
                         x = 0;
-                    return SBP(new_basis, new_precision, new_shifter);
-                }
+                foreach (ref x; new_shifter)
+                    x = 0;
+                return SBP(new_basis, new_precision, new_shifter);
             }
-            foreach (ref l; new_basis)
-                foreach (ref x; l)
-                {
-                    static if (op == "<<")
-                        x <<= amount;
-                    static if (op == ">>")
-                        x >>= amount;
-                }
-            foreach (ref x; new_shifter)
+        }
+        foreach (ref l; new_basis)
+            foreach (ref x; l)
             {
                 static if (op == "<<")
                     x <<= amount;
                 static if (op == ">>")
                     x >>= amount;
             }
-            return SBP(new_basis, new_precision, new_shifter);
-        }
-        /// utility for bit-shifts.
-        SBP changePrecision(in size_t new_precision) //const
+        foreach (ref x; new_shifter)
         {
-            if (precision < new_precision)
-                return this << (new_precision - precision);
-            if (new_precision < precision)
-                return this >> (precision - new_precision);
-            return this;
+            static if (op == "<<")
+                x <<= amount;
+            static if (op == ">>")
+                x >>= amount;
         }
+        return SBP(new_basis, new_precision, new_shifter);
     }
+    /// utility for bit-shifts.
+    SBP changePrecision(in size_t new_precision) //const
+    {
+        if (precision < new_precision)
+            return this << (new_precision - precision);
+        if (new_precision < precision)
+            return this >> (precision - new_precision);
+        return this;
+    }
+}
 
-    /// Return a T with random lower precision bits.
-    T randomBits(T)(in size_t precision) if (isUnsigned!T)
-    {
-        enforce(precision <= T.sizeof << 3);
-        return uniform!("[]", T, T)(T.min, T.max)
-            >> ((T.sizeof << 3) - precision);
-    }
+/// Return a T with random lower precision bits.
+T randomBits(T)(in size_t precision) if (isUnsigned!T)
+{
+    enforce(precision <= T.sizeof << 3);
+    return uniform!("[]", T, T)(T.min, T.max)
+        >> ((T.sizeof << 3) - precision);
+}
 
-    /// Return an array of length dimensionR, each element is precision.randomBits.
-    T[] randomVector(T)(in size_t precision, in size_t dimensionR) if (isUnsigned!T)
-    {
-        T[] ret;
-        foreach (i; 0..dimensionR)
-            ret ~= precision.randomBits!T;
-        return ret;
-    }
+/// Return an array of length dimensionR, each element is precision.randomBits.
+T[] randomVector(T)(in size_t precision, in size_t dimensionR) if (isUnsigned!T)
+{
+    T[] ret;
+    foreach (i; 0..dimensionR)
+        ret ~= precision.randomBits!T;
+    return ret;
+}
 
-    /// Return an array of length count, each element is precision.randomVector(dimensionR).
-    T[][] randomVectors(T)(in size_t precision, in size_t dimensionR, in size_t count) if (isUnsigned!T)
-    {
-        T[][] ret;
-        foreach (i; 0..count)
-            ret ~= precision.randomVector!T(dimensionR);
-        return ret;
-    }
+/// Return an array of length count, each element is precision.randomVector(dimensionR).
+T[][] randomVectors(T)(in size_t precision, in size_t dimensionR, in size_t count) if (isUnsigned!T)
+{
+    T[][] ret;
+    foreach (i; 0..count)
+        ret ~= precision.randomVector!T(dimensionR);
+    return ret;
+}
 
-    /// Utility for point set generation.
-    ShiftedBasisPoints!T randomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2, Flag!"shift" shift) if (isUnsigned!T)
-    {
-        if (shift)
-            return precision.nonshiftedRandomBasisPoints(dimensionR, dimensionF2);
-        else
-            return precision.shiftedRandomBasisPoints(dimensionR, dimensionF2);
-    }
+/// Utility for point set generation.
+ShiftedBasisPoints!T randomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2, Flag!"shift" shift) if (isUnsigned!T)
+{
+    if (shift)
+        return precision.nonshiftedRandomBasisPoints(dimensionR, dimensionF2);
+    else
+        return precision.shiftedRandomBasisPoints(dimensionR, dimensionF2);
+}
 
-    /// ditto
-    ShiftedBasisPoints!T nonshiftedRandomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2) if (isUnsigned!T)
-    {
-        return ShiftedBasisPoints!T(precision.randomVectors!T(dimensionR, dimensionF2), precision);
-    }
+/// ditto
+ShiftedBasisPoints!T nonshiftedRandomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2) if (isUnsigned!T)
+{
+    return ShiftedBasisPoints!T(precision.randomVectors!T(dimensionR, dimensionF2), precision);
+}
 
-    /// ditto
-    ShiftedBasisPoints!T shiftedRandomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2) if (isUnsigned!T)
-    {
-        return ShiftedBasisPoints!T (precision.randomVectors!T(dimensionR, dimensionF2), precision, precision.randomVector!T(dimensionR));
-    }
+/// ditto
+ShiftedBasisPoints!T shiftedRandomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2) if (isUnsigned!T)
+{
+    return ShiftedBasisPoints!T (precision.randomVectors!T(dimensionR, dimensionF2), precision, precision.randomVector!T(dimensionR));
+}
 
-    import wafom : wafom;
-    unittest
-    {
-        auto P = nonshiftedRandomBasisPoints!ubyte(6, 2, 6);
-        "P is a SBP with wafom = ".writeln(P.wafom());
-        "P.bisect[0].wafom = ".writeln(P.bisect()[0].wafom());
-        "P.bisect[1].wafom = ".writeln(P.bisect()[1].wafom());
-        "OK?".writeln();
-        readln();
-    }
+import wafom : wafom;
+unittest
+{
+    auto P = nonshiftedRandomBasisPoints!ubyte(6, 2, 6);
+    "P is a SBP with wafom = ".writeln(P.wafom());
+    "P.bisect[0].wafom = ".writeln(P.bisect()[0].wafom());
+    "P.bisect[1].wafom = ".writeln(P.bisect()[1].wafom());
+    "OK?".writeln();
+    readln();
+}
 
-    /// vector componentwise bitwise xor.
-    T[] XOR(T)(in T[] x, in T[] y) if (isUnsigned!T)
+/// vector componentwise bitwise xor.
+T[] XOR(T)(in T[] x, in T[] y) if (isUnsigned!T)
+{
+    enforce(x.length == y.length);
+    T[] ret = new T[x.length];
+    ret[] = x[] ^ y[];
+    return ret;
+}
+/// functions for backward compatibility.
+auto randomPoints(T)(in size_t dimensionR, in size_t precision, in size_t dimensionF2)
+{
+    return nonshiftedRandomBasisPoints!T(precision, dimensionR, dimensionF2);
+}
+/// ditto
+ShiftedBasisPoints!ulong transposedBasisPoints(in ulong[][] basis, in size_t precision)
+{
+    auto new_basis = new ulong[][basis[0].length];
+    foreach (i; 0..new_basis.length)
     {
-        enforce(x.length == y.length);
-        T[] ret = new T[x.length];
-        ret[] = x[] ^ y[];
-        return ret;
-    }
-    /// functions for backward compatibility.
-    auto randomPoints(T)(in size_t dimensionR, in size_t precision, in size_t dimensionF2)
-    {
-        return nonshiftedRandomBasisPoints!T(precision, dimensionR, dimensionF2);
-    }
-    /// ditto
-    ShiftedBasisPoints!ulong transposedBasisPoints(in ulong[][] basis, in size_t precision)
-    {
-        auto new_basis = new ulong[][basis[0].length];
-        foreach (i; 0..new_basis.length)
+        new_basis[i].length = basis.length;
+        foreach (j; 0..basis.length)
         {
-            new_basis[i].length = basis.length;
-            foreach (j; 0..basis.length)
-            {
-                new_basis[i][j] = basis[j][i];
-            }
+            new_basis[i][j] = basis[j][i];
         }
-        return ShiftedBasisPoints!ulong(new_basis, precision);
     }
+    return ShiftedBasisPoints!ulong(new_basis, precision);
+}
 
 version (old)
 {
