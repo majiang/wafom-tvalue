@@ -78,8 +78,9 @@ unittest
     import pointset : randomPoints;
     foreach (i; 0..10)
     {
-        auto P = randomPoints(4, 32, 12);
-        debug "wafom = %.15f; mswfm = %.15f".writefln(P.save.wafom(), P.mswafom());
+        auto P = randomPoints!uint(4, 32, 10);
+        debug "wafom = %.15f".writefln(P.wafom());
+        //debug "wafom = %.15f; mswfm = %.15f".writefln(P.save.wafom(), P.mswafom());
     }    
 }
 

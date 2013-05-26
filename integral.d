@@ -1,5 +1,6 @@
 import std.stdio;
-import pointset : BasisPoints;
+import std.traits : isUnsigned;
+//import pointset : BasisPoints;
 
 /** Perform integration of a function f: [0..1)<sup>s</sup> -> R by the point set P.
 
@@ -17,7 +18,7 @@ double f(double[] x)
 double result = integral!f(randomPoints(dimension, precision, lg_length));
 ----------------
 */
-double integral(alias f, R)(R P)
+double integral(alias f, T, R)(R P) if (isUnsigned!T)
 {
     double factor = 1.0 / (1UL << P.precision);
     double shift = 0.5 / (1UL << P.precision);
@@ -29,7 +30,7 @@ double integral(alias f, R)(R P)
     return result / P.length;
 }
 
-private double[] affine(ulong[] x, double factor, double shift)
+private double[] affine(T)(T[] x, double factor, double shift) if (isUnsigned!T)
 {
     auto ret = new double[x.length];
     foreach (i, c; x)

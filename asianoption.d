@@ -157,6 +157,6 @@ debug
 
     unittest
     {
-        "asian option price = ".writeln(integral!default_integrand(randomPoints(4, 20, 20)));
+        "asian option price = ".writeln(integral!(default_integrand, uint)(randomPoints!uint(4, 20, 20)));
     }
 }

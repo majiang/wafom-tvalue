@@ -2,7 +2,7 @@ module sobol;
 
 debug import std.stdio;
 //import graycode : bottom_zeros;
-import pointset : BasisPoints;
+import pointset : transposedBasisPoints;
 
 auto defaultSobols(immutable size_t dimension, immutable size_t precision, immutable size_t lg_length)
 {
@@ -93,7 +93,7 @@ auto sobols(ulong[][] direction_numbers)
     {
         _direction_numbers[i] = c.shift();
     }
-    return BasisPoints(_direction_numbers, _direction_numbers[0].length);
+    return transposedBasisPoints(_direction_numbers, _direction_numbers[0].length);
 }
 
 

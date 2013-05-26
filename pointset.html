@@ -88,28 +88,20 @@ Outputs of elements joined together is equal as multiset to output of this.<br><
 <dt><big><a name="randomBasisPoints"></a>ShiftedBasisPoints!(T) <u>randomBasisPoints</u>(T)(in size_t <i>precision</i>, in size_t <i>dimensionR</i>, in size_t <i>dimensionF2</i>, Flag!("<i>shift</i>") <i>shift</i>);
 <br><a name="nonshiftedRandomBasisPoints"></a>ShiftedBasisPoints!(T) <u>nonshiftedRandomBasisPoints</u>(T)(in size_t <i>precision</i>, in size_t <i>dimensionR</i>, in size_t <i>dimensionF2</i>);
 <br><a name="shiftedRandomBasisPoints"></a>ShiftedBasisPoints!(T) <u>shiftedRandomBasisPoints</u>(T)(in size_t <i>precision</i>, in size_t <i>dimensionR</i>, in size_t <i>dimensionF2</i>);
-<br><a name="XOR"></a>T[] <u>XOR</u>(T)(in T[] <i>x</i>, in T[] <i>y</i>);
 </big></dt>
 <dd>Utility for point set generation.<br><br>
 
 </dd>
-<dt><big><a name="randomPoints"></a>auto <u>randomPoints</u>(immutable size_t <i>dimension</i>, immutable size_t <i>precision</i>, immutable size_t <i>lg_length</i>);
+<dt><big><a name="XOR"></a>T[] <u>XOR</u>(T)(in T[] <i>x</i>, in T[] <i>y</i>);
 </big></dt>
-<dd>Generate a point set of <i>dimension</i>, <i>precision</i> and lg(length) specified by choosing its basis randomly.<br><br>
+<dd>vector componentwise bitwise xor.<br><br>
 
 </dd>
-<dt><big><a name="BasisPoints"></a>struct <u>BasisPoints</u>;
+<dt><big><a name="randomPoints"></a>auto <u>randomPoints</u>(T)(in size_t <i>dimensionR</i>, in size_t <i>precision</i>, in size_t <i>dimensionF2</i>);
+<br><a name="transposedBasisPoints"></a>ShiftedBasisPoints!(ulong) <u>transposedBasisPoints</u>(in ulong[][] <i>basis</i>, in size_t <i>precision</i>);
 </big></dt>
-<dd>Input Range for point set.
-<br><br>
-Generate linear combinations of basis using gray code algorithm.<br><br>
+<dd>functions for backward compatibility.<br><br>
 
-<dl><dt><big><a name="BasisPoints.basis"></a>ulong[][] <u>basis</u>;
-</big></dt>
-<dd>baisis[i][j] = i-th component of v[j]<br><br>
-
-</dd>
-</dl>
 </dd>
 </dl>
 

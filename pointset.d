@@ -242,7 +242,7 @@ version (sbp)
         readln();
     }
 
-    /// ditto
+    /// vector componentwise bitwise xor.
     T[] XOR(T)(in T[] x, in T[] y) if (isUnsigned!T)
     {
         enforce(x.length == y.length);
@@ -250,17 +250,32 @@ version (sbp)
         ret[] = x[] ^ y[];
         return ret;
     }
+    /// functions for backward compatibility.
+    auto randomPoints(T)(in size_t dimensionR, in size_t precision, in size_t dimensionF2)
+    {
+        return nonshiftedRandomBasisPoints!T(precision, dimensionR, dimensionF2);
+    }
+    /// ditto
+    ShiftedBasisPoints!ulong transposedBasisPoints(in ulong[][] basis, in size_t precision)
+    {
+        auto new_basis = new ulong[][basis[0].length];
+        foreach (i; 0..new_basis.length)
+        {
+            new_basis[i].length = basis.length;
+            foreach (j; 0..basis.length)
+            {
+                new_basis[i][j] = basis[j][i];
+            }
+        }
+        return ShiftedBasisPoints!ulong(new_basis, precision);
+    }
 }
 else
 {
-}
-
-/** Generate a point set of dimension, precision and lg(length) specified by choosing its basis randomly.
-*/
-auto randomPoints(immutable size_t dimension, immutable size_t precision, immutable size_t lg_length)
-{
-    return BasisPoints(dimension.random_basis(precision, lg_length), precision);
-}
+    auto randomPoints(immutable size_t dimension, immutable size_t precision, immutable size_t lg_length)
+    {
+        return BasisPoints(dimension.random_basis(precision, lg_length), precision);
+    }
 
 
 /** Input Range for point set.
@@ -363,30 +378,6 @@ auto shift(R)(R P, ulong[] x)
     }
     return Result(P.save);
 }
-
-debug unittest
-{
-    auto P = randomPoints(2, 10, 5);
-    auto Q = shift(P, random_vector(2, 10));
-    "P =".writeln();
-    int i;
-    foreach (x; P)
-    {
-        i.writeln(" -> ", x);
-        i += 1;
-    }
-    i = 0;
-    "\nQ =".writeln();
-    foreach (x; Q)
-    {
-        i.writeln(" -> ", x);
-        i += 1;
-    }
-    "OK?".writeln();
-    readln();
-}
-
-
 ulong[] random_vector(size_t count, size_t precision)
 {
     ulong[] ret;
@@ -427,7 +418,6 @@ body
         ret ~= random_vector(lg_length, precision);
     return ret;
 }
-
 
 import std.array : split;
 import std.typecons : Tuple, Flag;
@@ -489,4 +479,27 @@ debug unittest
         c += 1;
     }
     "unittest passed with %d elements".writefln(c);
+}
+}
+
+debug unittest
+{
+    auto P = randomPoints!ushort(2, 10, 5);
+    auto Q = P.shift(randomVector!ushort(10, 2));
+    "P =".writeln();
+    int i;
+    foreach (x; P)
+    {
+        i.writeln(" -> ", x);
+        i += 1;
+    }
+    i = 0;
+    "\nQ =".writeln();
+    foreach (x; Q)
+    {
+        i.writeln(" -> ", x);
+        i += 1;
+    }
+    "OK?".writeln();
+    readln();
 }
