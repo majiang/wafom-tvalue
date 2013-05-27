@@ -44,7 +44,7 @@ Remark 2 of the paper is the following:<blockquote>
  <p>If one uses this function for a general point set, then the returned value of t is a lower bound on the t-value of the point set, i.e., it implies that P is not a (t-1, m, s)-net in base two.</p></blockquote><br><br>
 
 </dd>
-<dt><big><a name="Q1"></a>BigInt[] <u>Q1</u>(immutable size_t <i>lg_length</i>, immutable size_t <i>dimension</i>);
+<dt><big><a name="Q1"></a>BigInt[] <u>Q1</u>(in size_t <i>dimensionF2</i>, in size_t <i>dimensionR</i>);
 </big></dt>
 <dd>Compute Q[m](z) for Algorithm 1.
 <br><br>
@@ -52,7 +52,7 @@ Q[m](z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<
 
 <br><br>
 <b>Remarks:</b><br>
-This function should memoized for repeated t-value computation for a fixed (<i>lg_length</i>, <i>dimension</i>) and for different basis.<br><br>
+This function should memoized for repeated t-value computation for a fixed (lg_length, dimension) and for different basis.<br><br>
 
 </dd>
 <dt><big><a name="tvalue2"></a>ulong <u>tvalue2</u>(R)(R <i>P</i>);
@@ -85,7 +85,7 @@ This function computes the reciprocal, namely,<ul>
 same as Algorithm 1.<br><br>
 
 </dd>
-<dt><big><a name="Q2"></a>BigInt[] <u>Q2</u>(immutable size_t <i>lg_length</i>, immutable size_t <i>dimension</i>);
+<dt><big><a name="Q2"></a>BigInt[] <u>Q2</u>(in size_t <i>dimensionF2</i>, in size_t <i>dimensionR</i>);
 </big></dt>
 <dd>Compute Q(z) for algorithm 2.
 <br><br>
@@ -102,10 +102,10 @@ This function computes the reciprocal of Q, namely, R(y) := (-y<sup>m+1</sup>)<s
 
 <br><br>
 <b>Remarks:</b><br>
-This function should memoized for repeated t-value computation for a fixed (<i>lg_length</i>, <i>dimension</i>) and for different basis.<br><br>
+This function should memoized for repeated t-value computation for a fixed (lg_length, dimension) and for different basis.<br><br>
 
 </dd>
-<dt><big><a name="nu_star"></a>size_t <u>nu_star</u>(ulong <i>x</i>, immutable size_t <i>m</i>);
+<dt><big><a name="nu_star"></a>size_t <u>nu_star</u>(ulong <i>x</i>, in size_t <i>m</i>);
 </big></dt>
 <dd>Compute ceil(-lg(<i>x</i> &gt;&gt; <i>m</i>))
 <br><br>
@@ -120,13 +120,13 @@ This function should memoized for repeated t-value computation for a fixed (<i>l
      <i>m</i> - (<i>x</i>.lg.floor) otherwise<br><br>
 
 </dd>
-<dt><big><a name="nu_star_bs"></a>size_t <u>nu_star_bs</u>(ulong <i>x</i>, immutable size_t <i>m</i>);
+<dt><big><a name="nu_star_bs"></a>size_t <u>nu_star_bs</u>(ulong <i>x</i>, in size_t <i>m</i>);
 </big></dt>
 <dd>ditto
  binary search version. maybe faster.<br><br>
 
 </dd>
-<dt><big><a name="empty_product"></a>BigInt[] <u>empty_product</u>(immutable size_t <i>m</i>);
+<dt><big><a name="empty_product"></a>BigInt[] <u>empty_product</u>(in size_t <i>m</i>);
 </big></dt>
 <dd>'1' as polynomial<br><br>
 

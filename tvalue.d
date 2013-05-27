@@ -45,18 +45,17 @@ version (2) {alias tvalue2 tvalue;}
 */
 ulong tvalue1(R)(R P)
 {
-    if (P.lg_length < P.precision)
+    if (P.dimensionF2 < P.precision)
     {
-        import pointset : truncatePrecision;
-        return truncatePrecision(P).tvalue1();
+        return P.changePrecision(P.dimensionF2).tvalue1();
     }
-    auto total = new BigInt[P.lg_length + 1] ; // sum
+    auto total = new BigInt[P.dimensionF2 + 1] ; // sum
     foreach (x; P)
     {
-        auto current = P.lg_length.empty_product(); // prod
+        auto current = P.dimensionF2.empty_product(); // prod
         foreach (e; x)
         {
-            immutable nu = e.nu_star(P.lg_length);
+            immutable nu = e.nu_star(P.dimensionF2);
             foreach_reverse (i; nu..current.length)
             {
                 current[i] -= current[i - nu] << nu;
@@ -64,11 +63,11 @@ ulong tvalue1(R)(R P)
         }
         total = total.plus(current);
     }
-    foreach (i, x; P.lg_length.Q1(P.dimension).times(total)) // (b^-m) is unnecessary
+    foreach (i, x; P.dimensionF2.Q1(P.dimensionR).times(total)) // (b^-m) is unnecessary
     {
         if (i && x.toLong)
         {
-            return P.lg_length + 1 - i;
+            return P.dimensionF2 + 1 - i;
         }
     }
     return 0; // all zero, t = m + 1 - (m+1) according to Algorithm 1.
@@ -81,16 +80,16 @@ Q[m](z) = (1 + (b-1)z + (b<sup>2</sup>-b)z<sup>2</sup> + ... + (b<sup>m</sup>-b<
 Remarks:
 This function should memoized for repeated t-value computation for a fixed (lg_length, dimension) and for different basis.
 */
-BigInt[] Q1(immutable size_t lg_length, immutable size_t dimension)
+BigInt[] Q1(in size_t dimensionF2, in size_t dimensionR)
 {
-    auto ret = new BigInt[lg_length + 1];
+    auto ret = new BigInt[dimensionF2 + 1];
     ret[0] = 1;
     ret[1] = 1;
-    foreach (i; 1..lg_length)
+    foreach (i; 1..dimensionF2)
     {
         ret[i + 1] = ret[i] << 1;
     }
-    return ret.power(dimension);
+    return ret.power(dimensionR);
 }
 
 /** Compute t-value of a digital net.
@@ -121,18 +120,17 @@ BigInt[] Q1(immutable size_t lg_length, immutable size_t dimension)
 */
 ulong tvalue2(R)(R P)
 {
-    if (P.lg_length < P.precision)
+    if (P.dimensionF2 < P.precision)
     {
-        import pointset : truncatePrecision;
-        return truncatePrecision(P).tvalue2();
+        return P.changePrecision(P.dimensionF2).tvalue1();
     }
-    auto total = new BigInt[P.lg_length + 1];
+    auto total = new BigInt[P.dimensionF2 + 1];
     foreach (x; P)
     {
-        auto current = P.lg_length.empty_product();
+        auto current = P.dimensionF2.empty_product();
         foreach (e; x)
         {
-            immutable nu = e.nu_star(P.lg_length);
+            immutable nu = e.nu_star(P.dimensionF2);
             foreach_reverse (i; nu..current.length)
             {
                 current[i] -= current[i - nu];
@@ -140,9 +138,9 @@ ulong tvalue2(R)(R P)
         }
         total = total.plus(current);
     }
-    auto shift = (P.dimension - 1) * P.lg_length;
+    auto shift = (P.dimensionR - 1) * P.dimensionF2;
     // BigInt mask = (BigInt(1) << shift) - 1; // としたい
-    foreach (i, c; P.lg_length.Q2(P.dimension))
+    foreach (i, c; P.dimensionF2.Q2(P.dimensionR))
     {
         if (total[i] << shift != c)
         //if ((c & mask) || total[i] != c >> shift) // と書きたいが、BigInt が cast(bool) や &, |, ^ を持っていないのでできない。まあ大したパフォーマンスダウンにはならないだろう。
@@ -151,7 +149,7 @@ ulong tvalue2(R)(R P)
             {
                 total[i].writeln(" != ", c);
             }
-            assert (i); return P.lg_length + 1 - i;
+            assert (i); return P.dimensionF2 + 1 - i;
         }
     }
     return 0;
@@ -171,16 +169,33 @@ Returns:
 Remarks:
 This function should memoized for repeated t-value computation for a fixed (lg_length, dimension) and for different basis.
 */
-BigInt[] Q2(immutable size_t lg_length, immutable size_t dimension)
+BigInt[] Q2(in size_t dimensionF2, in size_t dimensionR)
 {
-    auto ret = new BigInt[lg_length + 1];
+    auto ret = new BigInt[dimensionF2 + 1];
     ret[$ - 1] = -1;
-    foreach_reverse (i; 1..lg_length)
+    foreach_reverse (i; 1..dimensionF2)
     {
         ret[i] = ret[i + 1] << 1;
     }
     ret[0] = -(ret[1] << 1);
-    return ret.power(dimension);
+    return ret.power(dimensionR);
+}
+
+unittest
+{
+    import pointset : nonshiftedRandomBasisPoints;
+    foreach (precision; [10, 12, 14])
+        foreach (dimensionR; [1, 2, 4])
+            foreach (dimensionF2; [11, 12, 13])
+            {
+                foreach (tr; 0..10)
+                {
+                    auto P = nonshiftedRandomBasisPoints!ushort(precision, dimensionR, dimensionF2);
+                    assert (P.tvalue1() == P.tvalue2());
+                }
+                debug "nsRBP(%d, %d, %d): OK".writefln(precision, dimensionR, dimensionF2);
+            }
+    debug "tvalue: unittest passed!".writeln();
 }
 
 /** Compute ceil(-lg(x >> m))
@@ -192,7 +207,7 @@ BigInt[] Q2(immutable size_t lg_length, immutable size_t dimension)
 *     m + 1 if x = 0
 *     m - (x.lg.floor) otherwise
 */
-size_t nu_star(ulong x, immutable size_t m)
+size_t nu_star(ulong x, in size_t m)
 in
 {
     assert (0 <= x);
@@ -220,7 +235,7 @@ body
 
 /// ditto
 /// binary search version. maybe faster.
-size_t nu_star_bs(ulong x, immutable size_t m)
+size_t nu_star_bs(ulong x, in size_t m)
 {
     if (x == 0) return m + 1;
     size_t ret = m + 1;
@@ -264,7 +279,7 @@ unittest
 }
 
 /// '1' as polynomial
-BigInt[] empty_product(immutable size_t m)
+BigInt[] empty_product(in size_t m)
 {
     return [BigInt(1)] ~ new BigInt[m];
 }

@@ -15,10 +15,10 @@ debug = speedup;
 * </ul>
 
 * Params:
-* P = a subset of  [0..2<sup>m</sup>)<sup>s</sup>
+* P = an array-of-integral-type range which has attributes precision and dimensionF2. If v is an output vector, v*2<sup>-precision</sup> is an element of [0..2<sup>m</sup>)<sup>s</sup>.
 
 Remarks:
-Using double, precision > 54 means factor = 1.
+Using double, precision > 54 is no better than precision = 54.
 */
 double wafom(R)(R P)
 {
@@ -32,25 +32,15 @@ double wafom(R)(R P)
         foreach (l; B)
         {
             cur *= l.wafom_factor(P.precision);
-            debug (speedup) foreach (j, c; f)
-            {
-                cur_backup *= c[(l >> j) & 1];
-            }
+            debug (speedup) foreach (j, c; f) cur_backup *= c[(l >> j) & 1];
         }
         debug (speedup) auto diff = cur - cur_backup;
         debug (speedup) assert (diff * diff < 1e-10);
         ret += cur;
     }
-    static if (__traits(hasMember, R, "dimensionF2"))
-    {
-        foreach (i; 0..P.dimensionF2)
-            ret *= 0.5;
-        return ret - 1;
-    }
-    else
-    {
-        return (ret / P.length) - 1;
-    }
+    foreach (i; 0..P.dimensionF2)
+        ret *= 0.5;
+    return ret - 1;
 }
 
 double mswafom(R)(R P)
@@ -126,7 +116,7 @@ double[2][] _factors(size_t precision, size_t base = 2)
     double recip = 1.0 / base;
     foreach (i; 0..2)
     {
-        ret[$-1][i] = recip;
+        ret[$-1][i] = recip; // Mr. Yoshiki suggests recip * recip
         foreach_reverse (j; 1..precision)
         {
             ret[j-1][i] = ret[j][i] * recip;

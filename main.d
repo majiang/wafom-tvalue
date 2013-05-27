@@ -5,7 +5,7 @@ import wafom : wafom;
 import sobol : defaultSobols;
 import pointset : randomPoints, ShiftedBasisPoints, randomVectors;
 
-import integral : integral;
+import integral : bintegral;
 import asianoption : default_integrand;
 //alias integral!default_integrand tf;
 import testfunction;
@@ -17,7 +17,7 @@ import std.stdio;
 import std.conv : to;
 import std.string : strip;
 
-version = test_funx;
+version = unittest_only;//test_funx;
 void main()
 {
     version (unittest_only)
@@ -142,7 +142,7 @@ import pointset : lineToBP, DigitalNet;
 
 void write_performance(R)(R P)
 {
-    "%d,%.15f,%.15f%s".writefln(P.save.tvalue(), P.save.wafom(), P.save.tf(), P.basis.tocsv());
+    "%d,%.15f,%.15f%s".writefln(P.tvalue(), P.wafom(), P.tf(), P.basis.tocsv());
 }
 
 string tocsv(ulong[][] basis)

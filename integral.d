@@ -1,6 +1,18 @@
 import std.stdio;
 import std.traits : isUnsigned;
-//import pointset : BasisPoints;
+import pointset : Bisectable;
+
+static flist = function (size_t n)
+{
+    double ret[];
+    double cur = 1.0;
+    foreach (i; 0..n)
+    {
+        ret ~= cur;
+        cur *= 0.5;
+    }
+    return ret ~ cur;
+}(33);
 
 /** Perform integration of a function f: [0..1)<sup>s</sup> -> R by the point set P.
 
@@ -20,14 +32,24 @@ double result = integral!f(randomPoints(dimension, precision, lg_length));
 */
 double integral(alias f, T, R)(R P) if (isUnsigned!T)
 {
-    double factor = 1.0 / (1UL << P.precision);
-    double shift = 0.5 / (1UL << P.precision);
+    double factor = flist[P.precision];
+    double shift = flist[P.precision + 1];
     double result = 0;
     foreach (x; P)
     {
         result += f(x.affine(factor, shift));
     }
-    return result / P.length;
+    return result * flist[P.dimensionF2];
+}
+
+double bintegral(alias f, T, R)(R P) if (isUnsigned!T && Bisectable!R)
+{
+    if (P.bisectable)
+    {
+        auto Q = P.bisect();
+        return (Q[0].bintegral!(f, T, R) + Q[1].bintegral!(f, T, R)) * 0.5;
+    }
+    return P.integral!(f, T, R);
 }
 
 private double[] affine(T)(T[] x, double factor, double shift) if (isUnsigned!T)

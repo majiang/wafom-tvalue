@@ -11,6 +11,8 @@ public import sobol : defaultSobols;
 import graycode;
 import std.conv : to;
 
+enum BisectMin = 10;
+
 /** Test whether the type has method bisect.
 
 A point-set type T is Bisectable if it has bisect method and bisectable property.
@@ -98,7 +100,7 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
     /// bisectability
     @property bool bisectable() const
     {
-        return 0 < basis.length;
+        return BisectMin < basis.length;
     }
     private alias SBP[2] PSBP;
     /** Return a two-element array of ShiftedBasisPoints.
@@ -107,7 +109,7 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
     PSBP bisect() const
     {
         enforce(bisectable);
-        assert (precision);
+        //assert (precision);
         auto former = SBP(basis[1..$], precision, shifter);
         return [former, former.shift(basis[0])];
         //assert (former.precision);
@@ -231,10 +233,12 @@ ShiftedBasisPoints!T shiftedRandomBasisPoints(T) (in size_t precision, in size_t
 import wafom : wafom;
 unittest
 {
-    auto P = nonshiftedRandomBasisPoints!ubyte(6, 2, 6);
+    auto P = nonshiftedRandomBasisPoints!uint(32, 4, 12);
     "P is a SBP with wafom = ".writeln(P.wafom());
-    "P.bisect[0].wafom = ".writeln(P.bisect()[0].wafom());
-    "P.bisect[1].wafom = ".writeln(P.bisect()[1].wafom());
+    double x, y;
+    "P.bisect[0].wafom = ".writeln(x = P.bisect()[0].wafom());
+    "P.bisect[1].wafom = ".writeln(y = P.bisect()[1].wafom());
+    "average wafom = ".writeln((x + y) * 0.5);
     "OK?".writeln();
     readln();
 }

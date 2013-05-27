@@ -152,11 +152,11 @@ Double gaussinv_(Double x)// [0..1)^2 -> gauss
 debug
 {
     import std.stdio;
-    import integral : integral;
+    import integral : bintegral;
     import pointset : randomPoints;
 
     unittest
     {
-        "asian option price = ".writeln(integral!(default_integrand, uint)(randomPoints!uint(4, 20, 20)));
+        "asian option price = ".writeln(bintegral!(default_integrand, uint)(randomPoints!uint(4, 20, 20)));
     }
 }
