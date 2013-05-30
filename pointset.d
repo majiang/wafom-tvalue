@@ -1,6 +1,6 @@
 module pointset;
 
-debug import std.stdio;
+debug (working) import std.stdio;
 
 import std.exception : enforce;
 import std.traits : isUnsigned;
@@ -213,9 +213,9 @@ T[][] randomVectors(T)(in size_t precision, in size_t dimensionR, in size_t coun
 ShiftedBasisPoints!T randomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2, Flag!"shift" shift) if (isUnsigned!T)
 {
     if (shift)
-        return precision.nonshiftedRandomBasisPoints(dimensionR, dimensionF2);
+        return precision.nonshiftedRandomBasisPoints!T(dimensionR, dimensionF2);
     else
-        return precision.shiftedRandomBasisPoints(dimensionR, dimensionF2);
+        return precision.shiftedRandomBasisPoints!T(dimensionR, dimensionF2);
 }
 
 /// ditto
@@ -234,13 +234,19 @@ import wafom : wafom;
 unittest
 {
     auto P = nonshiftedRandomBasisPoints!uint(32, 4, 12);
-    "P is a SBP with wafom = ".writeln(P.wafom());
-    double x, y;
-    "P.bisect[0].wafom = ".writeln(x = P.bisect()[0].wafom());
-    "P.bisect[1].wafom = ".writeln(y = P.bisect()[1].wafom());
-    "average wafom = ".writeln((x + y) * 0.5);
-    "OK?".writeln();
-    readln();
+    auto
+        x = P.bisect()[0].wafom(),
+        y = P.bisect()[1].wafom(),
+        z = P.wafom();
+    debug (verbose)
+    {
+        "P is a SBP with wafom = ".writeln(z);
+        "P.bisect[0].wafom = ".writeln(x);
+        "P.bisect[1].wafom = ".writeln(y);
+        "average wafom = ".writeln((x + y) * 0.5);
+        "OK?".writeln();
+        readln();
+    }
 }
 
 /// vector componentwise bitwise xor.
@@ -322,36 +328,37 @@ size_t guess_precision(ulong[][] basis)
     return precision;
 }
 
-debug unittest
+unittest
 {
+    debug (verbose) "testing lineToBP".writeln();
+    debug (verbose) scope (success) "unittest passed with %d elements".writefln(c);
     auto c = 0;
     foreach (x; "5,0.002124192556608,5.236969948020973,,2600265188,692020818,1829963221,894032275,1090497089,651123054,2898340559,1909687544,843513215,1542217271,39519261,3977641622,,2144888475,2941401343,1387697674,1986117176,3702571292,2647056038,3871827325,2263216594,3008901273,4224148358,3048652205,3799831373,,737302895,1233368001,1654098828,2764743171,239054234,249267380,1039474368,3378013260,2468295934,902812364,993745693,2410603677,,3726908047,3018079636,1719761848,2421945980,8259646,1793582138,3611200899,137680621,2493595579,2004711502,1809926346,2378246536\n".
         lineToBP().ps)
     {
-        debug (lineToBP) "%s".writefln(x);
+        debug (verbose) "%s".writefln(x);
         c += 1;
     }
-    "unittest passed with %d elements".writefln(c);
 }
 
-debug unittest
+unittest
 {
     auto P = randomPoints!ushort(2, 10, 5);
     auto Q = P.shift(randomVector!ushort(10, 2));
-    "P =".writeln();
+    debug (verbose) "P =".writeln();
     int i;
     foreach (x; P)
     {
-        i.writeln(" -> ", x);
+        debug (verbose) i.writeln(" -> ", x);
         i += 1;
     }
     i = 0;
-    "\nQ =".writeln();
+    debug (verbose) "\nQ =".writeln();
     foreach (x; Q)
     {
-        i.writeln(" -> ", x);
+        debug (verbose) i.writeln(" -> ", x);
         i += 1;
     }
-    "OK?".writeln();
-    readln();
+    debug (verbose) "OK?".writeln();
+    debug (verbose) readln();
 }

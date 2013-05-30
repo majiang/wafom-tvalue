@@ -149,14 +149,11 @@ Double gaussinv_(Double x)// [0..1)^2 -> gauss
     return Double(r * cos(theta), r * sin(theta));
 }
 
-debug
+unittest
 {
-    import std.stdio;
-    import integral : bintegral;
     import pointset : randomPoints;
-
-    unittest
-    {
-        "asian option price = ".writeln(bintegral!(default_integrand, uint)(randomPoints!uint(4, 20, 20)));
-    }
+    import integral : bintegral;
+    import std.traits : ReturnType;
+    auto price = bintegral!(default_integrand, uint, ReturnType!(randomPoints!uint))(randomPoints!uint(4, 20, 20));
+    debug (verbose) "asian option price = ".writeln(price);
 }

@@ -185,7 +185,7 @@ version (none) template Genz2(int s)
 // usage: "Genz2: ".writeln(Genz2!4.G!(1, 1, 1, 1).H!(1,1,1,1).f([1.0, 1.0, 1.0, 1.0]));
 // which is lexically illegal.
 
-debug unittest
+debug (verbose) unittest
 {
     "test function values at (1.0, 1.0, 1.0, 1.0):".writeln();
     "Hellekalek: ".writeln(Hellekalek!(1, 1, 1, 1).f([1.0, 1.0, 1.0, 1.0]));

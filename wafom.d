@@ -69,7 +69,9 @@ unittest
     foreach (i; 0..10)
     {
         auto P = randomPoints!uint(4, 32, 10);
-        debug "wafom = %.15f; mswfm = %.15f".writefln(P.wafom(), P.mswafom());
+        auto w = P.wafom();
+        auto m = P.mswafom();
+        debug (verbose) "wafom = %.15f; mswfm = %.15f".writefln(w, m);
     }
 }
 
@@ -132,10 +134,11 @@ double[2][] _factors(size_t precision, size_t base = 2)
 }
 alias memoize!_factors factors;
 
-debug unittest
+unittest
 {
-    "factors(64) = ".writeln();
+    debug (verbose) "factors(64) = ".writeln();
     foreach (x; factors(64, 2))
-        if (!(x[0] == 1.0 && x[1] == 1.0))
-            x.writeln();
+        debug (verbose)
+            if (!(x[0] == 1.0 && x[1] == 1.0))
+                x.writeln();
 }

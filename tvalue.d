@@ -1,8 +1,8 @@
 module tvalue;
 
 import std.functional : memoize;
-
-debug import std.stdio;
+debug (verbose) debug = working;
+debug (working) import std.stdio;
 import std.bigint;
 
 version = 1;
@@ -181,21 +181,21 @@ BigInt[] Q2(in size_t dimensionF2, in size_t dimensionR)
     return ret.power(dimensionR);
 }
 
-unittest
+debug (working) unittest
 {
     import pointset : nonshiftedRandomBasisPoints;
+    scope (success) debug (verbose) "tvalue: unittest passed!".writeln();
     foreach (precision; [10, 12, 14])
         foreach (dimensionR; [1, 2, 4])
             foreach (dimensionF2; [11, 12, 13])
             {
+                scope (success) debug (verbose) "nsRBP(%d, %d, %d): OK".writefln(precision, dimensionR, dimensionF2);
                 foreach (tr; 0..10)
                 {
                     auto P = nonshiftedRandomBasisPoints!ushort(precision, dimensionR, dimensionF2);
                     assert (P.tvalue1() == P.tvalue2());
                 }
-                debug "nsRBP(%d, %d, %d): OK".writefln(precision, dimensionR, dimensionF2);
             }
-    debug "tvalue: unittest passed!".writeln();
 }
 
 /** Compute ceil(-lg(x >> m))
@@ -254,7 +254,8 @@ size_t nu_star_bs(ulong x, in size_t m)
 
 unittest
 {
-    debug "testing reciprocal: binary-search version".writeln();
+    debug (verbose) "testing reciprocal: binary-search version".writeln();
+    debug (verbose) scope (success) "...OK".writeln();
     foreach (x; 0..10000)
     {
         assert (nu_star(x, 14) == nu_star_bs(x, 14));
@@ -275,7 +276,6 @@ unittest
             assert (nu_star((1UL << x) - 1, m) == nu_star_bs((1UL << x) - 1, m));
         }
     }
-    debug "...OK.".writeln();
 }
 
 /// '1' as polynomial

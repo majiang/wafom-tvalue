@@ -24,7 +24,7 @@ unittest
         assert (x.graycode == y);
         assert (y.edocyarg == x);
     }
-    debug "graycode & edocyarg: unittest passed!".writeln();
+    debug (verbose) "graycode & edocyarg: unittest passed!".writeln();
 }
 
 size_t bottom_zeros(ulong x)
@@ -47,5 +47,5 @@ unittest
     {
         assert (x.bottom_zeros() == q[i]);
     }
-    debug "bottom_zeros: unittest passed!".writeln();
+    debug (verbose) "bottom_zeros: unittest passed!".writeln();
 }

@@ -15,12 +15,12 @@ auto defaultSobols(immutable size_t dimension, immutable size_t precision, immut
     return sobols(_direction_numbers);
 }
 
-debug unittest
+unittest
 {
-    "default sobol sequence of dimension 3 and precision 4:".writeln();
+    debug (verbose) "default sobol sequence of dimension 3 and precision 4:".writeln();
     foreach (x; defaultSobols(3, 4, 4))
     {
-        x.writeln();
+        debug (verbose) x.writeln();
     }
 }
 
@@ -58,7 +58,7 @@ unittest
 {
     assert (DirectionNumbersGenerator([1UL, 3, 7], (1 << 3) + (1 << 1) + 1).generate(6) == [1, 3, 7, 5, 7, 43]);
     assert (DirectionNumbersGenerator([1UL, 3, 7], (1 << 3) + (1 << 1) + 1).generate(2) == [1, 3]);
-    debug "direction_numbers: unittest passed!".writeln();
+    debug (verbose) "direction_numbers: unittest passed!".writeln();
 }
 
 
@@ -121,7 +121,7 @@ private ulong[] shift(ulong[] x)
 unittest
 {
     assert ([1, 1, 1].shift() == [4, 2, 1]);
-    debug "shift: unittest passed!".writeln();
+    debug (verbose) "shift: unittest passed!".writeln();
 }
 
 
@@ -145,5 +145,5 @@ unittest
     {
         assert (x.degree() == q[i]);
     }
-    debug "degree: unittest passed!".writeln();
+    debug (verbose) "degree: unittest passed!".writeln();
 }

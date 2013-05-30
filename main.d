@@ -17,10 +17,10 @@ import std.stdio;
 import std.conv : to;
 import std.string : strip;
 
-version = unittest_only;//test_funx;
+//version = unittest_only;//test_funx;
 void main()
 {
-    version (unittest_only)
+    version (unittest)
     {
         "unittest passed!".writeln();
         return;
