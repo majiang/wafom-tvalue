@@ -17,10 +17,10 @@ import std.stdio;
 import std.conv : to;
 import std.string : strip;
 
-//version = unittest_only;//test_funx;
+version = test_funx;
 void main()
 {
-    version (unittest)
+    version (test_funx){}else version (unittest)
     {
         "unittest passed!".writeln();
         return;
@@ -124,16 +124,14 @@ void main()
         stderr.writeln();
         foreach (i; 1..thresholdw.length)
         {
-            if (ts[i].length > 100)
-            {
-                ts[i] = ts[i][0..100];
-                ws[i] = ws[i][0..100];
-            }
-            writeln("t-ordered");
-            shifttest(ts[i]);
-            writeln("wafom-ordered");
-            shifttest(ws[i]);
-            if (i == 2) break;
+            //if (ts[i].length > 100)
+            //{
+            //    ts[i] = ts[i][0..100];
+            //    ws[i] = ws[i][0..100];
+            //}
+            manytest("t-ordered", ts[i]);
+            manytest("wafom-ordered", ws[i]);
+            //if (i == 2) break;
         }
     }
 }
@@ -145,19 +143,61 @@ void write_performance(R)(R P)
     "%d,%.15f,%.15f%s".writefln(P.tvalue(), P.wafom(), P.tf(), P.basis.tocsv());
 }
 
-string tocsv(ulong[][] basis)
+version (none) auto tocsv(T)(T xss) if (isInputRange!T && isInputRange!(ElementType!T) && !isInputRange!(ElementType!(ElementType!T)))
 {
     string ret;
-    foreach (l; basis)
+    foreach (xs; xss)
     {
         ret ~= ",";
-        foreach (c; l)
+        foreach (x; xs)
         {
-            ret ~= "," ~ c.to!string();
+            ret ~= "," ~ x.to!string();
         }
     }
     return ret;
 }
+
+import std.range : isInputRange;
+auto tocsv(T)(T xs) if (isInputRange!T && !isInputRange!(ElementType!T))
+{
+    string ret;
+    string sep = "";
+    foreach (x; xs)
+    {
+        ret ~= sep ~ x.to!string();
+        sep = ",";
+    }
+    return ret;
+}
+
+import std.range : ElementType;
+
+double integrationError(alias tf, PointSetType)(PointSetType P)
+{
+    return -tf.I + P.bintegral!(tf.f, ElementType!(ElementType!PointSetType), PointSetType)();
+}
+auto integrationErrors(alias tf, PointSetTypeRange)(PointSetTypeRange Ps)
+{
+    return Ps.map!(integrationError!(tf, ElementType!PointSetTypeRange))();
+}
+auto shifts(PointSetType, ShifterRange)(PointSetType P, ShifterRange shifters)
+{
+    return shifters.map!(x => P.shift(x));
+}
+
+import std.math : sqrt;
+auto squareRootMeanSquare(NumericRange)(NumericRange r)
+{
+    ElementType!NumericRange sum = 0;
+    ulong count;
+    foreach (e; r)
+    {
+        sum += e * e;
+        count += 1;
+    }
+    return (sum / count).sqrt();
+}
+
 
 version (test_funx) 
 {
@@ -173,24 +213,25 @@ version (test_funx)
     alias Hamukazu!(5, 7, 11, 13) hmo;
     alias Hamukazu!(8, 8, 8, 8) hme;
 
-    void test_one(alias tf)(DigitalNet!ulong[] pss)
+    auto test_one(alias tf, alias transformer, PointSetTypeRange)(PointSetTypeRange pss)
     {
-        foreach (ps; pss)
-            write(integral!(tf.f, ulong, ShiftedBasisPoints!ulong)(ps.ps) - tf.I, ",");
-        writeln();
+        return transformer(pss.integrationErrors!tf());
     }
-    void manytest(string header, DigitalNet!ulong[] pss)
+    void manytest(string header, DigitalNet!ulong[] dns)
     {
+        alias tocsv trf;
+        //alias squareRootMeanSquare trf;
+        auto pss = dns.map!(x => x.ps);
         header.writeln();
-        pss.test_one!(hel);
-        pss.test_one!(s01);
-        pss.test_one!(s94);
-        pss.test_one!(own);
-        pss.test_one!(ra1);
-        pss.test_one!(ra2);
-        pss.test_one!(ra3);
-        pss.test_one!(hmo);
-        pss.test_one!(hme);
+        pss.test_one!(hel, trf).writeln();
+        pss.test_one!(s01, trf).writeln();
+        pss.test_one!(s94, trf).writeln();
+        pss.test_one!(own, trf).writeln();
+        pss.test_one!(ra1, trf).writeln();
+        pss.test_one!(ra2, trf).writeln();
+        pss.test_one!(ra3, trf).writeln();
+        pss.test_one!(hmo, trf).writeln();
+        pss.test_one!(hme, trf).writeln();
     }
     import std.typecons : Tuple;
     void shifttest(DigitalNet!ulong[] pss)
@@ -200,42 +241,28 @@ version (test_funx)
         assert (pss.length);
         foreach (ps; pss)
         {
-            ps.shifted!hel(shifter).toString.write(",,");
-            ps.shifted!s01(shifter).toString.write(",,");
-            ps.shifted!s94(shifter).toString.write(",,");
-            ps.shifted!own(shifter).toString.write(",,");
-            ps.shifted!ra1(shifter).toString.write(",,");
-            ps.shifted!ra2(shifter).toString.write(",,");
-            ps.shifted!ra3(shifter).toString.write(",,");
-            ps.shifted!hmo(shifter).toString.write(",,");
-            ps.shifted!hme(shifter).toString.writeln();
+            auto P = ps.ps;
+            // old: [wafom, squarerootmeansquarewafom, squarerootmeansquareerror, t]
+            // new: [wafom, srmsw, t] [srmse]
+            // rationale: wafom, srmsw, t is independent of test funx.
+            ps.wafom.write(",");
+            P.mswafom().write(",");
+            ps.t.write(",,");
+            P.shifted!hel(shifter).write(",");
+            P.shifted!s01(shifter).write(",");
+            P.shifted!s94(shifter).write(",");
+            P.shifted!own(shifter).write(",");
+            P.shifted!ra1(shifter).write(",");
+            P.shifted!ra2(shifter).write(",");
+            P.shifted!ra3(shifter).write(",");
+            P.shifted!hmo(shifter).write(",");
+            P.shifted!hme(shifter).writeln();
         }
     }
     import wafom : mswafom;
-    struct Stats
+    import std.conv : text;
+    auto shifted(alias tf, PointSetType)(PointSetType P, ulong[][] shifter)
     {
-        double wafom; double ms_wafom; double ms_error; ulong t;
-        string toString()
-        {
-            return wafom.to!string()
-                ~ "," ~ ms_wafom.to!string()
-                ~ "," ~ ms_error.to!string()
-                ~ "," ~ t.to!string();
-        }
-    }
-    auto shifted(alias tf)(DigitalNet!ulong ps, ulong[][] shifter)
-    {
-        import std.math : sqrt;
-        auto bp = ps.ps;
-        auto mswafom = bp.mswafom();
-        auto wafom = ps.wafom;
-        auto t = ps.t;
-        double sse = 0;
-        foreach (s; shifter)
-        {
-            debug stderr.writeln("...");
-            sse += (integral!(tf.f, ulong)(bp.shift(s)) - tf.I) ^^ 2;
-        }
-        return Stats(wafom, mswafom, sqrt(sse / shifter.length), t);
+        return P.shifts(shifter).integrationErrors!tf().squareRootMeanSquare();
     }
 }

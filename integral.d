@@ -14,9 +14,9 @@ static flist = function (size_t n)
     return ret ~ cur;
 }(33);
 
-/** Perform integration of a function f: [0..1)<sup>s</sup> -> R by the point set P.
+/** Perform numerical integration of a function f: [0..1)<sup>s</sup> -> R by the point set P.
 
-* s is implicitly given as P.dimension. f must support double opCall(double[] x)).
+s is implicitly given as P.dimension. f must be callable with double[] and return a double.
 
 Usage:
 ----------------
@@ -42,6 +42,7 @@ double integral(alias f, T, R)(R P) if (isUnsigned!T)
     return result * flist[P.dimensionF2];
 }
 
+/// ditto
 double bintegral(alias f, T, R)(R P) if (isUnsigned!T && Bisectable!R)
 {
     if (P.bisectable)
