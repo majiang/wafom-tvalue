@@ -46,10 +46,10 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
 
     private ulong position;
     private const T[][] basis; /// baisis[i][j] = (i-th vector of basis)'s __j-th__ component
-    private const T[] shifter;
+    private const T[] shift;
     private T[] current;
 
-    this (in T[][] basis, in size_t precision, in T[] shifter)
+    this (in T[][] basis, in size_t precision, in T[] shift)
     in
     {
         enforce(precision <= (T.sizeof << 3));
@@ -57,7 +57,7 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
     body
     {
         this.dimensionF2 = basis.length;
-        this.dimensionR = shifter.length;
+        this.dimensionR = shift.length;
         assert (precision);
         this.precision = precision;
         this.length = 1UL << this.dimensionF2;
@@ -66,8 +66,8 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
         foreach (b; basis)
             enforce(this.dimensionR == b.length);
         this.basis = basis;
-        this.shifter = shifter;
-        this.current = this.shifter.dup;
+        this.shift = shift;
+        this.current = this.shift.dup;
     }
     this (in T[][] basis, in size_t precision)
     {
@@ -109,19 +109,14 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
     PSBP bisect() const
     {
         enforce(bisectable);
-        //assert (precision);
-        auto former = SBP(basis[1..$], precision, shifter);
-        return [former, former.shift(basis[0])];
-        //assert (former.precision);
-        //auto ret = PSBP(former, former.shift(basis[0]));
-        //assert (ret.former.precision);
-        //return ret;
+        auto former = SBP(basis[1..$], precision, shift);
+        return [former, former.shifted(basis[0])];
     }
 
     /// ShiftedBasisPoints with its outputs digital-shifted.
-    SBP shift(in T[] further_shifter) const
+    SBP shifted(in T[] shift) const
     {
-        return SBP(basis, precision, shifter.XOR(further_shifter));
+        return SBP(basis, precision, this.shift.XOR(shift));
     }
     /// ShiftedBasisPoints with its outputs bit-shifted.
     SBP opBinary(string op)(in int amount) //const
@@ -139,7 +134,7 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
         size_t new_precision = precision;
         static if (op == "<<") new_precision += amount;
         static if (op == ">>") new_precision -= amount.min(precision);
-        auto new_shifter = shifter.to!(T[]);
+        auto new_shift = shift.to!(T[]);
 
         static if (op == "<<")
             enforce(new_precision <= T.sizeof << 3, "overflow: ShiftedBasisPoints <<");
@@ -150,9 +145,9 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
                 foreach (ref l; new_basis)
                     foreach (ref x; l)
                         x = 0;
-                foreach (ref x; new_shifter)
+                foreach (ref x; new_shift)
                     x = 0;
-                return SBP(new_basis, new_precision, new_shifter);
+                return SBP(new_basis, new_precision, new_shift);
             }
         }
         foreach (ref l; new_basis)
@@ -163,14 +158,14 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
                 static if (op == ">>")
                     x >>= amount;
             }
-        foreach (ref x; new_shifter)
+        foreach (ref x; new_shift)
         {
             static if (op == "<<")
                 x <<= amount;
             static if (op == ">>")
                 x >>= amount;
         }
-        return SBP(new_basis, new_precision, new_shifter);
+        return SBP(new_basis, new_precision, new_shift);
     }
     /// utility for bit-shifts.
     SBP changePrecision(in size_t new_precision) //const
@@ -344,7 +339,7 @@ unittest
 unittest
 {
     auto P = randomPoints!ushort(2, 10, 5);
-    auto Q = P.shift(randomVector!ushort(10, 2));
+    auto Q = P.shifted(randomVector!ushort(10, 2));
     debug (verbose) "P =".writeln();
     int i;
     foreach (x; P)

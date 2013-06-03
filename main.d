@@ -172,17 +172,33 @@ auto tocsv(T)(T xs) if (isInputRange!T && !isInputRange!(ElementType!T))
 
 import std.range : ElementType;
 
+/** Calculate integration error of a function by a point set.
+
+Params:
+tf = an alias. the integrand is given as tf.f, with its true integrated value tf.I.
+P = a point set.
+*/
 double integrationError(alias tf, PointSetType)(PointSetType P)
 {
     return -tf.I + P.bintegral!(tf.f, ElementType!(ElementType!PointSetType), PointSetType)();
 }
+/** ditto
+Params:
+Ps = point sets.
+*/
 auto integrationErrors(alias tf, PointSetTypeRange)(PointSetTypeRange Ps)
 {
     return Ps.map!(integrationError!(tf, ElementType!PointSetTypeRange))();
 }
-auto shifts(PointSetType, ShifterRange)(PointSetType P, ShifterRange shifters)
+/** Shift a point set by each element of shifts.
+
+Params:
+P = point set.
+shifts = shifts
+*/
+auto shifteds(PointSetType, ShifterRange)(PointSetType P, ShifterRange shifts)
 {
-    return shifters.map!(x => P.shift(x));
+    return shifts.map!(x => P.shifted(x));
 }
 
 import std.math : sqrt;
@@ -236,8 +252,8 @@ version (test_funx)
     import std.typecons : Tuple;
     void shifttest(DigitalNet!ulong[] pss)
     {
-        auto shifter = randomVectors!ulong(32, 4, 10);
-        stderr.writeln(shifter.length);
+        auto shift = randomVectors!ulong(32, 4, 10);
+        stderr.writeln(shift.length);
         assert (pss.length);
         foreach (ps; pss)
         {
@@ -248,21 +264,21 @@ version (test_funx)
             ps.wafom.write(",");
             P.mswafom().write(",");
             ps.t.write(",,");
-            P.shifted!hel(shifter).write(",");
-            P.shifted!s01(shifter).write(",");
-            P.shifted!s94(shifter).write(",");
-            P.shifted!own(shifter).write(",");
-            P.shifted!ra1(shifter).write(",");
-            P.shifted!ra2(shifter).write(",");
-            P.shifted!ra3(shifter).write(",");
-            P.shifted!hmo(shifter).write(",");
-            P.shifted!hme(shifter).writeln();
+            P.srmse!hel(shift).write(",");
+            P.srmse!s01(shift).write(",");
+            P.srmse!s94(shift).write(",");
+            P.srmse!own(shift).write(",");
+            P.srmse!ra1(shift).write(",");
+            P.srmse!ra2(shift).write(",");
+            P.srmse!ra3(shift).write(",");
+            P.srmse!hmo(shift).write(",");
+            P.srmse!hme(shift).writeln();
         }
     }
     import wafom : mswafom;
     import std.conv : text;
-    auto shifted(alias tf, PointSetType)(PointSetType P, ulong[][] shifter)
+    auto srmse(alias tf, PointSetType)(PointSetType P, ulong[][] shifts)
     {
-        return P.shifts(shifter).integrationErrors!tf().squareRootMeanSquare();
+        return P.shifteds(shifts).integrationErrors!tf().squareRootMeanSquare();
     }
 }
