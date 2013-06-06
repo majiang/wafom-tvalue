@@ -16,11 +16,22 @@ import std.algorithm : min, max, reduce, map, sort, topN;
 import std.stdio;
 import std.conv : to;
 import std.string : strip;
+import walsh;
 
-version = test_funx;
+version = walsh;
 void main()
 {
-    version (test_funx){}else version (unittest)
+    version (walsh)
+    {
+        stderr.writeln("walsh start.");
+        foreach (i; 0..1024)
+        {
+            "%.15f".writefln(walsh_coefficient_3(i));
+        }
+        stderr.writeln("walsh end.");
+        return;
+    }
+    version (unittest_only)
     {
         "unittest passed!".writeln();
         return;
