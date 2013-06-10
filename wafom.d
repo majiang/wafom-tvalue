@@ -1,11 +1,81 @@
 module wafom;
 
 import std.functional : memoize;
+import std.traits : isUnsigned;
 
 debug import std.stdio;
 
 
 debug = speedup;
+import pointset : Bisectable, nonshiftedRandomBasisPoints;
+
+size_t mu_star(T)(T x, in size_t precision) if (isUnsigned!T)
+{
+    if (x == 0)
+        return 0;
+    size_t ret = precision + 1;
+    while (x)
+    {
+        ret -= 1;
+        x >>= 1;
+    }
+    return ret;
+}
+
+double[] _f(in size_t precision)
+{
+    auto ret = [precision * 0.5 + 1];
+    foreach (i; 0..precision)
+        ret ~= i * 0.5 + 1;
+    return ret;
+}
+alias memoize!_f get_f;
+
+import std.algorithm : reduce;
+double nrtwafom(R)(R P) if (Bisectable!R)
+{
+    if (P.bisectable)
+    {
+        auto Q = P.bisect();
+        return (Q[0].nrtwafom() + Q[1].nrtwafom()) * 0.5;
+    }
+    auto f = P.precision.get_f();
+    double ret = 0;
+    foreach (B; P)
+    {
+        //double cur = 1;
+        //foreach (x; B)
+        //{
+        //    cur *= f[x.nu()];
+        //}
+        //ret += cur;
+        ret += reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B);
+    }
+    foreach (i; 0..P.dimensionF2)
+        ret *= 0.5;
+    return ret;
+}
+
+double biwafom(R)(R P) if (Bisectable!R)
+{
+    if (!P.bisectable) return P.wafom();
+    auto Q = P.bisect();
+    return (Q[0].biwafom() + Q[1].biwafom()) * 0.5;
+}
+
+unittest
+{
+    foreach (d; 8..17)
+    {
+        "P.dimensionF2 = %d".writefln(d);
+        foreach (i; 0..100)
+        {
+            auto P = nonshiftedRandomBasisPoints!uint(32, 4, d);
+            "%.15f,%.15f,%.15f".writefln(P.wafom(), P.biwafom(), P.nrtwafom());
+        }
+    }
+}
+
 /** Compute wafom of a general quasi-Monte Carlo point set.
 
 * Algorithm:

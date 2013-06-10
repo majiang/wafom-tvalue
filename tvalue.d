@@ -122,7 +122,7 @@ ulong tvalue2(R)(R P)
 {
     if (P.dimensionF2 < P.precision)
     {
-        return P.changePrecision(P.dimensionF2).tvalue1();
+        return P.changePrecision(P.dimensionF2).tvalue2();
     }
     auto total = new BigInt[P.dimensionF2 + 1];
     foreach (x; P)

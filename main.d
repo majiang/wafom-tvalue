@@ -1,7 +1,7 @@
 module main;
 
-import tvalue : tvalue;
-import wafom : wafom;
+import tvalue;
+import wafom;
 import sobol : defaultSobols;
 import pointset : randomPoints, ShiftedBasisPoints, randomVectors;
 
@@ -9,6 +9,7 @@ import integral : bintegral;
 import asianoption : default_integrand;
 //alias integral!default_integrand tf;
 import testfunction;
+
 
 import std.algorithm : min, max, reduce, map, sort, topN;
 
@@ -18,13 +19,20 @@ import std.conv : to;
 import std.string : strip;
 import walsh;
 
-version = walsh;
+version = unittest_only;
 void main()
 {
+    version (nu)
+    {
+        foreach (ushort i; 0..1024)
+        {
+            "%d:%d:%d".writefln(i, mu_star!ushort(i, 10), nu_star(i, 10));
+        }
+    }
     version (walsh)
     {
         stderr.writeln("walsh start.");
-        foreach (i; 0..1024)
+        foreach (i; 0..16384)
         {
             "%.15f".writefln(walsh_coefficient_3(i));
         }
@@ -33,7 +41,7 @@ void main()
     }
     version (unittest_only)
     {
-        "unittest passed!".writeln();
+        stderr.writeln("unittest passed!");
         return;
     }
     version (random_search)
