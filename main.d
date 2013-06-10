@@ -15,13 +15,41 @@ import std.algorithm : min, max, reduce, map, sort, topN;
 
 
 import std.stdio;
-import std.conv : to;
+import std.conv : to, toImpl;
 import std.string : strip;
+import std.array : split;
 import walsh;
 
-version = unittest_only;
+version = sharase;
 void main()
 {
+    version (sharase)
+    {
+        immutable precision = 30;
+        immutable dimensionF2 = 28;
+        immutable dimensionR = 4;
+        uint[][] basis;
+        basis.length = dimensionF2;
+        foreach (ref l; basis)
+        {
+            l.length = dimensionR;
+        }
+        auto buf = readln().strip().split();//.map!(s => s.toImpl!(uint, string)(16));
+        foreach (i; 0..dimensionF2)
+        {
+            foreach (j; 0..dimensionR)
+            {
+                basis[i][j] = buf[i + dimensionF2 * j].toImpl!(uint, string)(16) >> 2;
+                assert (basis[i][j] < 1U << 30);
+            }
+        }
+        foreach (dimF2; 1..17)
+        {
+            stderr.writefln("dimF2 = %d", dimF2);
+            auto P = ShiftedBasisPoints!uint(basis[0..dimF2], precision);
+            "%d %.15f".writefln(P.dimensionF2, P.biwafom());
+        }
+    }
     version (nu)
     {
         foreach (ushort i; 0..1024)

@@ -63,7 +63,7 @@ double biwafom(R)(R P) if (Bisectable!R)
     return (Q[0].biwafom() + Q[1].biwafom()) * 0.5;
 }
 
-unittest
+version (verbose) unittest
 {
     foreach (d; 8..17)
     {
@@ -133,7 +133,7 @@ double mswafom(R)(R P)
     return sqrt((ret / P.length) - 1);
 }
 
-unittest
+version (verbose) unittest
 {
     import pointset : randomPoints;
     foreach (i; 0..10)

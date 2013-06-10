@@ -181,7 +181,7 @@ BigInt[] Q2(in size_t dimensionF2, in size_t dimensionR)
     return ret.power(dimensionR);
 }
 
-debug (working) unittest
+debug (verbose) unittest
 {
     import pointset : nonshiftedRandomBasisPoints;
     scope (success) debug (verbose) "tvalue: unittest passed!".writeln();
@@ -252,7 +252,7 @@ size_t nu_star_bs(ulong x, in size_t m)
     return ret - 1;
 }
 
-unittest
+debug (verbose) unittest
 {
     debug (verbose) "testing reciprocal: binary-search version".writeln();
     debug (verbose) scope (success) "...OK".writeln();
