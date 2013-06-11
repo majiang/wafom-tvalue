@@ -25,11 +25,20 @@ size_t mu_star(T)(T x, in size_t precision) if (isUnsigned!T)
 double[] _f(in size_t precision)
 {
     auto ret = [precision * 0.5 + 1];
-    foreach (i; 0..precision)
-        ret ~= i * 0.5 + 1;
+    foreach (i; 1..(precision+1))
+        ret ~= i * 0.5;
     return ret;
 }
 alias memoize!_f get_f;
+
+double[] _g(in size_t precision)
+{
+    auto ret = [1 + (1 - 0.5 ^^ precision) * 0.5];
+    foreach (i; 1..(precision+1))
+        ret ~= 1.5 * (1 - 0.5 ^^ i);
+    return ret;
+}
+alias memoize!_g get_g;
 
 import std.algorithm : reduce;
 double nrtwafom(R)(R P) if (Bisectable!R)
@@ -43,17 +52,26 @@ double nrtwafom(R)(R P) if (Bisectable!R)
     double ret = 0;
     foreach (B; P)
     {
-        //double cur = 1;
-        //foreach (x; B)
-        //{
-        //    cur *= f[x.nu()];
-        //}
-        //ret += cur;
         ret += reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B);
     }
     foreach (i; 0..P.dimensionF2)
         ret *= 0.5;
-    return ret;
+    return ret - 1;
+}
+double msnrtwafom(R)(R P) if (Bisectable!R)
+{
+    if (P.bisectable)
+    {
+        auto Q = P.bisect();
+        return (Q[0].msnrtwafom() + Q[1].msnrtwafom());
+    }
+    auto g = P.precision.get_g();
+    double ret = 0;
+    foreach (B; P)
+        ret += reduce!((a, b) => a * g[b.mu_star(P.precision)])(1.0, B);
+    foreach (i; 0..P.dimensionF2)
+        ret *= 0.5;
+    return ret - 1;
 }
 
 double biwafom(R)(R P) if (Bisectable!R)
@@ -113,8 +131,13 @@ double wafom(R)(R P)
     return ret - 1;
 }
 
-double mswafom(R)(R P)
+double mswafom(R)(R P) if (Bisectable!R)
 {
+    if (P.bisectable)
+    {
+        auto Q = P.bisect();
+        return (Q[0].mswafom() + Q[1].mswafom()) * 0.5;
+    }
     import std.math : sqrt;
     double ret = 0;
     auto f = factors(P.precision, 4);
@@ -130,7 +153,7 @@ double mswafom(R)(R P)
         }
         ret += cur;
     }
-    return sqrt((ret / P.length) - 1);
+    return ret / P.length - 1;
 }
 
 version (verbose) unittest

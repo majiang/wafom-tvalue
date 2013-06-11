@@ -45,8 +45,8 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
     immutable ulong length;
 
     private ulong position;
-    private const T[][] basis; /// baisis[i][j] = (i-th vector of basis)'s __j-th__ component
-    private const T[] shift;
+    public const T[][] basis; /// baisis[i][j] = (i-th vector of basis)'s __j-th__ component
+    public const T[] shift;
     private T[] current;
 
     this (in T[][] basis, in size_t precision, in T[] shift)
@@ -258,9 +258,9 @@ auto randomPoints(T)(in size_t dimensionR, in size_t precision, in size_t dimens
     return nonshiftedRandomBasisPoints!T(precision, dimensionR, dimensionF2);
 }
 /// ditto
-ShiftedBasisPoints!ulong transposedBasisPoints(in ulong[][] basis, in size_t precision)
+ShiftedBasisPoints!T transposedBasisPoints(T)(in T[][] basis, in size_t precision) if (isUnsigned!T)
 {
-    auto new_basis = new ulong[][basis[0].length];
+    auto new_basis = new T[][basis[0].length];
     foreach (i; 0..new_basis.length)
     {
         new_basis[i].length = basis.length;
@@ -269,7 +269,7 @@ ShiftedBasisPoints!ulong transposedBasisPoints(in ulong[][] basis, in size_t pre
             new_basis[i][j] = basis[j][i];
         }
     }
-    return ShiftedBasisPoints!ulong(new_basis, precision);
+    return ShiftedBasisPoints!T(new_basis, precision);
 }
 
 
@@ -283,9 +283,9 @@ struct DigitalNet(T)
     ulong t;
 }
 
-DigitalNet!ulong lineToBP(string line, size_t precision = size_t.max)
+DigitalNet!T lineToBP(T)(string line, size_t precision = size_t.max) if (isUnsigned!T)
 {
-    ulong[][] basis;
+    T[][] basis;
     double wafom;
     ulong t;
     foreach (i, bufs; line.strip().split(",,"))
@@ -300,17 +300,17 @@ DigitalNet!ulong lineToBP(string line, size_t precision = size_t.max)
         basis.length += 1;
         foreach (s; bufs.split(","))
         {
-            basis[$-1] ~= s.to!ulong();
+            basis[$-1] ~= s.to!T();
         }
     }
     assert (basis.length);
-    return DigitalNet!ulong(transposedBasisPoints(basis, precision = size_t.max ? basis.guess_precision() : precision), wafom, t);
+    return DigitalNet!T(transposedBasisPoints(basis, precision = size_t.max ? basis.guess_precision() : precision), wafom, t);
 }
 
 import std.algorithm : max;
-size_t guess_precision(ulong[][] basis)
+size_t guess_precision(T)(T[][] basis) if (isUnsigned!T)
 {
-    ulong x = 0;
+    T x = 0;
     foreach (l; basis)
         foreach (c; l)
             x = x.max(c);
@@ -329,7 +329,7 @@ unittest
     debug (verbose) scope (success) "unittest passed with %d elements".writefln(c);
     auto c = 0;
     foreach (x; "5,0.002124192556608,5.236969948020973,,2600265188,692020818,1829963221,894032275,1090497089,651123054,2898340559,1909687544,843513215,1542217271,39519261,3977641622,,2144888475,2941401343,1387697674,1986117176,3702571292,2647056038,3871827325,2263216594,3008901273,4224148358,3048652205,3799831373,,737302895,1233368001,1654098828,2764743171,239054234,249267380,1039474368,3378013260,2468295934,902812364,993745693,2410603677,,3726908047,3018079636,1719761848,2421945980,8259646,1793582138,3611200899,137680621,2493595579,2004711502,1809926346,2378246536\n".
-        lineToBP().ps)
+        lineToBP!uint().ps)
     {
         debug (verbose) "%s".writefln(x);
         c += 1;
