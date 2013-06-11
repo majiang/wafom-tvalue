@@ -31,11 +31,19 @@ double[] _f(in size_t precision)
 }
 alias memoize!_f get_f;
 
+auto halves(size_t u)
+{
+    double ret = 1;
+    foreach (i; 0..u)
+        ret *= 0.5;
+    return ret;
+}
+
 double[] _g(in size_t precision)
 {
-    auto ret = [1 + (1 - 0.5 ^^ precision) * 0.5];
+    auto ret = [1 + (1 - precision.halves()) * 0.5];
     foreach (i; 1..(precision+1))
-        ret ~= 1.5 * (1 - 0.5 ^^ i);
+        ret ~= 1.5 * (1 - i.halves());
     return ret;
 }
 alias memoize!_g get_g;

@@ -53,9 +53,9 @@ If 64 &lt;= dimensionF2, position and length being ulong, foreach (x; P) gives w
 Outputs of elements joined together is equal as multiset to output of this.<br><br>
 
 </dd>
-<dt><big><a name="shift"></a>const SBP <u>shift</u>(in T[] <i>further_shifter</i>);
+<dt><big><a name="shifted"></a>const SBP <u>shifted</u>(in T[] <i>shift</i>);
 </big></dt>
-<dd>ShiftedBasisPoints with its outputs digital-shifted.<br><br>
+<dd>ShiftedBasisPoints with its outputs digital-<u>shifted</u>.<br><br>
 
 </dd>
 <dt><big><a name="opBinary"></a>SBP <u>opBinary</u>(string op)(in int <i>amount</i>);
@@ -98,7 +98,7 @@ Outputs of elements joined together is equal as multiset to output of this.<br><
 
 </dd>
 <dt><big><a name="randomPoints"></a>auto <u>randomPoints</u>(T)(in size_t <i>dimensionR</i>, in size_t <i>precision</i>, in size_t <i>dimensionF2</i>);
-<br><a name="transposedBasisPoints"></a>ShiftedBasisPoints!(ulong) <u>transposedBasisPoints</u>(in ulong[][] <i>basis</i>, in size_t <i>precision</i>);
+<br><a name="transposedBasisPoints"></a>ShiftedBasisPoints!(T) <u>transposedBasisPoints</u>(T)(in T[][] <i>basis</i>, in size_t <i>precision</i>);
 </big></dt>
 <dd>functions for backward compatibility.<br><br>
 
