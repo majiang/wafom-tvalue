@@ -1,7 +1,7 @@
 module main;
 
 import tvalue : tvalue, nu_star;
-import wafom : Bisect, wafom, biwafom, nrtwafom, msnrtwafom, mswafom;
+import wafom : biwafom, binrtwafom, bimsnrtwafom, bimswafom;
 import sobol : defaultSobols;
 import pointset : randomPoints, ShiftedBasisPoints, randomVectors;
 
@@ -190,11 +190,10 @@ void main()
         {
             //if (i % 100 == 0)
                 stderr.writefln("processing %d-th point set...", i);
-            "%d,%d,%d,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%d".
+            "%d,%d,%d,%.15e,%.15e,%.15e,%.15e,%d".
                 writef(
                        P.dimensionF2, P.dimensionR, P.precision,
-                       P.wafom(), P.biwafom(), P.Bisect!wafom(),
-                       P.mswafom().sqrt(), P.Bisect!nrtwafom(), P.Bisect!msnrtwafom().sqrt(),
+                       P.biwafom(), P.bimswafom().sqrt(), P.binrtwafom(), P.bimsnrtwafom().sqrt(),
                        P.tvalue());
             foreach (l; P.basis) foreach (x; l) ",".
                 write(x);

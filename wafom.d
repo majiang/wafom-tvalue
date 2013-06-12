@@ -83,12 +83,41 @@ double msnrtwafom(R)(R P)
     return ret - 1;
 }
 
-double biwafom(R)(R P) if (Bisectable!R)
+template biwafom(R)
 {
-    if (!P.bisectable) return P.wafom();
-    auto Q = P.bisect();
-    return (Q[0].biwafom() + Q[1].biwafom()) * 0.5;
+    auto biwafom(R P)
+    {
+        return Bisect!wafom(P);
+    }
 }
+template bimswafom(R)
+{
+    auto bimswafom(R P)
+    {
+        return Bisect!mswafom(P);
+    }
+}
+template binrtwafom(R)
+{
+    auto binrtwafom(R P)
+    {
+        return Bisect!nrtwafom(P);
+    }
+}
+template bimsnrtwafom(R)
+{
+    auto bimsnrtwafom(R P)
+    {
+        return Bisect!msnrtwafom(P);
+    }
+}
+
+//double biwafom(R)(R P) if (Bisectable!R)
+//{
+//    if (!P.bisectable) return P.wafom();
+//    auto Q = P.bisect();
+//    return (Q[0].biwafom() + Q[1].biwafom()) * 0.5;
+//}
 
 version (verbose) unittest
 {
@@ -140,13 +169,13 @@ double wafom(R)(R P)
     return ret - 1;
 }
 
-double mswafom(R)(R P) if (Bisectable!R)
+double mswafom(R)(R P)// if (Bisectable!R)
 {
-    if (P.bisectable)
-    {
-        auto Q = P.bisect();
-        return (Q[0].mswafom() + Q[1].mswafom()) * 0.5;
-    }
+    //if (P.bisectable)
+    //{
+    //    auto Q = P.bisect();
+    //    return (Q[0].mswafom() + Q[1].mswafom()) * 0.5;
+    //}
     import std.math : sqrt;
     double ret = 0;
     auto f = factors(P.precision, 4);
