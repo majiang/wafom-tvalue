@@ -198,20 +198,20 @@ debug (verbose) unittest
             }
 }
 
-/** Compute ceil(-lg(x >> m))
+/** Compute (-(x >> n).lg).ceil = -(x >> n).lg.floor = n - x.lg.floor
 *
 * Params:
-*     m = lg|P|
-*     x = a component of a vector in P; 0 <= x < 2^m
+*     n = P.precision
+*     x = a component of a vector in P; 0 <= x < 2^n
 * Returns:
-*     m + 1 if x = 0
-*     m - (x.lg.floor) otherwise
+*     n + 1 if x = 0
+*     n - (x.lg.floor) otherwise
 */
-size_t nu_star(ulong x, in size_t m)
+size_t nu_star(ulong x, in size_t n)
 in
 {
     assert (0 <= x);
-    if (m != 64 && !(x < 1UL << m))
+    if (n != 64 && !(x < 1UL << n))
     {
         debug x.writeln(".reciprocal illegally called where m = ", m);
         assert (false);
@@ -220,11 +220,11 @@ in
 out (result)
 {
     assert (0 < result);
-    assert (result <= m+1);
+    assert (result <= n + 1);
 }
 body
 {
-    size_t ret = m + 1;
+    size_t ret = n + 1;
     while (x)
     {
         ret -= 1;

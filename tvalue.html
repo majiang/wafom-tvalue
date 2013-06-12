@@ -105,19 +105,19 @@ This function computes the reciprocal of Q, namely, R(y) := (-y<sup>m+1</sup>)<s
 This function should memoized for repeated t-value computation for a fixed (lg_length, dimension) and for different basis.<br><br>
 
 </dd>
-<dt><big><a name="nu_star"></a>size_t <u>nu_star</u>(ulong <i>x</i>, in size_t <i>m</i>);
+<dt><big><a name="nu_star"></a>size_t <u>nu_star</u>(ulong <i>x</i>, in size_t <i>n</i>);
 </big></dt>
-<dd>Compute ceil(-lg(<i>x</i> &gt;&gt; <i>m</i>))
+<dd>Compute (-(<i>x</i> &gt;&gt; <i>n</i>).lg).ceil = -(<i>x</i> &gt;&gt; <i>n</i>).lg.floor = <i>n</i> - <i>x</i>.lg.floor
 <br><br>
 <b>Params:</b><br>
-<table><tr><td>size_t <i>m</i></td>
-<td>lg|P|</td></tr>
+<table><tr><td>size_t <i>n</i></td>
+<td>P.precision</td></tr>
 <tr><td>ulong <i>x</i></td>
-<td>a component of a vector in P; 0 &lt;= <i>x</i> &lt; 2^<i>m</i></td></tr>
+<td>a component of a vector in P; 0 &lt;= <i>x</i> &lt; 2^<i>n</i></td></tr>
 </table><br>
 <b>Returns:</b><br>
-<i>m</i> + 1 if <i>x</i> = 0
-     <i>m</i> - (<i>x</i>.lg.floor) otherwise<br><br>
+<i>n</i> + 1 if <i>x</i> = 0
+     <i>n</i> - (<i>x</i>.lg.floor) otherwise<br><br>
 
 </dd>
 <dt><big><a name="nu_star_bs"></a>size_t <u>nu_star_bs</u>(ulong <i>x</i>, in size_t <i>m</i>);
