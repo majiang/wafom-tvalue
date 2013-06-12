@@ -1,7 +1,7 @@
 module main;
 
-import tvalue : tvalue;
-import wafom;
+import tvalue : tvalue, nu_star;
+import wafom : Bisect, wafom, biwafom, nrtwafom, msnrtwafom, mswafom;
 import sobol : defaultSobols;
 import pointset : randomPoints, ShiftedBasisPoints, randomVectors;
 
@@ -20,7 +20,7 @@ import std.string : strip;
 import std.array : split;
 import walsh;
 
-//version = sharase;
+//version = nu;
 version = calc_all;
 void main()
 {
@@ -185,15 +185,16 @@ void main()
     version (calc_all)
     {
         auto i = 0;
-        "dimF2,dimR,precision,dick,sqrt-mean-square-dick,nrt,sqrt-mean-square-nrt,t-value,basis".writeln();
+        "dimF2,dimR,precision,normal-dick,bisect-dick,Bisect-dick,sqrt-mean-square-dick,nrt,sqrt-mean-square-nrt,t-value,basis".writeln();
         foreach (P; DN!32())
         {
             //if (i % 100 == 0)
                 stderr.writefln("processing %d-th point set...", i);
-            "%d,%d,%d,%.15e,%.15e,%.15e,%.15e,%d".
+            "%d,%d,%d,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%d".
                 writef(
                        P.dimensionF2, P.dimensionR, P.precision,
-                       P.biwafom(), P.mswafom().sqrt(), P.nrtwafom(), P.msnrtwafom().sqrt(),
+                       P.wafom(), P.biwafom(), P.Bisect!wafom(),
+                       P.mswafom().sqrt(), P.Bisect!nrtwafom(), P.Bisect!msnrtwafom().sqrt(),
                        P.tvalue());
             foreach (l; P.basis) foreach (x; l) ",".
                 write(x);

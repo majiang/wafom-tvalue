@@ -1,7 +1,7 @@
 module wafom;
 
 import std.functional : memoize;
-import std.traits : isUnsigned;
+import std.traits : isUnsigned, ReturnType, ParameterTypeTuple;
 
 debug import std.stdio;
 
@@ -31,48 +31,49 @@ double[] _f(in size_t precision)
 }
 alias memoize!_f get_f;
 
-auto halves(size_t u)
-{
-    double ret = 1;
-    foreach (i; 0..u)
-        ret *= 0.5;
-    return ret;
-}
-
+import std.math;
 double[] _g(in size_t precision)
 {
-    auto ret = [1 + (1 - precision.halves()) * 0.5];
+    auto ret = [1.5 - 0.5 ^^ (precision + 1)];
     foreach (i; 1..(precision+1))
-        ret ~= 1.5 * (1 - i.halves());
+        ret ~= 1.5 * (1 - 0.5 ^^ i);
     return ret;
 }
 alias memoize!_g get_g;
 
-import std.algorithm : reduce;
-double nrtwafom(R)(R P) if (Bisectable!R)
+/** Apply bisect algorithm for function f: R -> double.
+
+Params:
+f = A function R -> double. f must satisfy the invariant f(P.bisect()[0]) + f(P.bisect()[1]) == f(P) * 2 whenever P is bisectable.
+R = input type of f. R must be Bisectable (i.e., has property bisectable and method bisect).
+
+TODO: generalize to f: R -> T
+*/
+template Bisect(alias f, R)
 {
-    if (P.bisectable)
+    static assert (Bisectable!R);
+    double Bisect(R P)
     {
+        if (!P.bisectable)
+            return f(P);
         auto Q = P.bisect();
-        return (Q[0].nrtwafom() + Q[1].nrtwafom()) * 0.5;
+        return (Bisect!(f, R)(Q[0]) + Bisect!(f, R)(Q[1])) * 0.5;
     }
+}
+
+import std.algorithm : reduce;
+double nrtwafom(R)(R P)
+{
     auto f = P.precision.get_f();
     double ret = 0;
     foreach (B; P)
-    {
         ret += reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B);
-    }
     foreach (i; 0..P.dimensionF2)
         ret *= 0.5;
     return ret - 1;
 }
-double msnrtwafom(R)(R P) if (Bisectable!R)
+double msnrtwafom(R)(R P)
 {
-    if (P.bisectable)
-    {
-        auto Q = P.bisect();
-        return (Q[0].msnrtwafom() + Q[1].msnrtwafom());
-    }
     auto g = P.precision.get_g();
     double ret = 0;
     foreach (B; P)
