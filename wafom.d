@@ -40,6 +40,8 @@ double[] _ff_(size_t exponent)(in size_t precision)
     return ret;
 }
 
+import std.math;
+version (none){
 double[] _f(in size_t precision)
 {
     auto ret = [precision * 0.5 + 1];
@@ -49,7 +51,6 @@ double[] _f(in size_t precision)
 }
 alias memoize!_f get_f;
 
-import std.math;
 double[] _g(in size_t precision)
 {
     auto ret = [1.5 - 0.5 ^^ (precision + 1)];
@@ -70,7 +71,7 @@ unittest
     foreach (e; _ff_!1(8))
         e.write(","); writeln();
 }
-
+}
 /** Apply bisect algorithm for function f: R -> double.
 
 Params:
@@ -97,8 +98,9 @@ double nrt(size_t exponent, R)(R P)
     double ret = reduce!((ret, B) => ret + reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B))(0.0, P);
     mixin (scale_and_return);
 }
-
 import std.algorithm : reduce;
+version (none)
+{
 double nrtwafom(R)(R P)
 {
     auto f = P.precision.get_f();
@@ -115,33 +117,33 @@ double msnrtwafom(R)(R P)
         ret += reduce!((a, b) => a * g[b.mu_star(P.precision)])(1.0, B);
     mixin (scale_and_return);
 }
-
+}
 template biwafom(R)
 {
     auto biwafom(R P)
     {
-        return Bisect!wafom(P);
+        return Bisect!(rapid_dick!(1, R))(P);
     }
 }
 template bimswafom(R)
 {
     auto bimswafom(R P)
     {
-        return Bisect!mswafom(P).sqrt();
+        return Bisect!(rapid_dick!(2, R))(P).sqrt();
     }
 }
 template binrtwafom(R)
 {
     auto binrtwafom(R P)
     {
-        return Bisect!nrtwafom(P);
+        return Bisect!(nrt!(0, R))(P);
     }
 }
 template bimsnrtwafom(R)
 {
     auto bimsnrtwafom(R P)
     {
-        return Bisect!msnrtwafom(P).sqrt();
+        return Bisect!(nrt!(1, R))(P).sqrt();
     }
 }
 
@@ -255,11 +257,11 @@ version (all) unittest
     {
         auto P = randomPoints!uint(4, 32, i);
         "%d,%s,%.15e,%.15e,%.15e,%.15e,".writefln
-            (i, "orig", P.wafom(), P.mswafom(), P.nrtwafom(), P.msnrtwafom());
+            (i, "orig", P.biwafom(), P.bimswafom(), P.binrtwafom(), P.bimsnrtwafom());
         "%d,%s,%.15e,%.15e,%.15e,%.15e,".writefln
-            (i, "fast", P.rapid_dick!1(), P.rapid_dick!2(), P.nrt!0(), P.nrt!1());
+            (i, "fast", P.rapid_dick!1(), P.rapid_dick!2().sqrt(), P.nrt!0(), P.nrt!1().sqrt());
         "%d,%s,%.15e,%.15e,".writefln
-            (i, "slow", P.slow_dick!1(), P.slow_dick!2());
+            (i, "slow", P.slow_dick!1(), P.slow_dick!2().sqrt());
     }
 }
 
