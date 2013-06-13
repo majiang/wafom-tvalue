@@ -2,10 +2,11 @@ module wafom;
 
 import std.functional : memoize;
 import std.traits : isUnsigned, ReturnType, ParameterTypeTuple;
+import std.math;
+import std.algorithm : reduce;
+import std.conv : text;
 
 debug import std.stdio;
-
-
 debug = speedup;
 import pointset : Bisectable, nonshiftedRandomBasisPoints;
 
@@ -23,7 +24,7 @@ size_t mu_star(T)(T x, in size_t precision) if (isUnsigned!T)
     return ret;
 }
 
-double[] _ff_(size_t exponent)(in size_t precision)
+private double[] _ff_(size_t exponent)(in size_t precision)
 {
     static assert (exponent < 2);
     static if (exponent == 0)
@@ -40,38 +41,7 @@ double[] _ff_(size_t exponent)(in size_t precision)
     return ret;
 }
 
-import std.math;
-version (none){
-double[] _f(in size_t precision)
-{
-    auto ret = [precision * 0.5 + 1];
-    foreach (i; 1..(precision+1))
-        ret ~= i * 0.5;
-    return ret;
-}
-alias memoize!_f get_f;
 
-double[] _g(in size_t precision)
-{
-    auto ret = [1.5 - 0.5 ^^ (precision + 1)];
-    foreach (i; 1..(precision+1))
-        ret ~= 1.5 * (1 - 0.5 ^^ i);
-    return ret;
-}
-alias memoize!_g get_g;
-
-unittest
-{
-    foreach (e; _f(8))
-        e.write(","); writeln();
-    foreach (e; _g(8))
-        e.write(","); writeln();
-    foreach (e; _ff_!0(8))
-        e.write(","); writeln();
-    foreach (e; _ff_!1(8))
-        e.write(","); writeln();
-}
-}
 /** Apply bisect algorithm for function f: R -> double.
 
 Params:
@@ -92,82 +62,21 @@ template Bisect(alias f, R)
     }
 }
 
+
+static immutable string scale_and_return = q{
+    foreach (i; 0..P.dimensionF2)
+        ret *= 0.5;
+    return ret - 1;
+};
+
+/** Compute NRT WAFOM of point set P. */
 double nrt(size_t exponent, R)(R P)
 {
     auto f =P.precision._ff_!exponent();
     double ret = reduce!((ret, B) => ret + reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B))(0.0, P);
     mixin (scale_and_return);
 }
-import std.algorithm : reduce;
-version (none)
-{
-double nrtwafom(R)(R P)
-{
-    auto f = P.precision.get_f();
-    double ret = 0;
-    foreach (B; P)
-        ret += reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B);
-    mixin (scale_and_return);
-}
-double msnrtwafom(R)(R P)
-{
-    auto g = P.precision.get_g();
-    double ret = 0;
-    foreach (B; P)
-        ret += reduce!((a, b) => a * g[b.mu_star(P.precision)])(1.0, B);
-    mixin (scale_and_return);
-}
-}
-template biwafom(R)
-{
-    auto biwafom(R P)
-    {
-        return Bisect!(rapid_dick!(1, R))(P);
-    }
-}
-template bimswafom(R)
-{
-    auto bimswafom(R P)
-    {
-        return Bisect!(rapid_dick!(2, R))(P).sqrt();
-    }
-}
-template binrtwafom(R)
-{
-    auto binrtwafom(R P)
-    {
-        return Bisect!(nrt!(0, R))(P);
-    }
-}
-template bimsnrtwafom(R)
-{
-    auto bimsnrtwafom(R P)
-    {
-        return Bisect!(nrt!(1, R))(P).sqrt();
-    }
-}
 
-//double biwafom(R)(R P) if (Bisectable!R)
-//{
-//    if (!P.bisectable) return P.wafom();
-//    auto Q = P.bisect();
-//    return (Q[0].biwafom() + Q[1].biwafom()) * 0.5;
-//}
-
-version (verbose) unittest
-{
-    foreach (d; 8..17)
-    {
-        "P.dimensionF2 = %d".writefln(d);
-        foreach (i; 0..100)
-        {
-            auto P = nonshiftedRandomBasisPoints!uint(32, 4, d);
-            "%.15f,%.15f,%.15f".writefln(P.wafom(), P.biwafom(), P.nrtwafom());
-        }
-    }
-}
-
-import std.conv : text;
 /** Compute wafom of a general quasi-Monte Carlo point set.
 
 * Algorithm:
@@ -182,50 +91,6 @@ import std.conv : text;
 Remarks:
 Using double, precision > 54 is no better than precision = 54.
 */
-deprecated double wafom(R)(R P)
-{
-    assert (P.precision);
-    double ret = 0;
-    debug (speedup) auto f = factors(P.precision, 1);
-    foreach (B; P)
-    {
-        double cur = 1;
-        debug (speedup) double cur_backup = 1;
-        foreach (l; B)
-        {
-            cur *= l.wafom_factor(P.precision);
-            debug (speedup) foreach (j, c; f) cur_backup *= c[(l >> j) & 1];
-        }
-        debug (speedup) auto diff = cur - cur_backup;
-        debug (speedup) {assert (diff * diff < 1e-10, text("diff = ", diff));}
-        ret += cur;
-    }
-    foreach (i; 0..P.dimensionF2)
-        ret *= 0.5;
-    return ret - 1;
-}
-
-static immutable string scale_and_return = q{
-    foreach (i; 0..P.dimensionF2)
-        ret *= 0.5;
-    return ret - 1;
-};
-
-version (none) double mswafom(R)(R P)
-{
-    double ret = 0;
-    auto f = factors(P.precision, 2);
-    foreach (B; P)
-    {
-        double cur = 1;
-        foreach (l; B)
-            foreach (j, c; f)
-                cur *= c[(l >> j) & 1];
-        ret += cur;
-    }
-    mixin (scale_and_return);
-}
-
 double rapid_dick(size_t exponent, R)(R P)
 {
     double ret = 0;
@@ -234,6 +99,7 @@ double rapid_dick(size_t exponent, R)(R P)
     mixin (scale_and_return);
 }
 
+/// ditto
 double slow_dick(size_t exponent, R)(R P)
 {
     double ret = 0;
@@ -265,18 +131,34 @@ version (all) unittest
     }
 }
 
-version (verbose) unittest
+template biwafom(R)
 {
-    import pointset : randomPoints;
-    foreach (i; 0..10)
+    auto biwafom(R P)
     {
-        auto P = randomPoints!uint(4, 32, 10);
-        auto w = P.wafom();
-        auto m = P.mswafom();
-        debug (verbose) "wafom = %.15f; mswfm = %.15f".writefln(w, m);
+        return Bisect!(rapid_dick!(1, R))(P);
     }
 }
-
+template bimswafom(R)
+{
+    auto bimswafom(R P)
+    {
+        return Bisect!(rapid_dick!(2, R))(P).sqrt();
+    }
+}
+template binrtwafom(R)
+{
+    auto binrtwafom(R P)
+    {
+        return Bisect!(nrt!(0, R))(P);
+    }
+}
+template bimsnrtwafom(R)
+{
+    auto bimsnrtwafom(R P)
+    {
+        return Bisect!(nrt!(1, R))(P).sqrt();
+    }
+}
 
 double rapid_wafom_factor(size_t exponent)(ulong x, ptrdiff_t precision)
 {
@@ -292,19 +174,6 @@ double rapid_wafom_factor(size_t exponent)(ulong x, ptrdiff_t precision)
     return ret;
 }
 
-deprecated double wafom_factor(ulong x, ptrdiff_t precision)
-{
-    debug auto memo = memoize!get_memo(); 
-    else static memo = get_memo(); 
-    double ret = 1;
-    while (0 < precision)
-    {
-        ret *= memo[precision - 1][x & 255];
-        precision -= 8;
-        x >>= 8;
-    }
-    return ret;
-}
 
 double[256][64] get_memo_factor(size_t exponent)()
 {
@@ -324,26 +193,6 @@ double[256][64] get_memo_factor(size_t exponent)()
     }
     return ret;
 }
-
-deprecated double[256][64] get_memo()
-{
-    import std.algorithm : min, max;
-    double[256][64] ret;
-    auto f = _factors(64);
-    foreach (i; 0..64)
-    {
-        foreach (j; 0..2 << min(i, 7))
-        {
-            ret[i][j] = 1;
-            foreach (k, c; f[$-(i+1)..$-max(0, i-7)])
-            {
-                ret[i][j] *= c[(j >> k) & 1];
-            }
-        }
-    }
-    return ret;
-}
-
 
 double[2][] _factors(size_t precision, size_t exponent = 1)
 {
@@ -376,4 +225,161 @@ unittest
         debug (verbose)
             if (!(x[0] == 1.0 && x[1] == 1.0))
                 x.writeln();
+}
+
+version (none){
+double[] _f(in size_t precision)
+{
+    auto ret = [precision * 0.5 + 1];
+    foreach (i; 1..(precision+1))
+        ret ~= i * 0.5;
+    return ret;
+}
+alias memoize!_f get_f;
+
+double[] _g(in size_t precision)
+{
+    auto ret = [1.5 - 0.5 ^^ (precision + 1)];
+    foreach (i; 1..(precision+1))
+        ret ~= 1.5 * (1 - 0.5 ^^ i);
+    return ret;
+}
+alias memoize!_g get_g;
+
+unittest
+{
+    foreach (e; _f(8))
+        e.write(","); writeln();
+    foreach (e; _g(8))
+        e.write(","); writeln();
+    foreach (e; _ff_!0(8))
+        e.write(","); writeln();
+    foreach (e; _ff_!1(8))
+        e.write(","); writeln();
+}
+}
+version (none)
+{
+double nrtwafom(R)(R P)
+{
+    auto f = P.precision.get_f();
+    double ret = 0;
+    foreach (B; P)
+        ret += reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B);
+    mixin (scale_and_return);
+}
+double msnrtwafom(R)(R P)
+{
+    auto g = P.precision.get_g();
+    double ret = 0;
+    foreach (B; P)
+        ret += reduce!((a, b) => a * g[b.mu_star(P.precision)])(1.0, B);
+    mixin (scale_and_return);
+}
+}
+
+//double biwafom(R)(R P) if (Bisectable!R)
+//{
+//    if (!P.bisectable) return P.wafom();
+//    auto Q = P.bisect();
+//    return (Q[0].biwafom() + Q[1].biwafom()) * 0.5;
+//}
+
+version (verbose) unittest
+{
+    foreach (d; 8..17)
+    {
+        "P.dimensionF2 = %d".writefln(d);
+        foreach (i; 0..100)
+        {
+            auto P = nonshiftedRandomBasisPoints!uint(32, 4, d);
+            "%.15f,%.15f,%.15f".writefln(P.wafom(), P.biwafom(), P.nrtwafom());
+        }
+    }
+}
+
+deprecated double wafom(R)(R P)
+{
+    assert (P.precision);
+    double ret = 0;
+    debug (speedup) auto f = factors(P.precision, 1);
+    foreach (B; P)
+    {
+        double cur = 1;
+        debug (speedup) double cur_backup = 1;
+        foreach (l; B)
+        {
+            cur *= l.wafom_factor(P.precision);
+            debug (speedup) foreach (j, c; f) cur_backup *= c[(l >> j) & 1];
+        }
+        debug (speedup) auto diff = cur - cur_backup;
+        debug (speedup) {assert (diff * diff < 1e-10, text("diff = ", diff));}
+        ret += cur;
+    }
+    foreach (i; 0..P.dimensionF2)
+        ret *= 0.5;
+    return ret - 1;
+}
+
+
+version (none) double mswafom(R)(R P)
+{
+    double ret = 0;
+    auto f = factors(P.precision, 2);
+    foreach (B; P)
+    {
+        double cur = 1;
+        foreach (l; B)
+            foreach (j, c; f)
+                cur *= c[(l >> j) & 1];
+        ret += cur;
+    }
+    mixin (scale_and_return);
+}
+
+version (verbose) unittest
+{
+    import pointset : randomPoints;
+    foreach (i; 0..10)
+    {
+        auto P = randomPoints!uint(4, 32, 10);
+        auto w = P.wafom();
+        auto m = P.mswafom();
+        debug (verbose) "wafom = %.15f; mswfm = %.15f".writefln(w, m);
+    }
+}
+
+
+
+deprecated double wafom_factor(ulong x, ptrdiff_t precision)
+{
+    debug auto memo = memoize!get_memo(); 
+    else static memo = get_memo(); 
+    double ret = 1;
+    while (0 < precision)
+    {
+        ret *= memo[precision - 1][x & 255];
+        precision -= 8;
+        x >>= 8;
+    }
+    return ret;
+}
+
+deprecated double[256][64] get_memo()
+{
+    import std.algorithm : min, max;
+    double[256][64] ret;
+    auto f = _factors(64);
+    foreach (i; 0..64)
+    {
+        foreach (j; 0..2 << min(i, 7))
+        {
+            ret[i][j] = 1;
+            foreach (k, c; f[$-(i+1)..$-max(0, i-7)])
+            {
+                ret[i][j] *= c[(j >> k) & 1];
+            }
+        }
+    }
+    return ret;
 }
