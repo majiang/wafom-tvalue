@@ -225,14 +225,14 @@ ShiftedBasisPoints!T shiftedRandomBasisPoints(T) (in size_t precision, in size_t
     return ShiftedBasisPoints!T (precision.randomVectors!T(dimensionR, dimensionF2), precision, precision.randomVector!T(dimensionR));
 }
 
-import wafom : wafom;
+import wafom : biwafom;
 unittest
 {
     auto P = nonshiftedRandomBasisPoints!uint(32, 4, 12);
     auto
-        x = P.bisect()[0].wafom(),
-        y = P.bisect()[1].wafom(),
-        z = P.wafom();
+        x = P.bisect()[0].biwafom(),
+        y = P.bisect()[1].biwafom(),
+        z = P.biwafom();
     debug (verbose)
     {
         "P is a SBP with wafom = ".writeln(z);

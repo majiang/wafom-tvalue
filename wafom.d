@@ -182,7 +182,7 @@ import std.conv : text;
 Remarks:
 Using double, precision > 54 is no better than precision = 54.
 */
-double wafom(R)(R P)
+deprecated double wafom(R)(R P)
 {
     assert (P.precision);
     double ret = 0;
@@ -211,7 +211,7 @@ static immutable string scale_and_return = q{
     return ret - 1;
 };
 
-double mswafom(R)(R P)
+version (none) double mswafom(R)(R P)
 {
     double ret = 0;
     auto f = factors(P.precision, 2);
@@ -280,8 +280,8 @@ version (verbose) unittest
 
 double rapid_wafom_factor(size_t exponent)(ulong x, ptrdiff_t precision)
 {
-    debug auto memo = memoize!(get_memo_factor!exponent)();
-    else static memo = get_memo_factor!exponent();
+    debug auto memo = memoize!(get_memo_factor!exponent)(); // just memoize for debug, to compile faster.
+    else static memo = get_memo_factor!exponent(); // CTFE for release, to execute faster.
     double ret = 1;
     while (0 < precision)
     {
@@ -292,10 +292,10 @@ double rapid_wafom_factor(size_t exponent)(ulong x, ptrdiff_t precision)
     return ret;
 }
 
-double wafom_factor(ulong x, ptrdiff_t precision)
+deprecated double wafom_factor(ulong x, ptrdiff_t precision)
 {
-    debug auto memo = memoize!get_memo(); // just memoize for debug, to compile faster.
-    else static memo = get_memo(); // CTFE for release, to execute faster.
+    debug auto memo = memoize!get_memo(); 
+    else static memo = get_memo(); 
     double ret = 1;
     while (0 < precision)
     {
@@ -325,7 +325,7 @@ double[256][64] get_memo_factor(size_t exponent)()
     return ret;
 }
 
-double[256][64] get_memo()
+deprecated double[256][64] get_memo()
 {
     import std.algorithm : min, max;
     double[256][64] ret;
