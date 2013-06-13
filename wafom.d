@@ -9,6 +9,7 @@ debug import std.stdio;
 debug = speedup;
 import pointset : Bisectable, nonshiftedRandomBasisPoints;
 
+private
 size_t mu_star(T)(T x, in size_t precision) if (isUnsigned!T)
 {
     if (x == 0)
@@ -18,6 +19,23 @@ size_t mu_star(T)(T x, in size_t precision) if (isUnsigned!T)
     {
         ret -= 1;
         x >>= 1;
+    }
+    return ret;
+}
+
+double[] _ff_(size_t exponent)(in size_t precision)
+{
+    static assert (exponent < 2);
+    static if (exponent == 0)
+        auto ret = [precision * 0.5 + 1];
+    else
+        auto ret = [1.5 - 0.5 ^^ (precision + 1)];
+    foreach (i; 1..(precision + 1))
+    {
+        static if (exponent == 0)
+            ret ~= i * 0.5;
+        else
+            ret ~= 1.5 * (1 - 0.5 ^^ i);
     }
     return ret;
 }
@@ -41,6 +59,18 @@ double[] _g(in size_t precision)
 }
 alias memoize!_g get_g;
 
+unittest
+{
+    foreach (e; _f(8))
+        e.write(","); writeln();
+    foreach (e; _g(8))
+        e.write(","); writeln();
+    foreach (e; _ff_!0(8))
+        e.write(","); writeln();
+    foreach (e; _ff_!1(8))
+        e.write(","); writeln();
+}
+
 /** Apply bisect algorithm for function f: R -> double.
 
 Params:
@@ -61,6 +91,13 @@ template Bisect(alias f, R)
     }
 }
 
+double nrt(size_t exponent, R)(R P)
+{
+    auto f =P.precision._ff_!exponent();
+    double ret = reduce!((ret, B) => ret + reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B))(0.0, P);
+    mixin (scale_and_return);
+}
+
 import std.algorithm : reduce;
 double nrtwafom(R)(R P)
 {
@@ -68,9 +105,7 @@ double nrtwafom(R)(R P)
     double ret = 0;
     foreach (B; P)
         ret += reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B);
-    foreach (i; 0..P.dimensionF2)
-        ret *= 0.5;
-    return ret - 1;
+    mixin (scale_and_return);
 }
 double msnrtwafom(R)(R P)
 {
@@ -78,9 +113,7 @@ double msnrtwafom(R)(R P)
     double ret = 0;
     foreach (B; P)
         ret += reduce!((a, b) => a * g[b.mu_star(P.precision)])(1.0, B);
-    foreach (i; 0..P.dimensionF2)
-        ret *= 0.5;
-    return ret - 1;
+    mixin (scale_and_return);
 }
 
 template biwafom(R)
@@ -94,7 +127,7 @@ template bimswafom(R)
 {
     auto bimswafom(R P)
     {
-        return Bisect!mswafom(P);
+        return Bisect!mswafom(P).sqrt();
     }
 }
 template binrtwafom(R)
@@ -108,7 +141,7 @@ template bimsnrtwafom(R)
 {
     auto bimsnrtwafom(R P)
     {
-        return Bisect!msnrtwafom(P);
+        return Bisect!msnrtwafom(P).sqrt();
     }
 }
 
@@ -132,6 +165,7 @@ version (verbose) unittest
     }
 }
 
+import std.conv : text;
 /** Compute wafom of a general quasi-Monte Carlo point set.
 
 * Algorithm:
@@ -150,7 +184,7 @@ double wafom(R)(R P)
 {
     assert (P.precision);
     double ret = 0;
-    debug (speedup) auto f = factors(P.precision, 2);
+    debug (speedup) auto f = factors(P.precision, 1);
     foreach (B; P)
     {
         double cur = 1;
@@ -161,7 +195,7 @@ double wafom(R)(R P)
             debug (speedup) foreach (j, c; f) cur_backup *= c[(l >> j) & 1];
         }
         debug (speedup) auto diff = cur - cur_backup;
-        debug (speedup) assert (diff * diff < 1e-10);
+        debug (speedup) {assert (diff * diff < 1e-10, text("diff = ", diff));}
         ret += cur;
     }
     foreach (i; 0..P.dimensionF2)
@@ -169,29 +203,64 @@ double wafom(R)(R P)
     return ret - 1;
 }
 
-double mswafom(R)(R P)// if (Bisectable!R)
+static immutable string scale_and_return = q{
+    foreach (i; 0..P.dimensionF2)
+        ret *= 0.5;
+    return ret - 1;
+};
+
+double mswafom(R)(R P)
 {
-    //if (P.bisectable)
-    //{
-    //    auto Q = P.bisect();
-    //    return (Q[0].mswafom() + Q[1].mswafom()) * 0.5;
-    //}
-    import std.math : sqrt;
     double ret = 0;
-    auto f = factors(P.precision, 4);
+    auto f = factors(P.precision, 2);
     foreach (B; P)
     {
         double cur = 1;
         foreach (l; B)
-        {
             foreach (j, c; f)
-            {
                 cur *= c[(l >> j) & 1];
-            }
-        }
         ret += cur;
     }
-    return ret / P.length - 1;
+    mixin (scale_and_return);
+}
+
+double rapid_dick(size_t exponent, R)(R P)
+{
+    double ret = 0;
+    foreach (B; P)
+        ret += reduce!((cur, l) => cur * (l.rapid_wafom_factor!exponent(P.precision)))(1.0, B);
+    mixin (scale_and_return);
+}
+
+double slow_dick(size_t exponent, R)(R P)
+{
+    double ret = 0;
+    auto f = factors(P.precision, exponent);
+    foreach (B; P)
+    {
+        double cur = 1;
+        foreach (l; B)
+            foreach (j, c; f)
+                cur *= c[(l >> j) & 1];
+        ret += cur;
+    }
+    mixin (scale_and_return);
+}
+
+version (all) unittest
+{
+    import pointset : randomPoints;
+    "dimF2,algorithm,dick,dick2,nrt,nrt2".writeln();
+    foreach (i; 8..13)
+    {
+        auto P = randomPoints!uint(4, 32, i);
+        "%d,%s,%.15e,%.15e,%.15e,%.15e,".writefln
+            (i, "orig", P.wafom(), P.mswafom(), P.nrtwafom(), P.msnrtwafom());
+        "%d,%s,%.15e,%.15e,%.15e,%.15e,".writefln
+            (i, "fast", P.rapid_dick!1(), P.rapid_dick!2(), P.nrt!0(), P.nrt!1());
+        "%d,%s,%.15e,%.15e,".writefln
+            (i, "slow", P.slow_dick!1(), P.slow_dick!2());
+    }
 }
 
 version (verbose) unittest
@@ -207,6 +276,20 @@ version (verbose) unittest
 }
 
 
+double rapid_wafom_factor(size_t exponent)(ulong x, ptrdiff_t precision)
+{
+    debug auto memo = memoize!(get_memo_factor!exponent)();
+    else static memo = get_memo_factor!exponent();
+    double ret = 1;
+    while (0 < precision)
+    {
+        ret *= memo[precision - 1][x & 255];
+        precision -= 8;
+        x >>= 8;
+    }
+    return ret;
+}
+
 double wafom_factor(ulong x, ptrdiff_t precision)
 {
     debug auto memo = memoize!get_memo(); // just memoize for debug, to compile faster.
@@ -221,6 +304,24 @@ double wafom_factor(ulong x, ptrdiff_t precision)
     return ret;
 }
 
+double[256][64] get_memo_factor(size_t exponent)()
+{
+    import std.algorithm : min, max;
+    double[256][64] ret;
+    auto f = _factors(64, exponent);
+    foreach (i; 0..64)
+    {
+        foreach (j; 0..2 << min(i, 7))
+        {
+            ret[i][j] = 1;
+            foreach (k, c; f[$-(i+1)..$-max(0, i-7)])
+            {
+                ret[i][j] *= c[(j >> k) & 1];
+            }
+        }
+    }
+    return ret;
+}
 
 double[256][64] get_memo()
 {
@@ -242,11 +343,12 @@ double[256][64] get_memo()
 }
 
 
-double[2][] _factors(size_t precision, size_t base = 2)
+double[2][] _factors(size_t precision, size_t exponent = 1)
 {
     assert (precision);
     auto ret = new double[2][precision];
-    double recip = 1.0 / base;
+    double recip = 1.0;
+    foreach (i; 0..exponent) recip /= 2;
     foreach (i; 0..2)
     {
         ret[$-1][i] = recip; // Mr. Yoshiki suggests recip * recip
@@ -268,7 +370,7 @@ alias memoize!_factors factors;
 unittest
 {
     debug (verbose) "factors(64) = ".writeln();
-    foreach (x; factors(64, 2))
+    foreach (x; factors(64, 1))
         debug (verbose)
             if (!(x[0] == 1.0 && x[1] == 1.0))
                 x.writeln();

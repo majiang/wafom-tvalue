@@ -213,7 +213,7 @@ in
     assert (0 <= x);
     if (n != 64 && !(x < 1UL << n))
     {
-        debug x.writeln(".reciprocal illegally called where m = ", m);
+        debug x.writeln(".reciprocal illegally called where n = ", n);
         assert (false);
     }
 }
