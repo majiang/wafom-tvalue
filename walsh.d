@@ -73,6 +73,24 @@ auto Hamukazu(size_t n)
 }
 }
 
+double walsh_coefficient_left(size_t k)
+{
+    double t = 1.0 / 3.0;
+    double ret = 0;
+    if (k == 0) return t;
+    immutable v = k.greater_pow_of_two();
+    immutable V = 1 << v;
+    immutable d = 1.0 / V;
+    foreach (i; 0..V)
+    {
+        double cur;
+        if (3 * i < V && V < 3 * (i + 1))
+            return ret + (i * d - t) * k.wal(v, i);
+        ret += d * k.wal(v, i);
+    }
+    assert (false);
+}
+
 /// walsh coefficients of hamukazu(3) : x => 2 * (3x - floor 3x)
 double walsh_coefficient_3(size_t k)
 {

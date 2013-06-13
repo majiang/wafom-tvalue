@@ -21,7 +21,7 @@ import std.array : split;
 import walsh;
 
 //version = nu;
-version = unittest_only;
+version = walsh;
 void main()
 {
     version (sharase)
@@ -63,7 +63,7 @@ void main()
         stderr.writeln("walsh start.");
         foreach (i; 0..16384)
         {
-            "%.15f".writefln(walsh_coefficient_3(i));
+            "%.15f".writefln(walsh_coefficient_left(i));
         }
         stderr.writeln("walsh end.");
         return;
