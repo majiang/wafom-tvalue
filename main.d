@@ -61,10 +61,21 @@ void main()
     version (walsh)
     {
         stderr.writeln("walsh start.");
-        foreach (i; 0..16384)
+        immutable u = 1024, v = 11;
+        foreach (i; 0..u)
         {
-            "%.15f".writefln(walsh_coefficient_left(i));
+            stderr.write(i, ",");
+            foreach (j, l; transpose(i.walsh_function(v)))
+            {
+                if (i && !j) continue;
+                "%15f".writef(i.walsh_coefficient_left());
+                ",%15f".writef(i.walsh_coefficient_right());
+                foreach (x; l)
+                    ",".write(x);
+                writeln();
+            }
         }
+        stderr.writeln();
         stderr.writeln("walsh end.");
         return;
     }
@@ -359,4 +370,13 @@ version (test_funx)
     {
         return P.shifteds(shifts).integrationErrors!tf().squareRootMeanSquare();
     }
+}
+
+double[][m] transpose(size_t m)(double[m][] xs)
+{
+    double[][m] ret;
+    foreach (x; xs)
+        foreach (i; 0..m)
+            ret[i] ~= x[i];
+    return ret;
 }

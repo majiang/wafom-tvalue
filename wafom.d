@@ -115,7 +115,7 @@ double slow_dick(size_t exponent, R)(R P)
     mixin (scale_and_return);
 }
 
-version (all) unittest
+version (verbose) unittest
 {
     import pointset : randomPoints;
     "dimF2,algorithm,dick,dick2,nrt,nrt2".writeln();

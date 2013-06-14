@@ -1,4 +1,5 @@
 module walsh;
+import std.stdio;
 
 version (developing){
 Oresen walsh(Oresen f, size_t k)
@@ -73,6 +74,8 @@ auto Hamukazu(size_t n)
 }
 }
 
+/** walsh coefficient of [0..1/3].
+*/
 double walsh_coefficient_left(size_t k)
 {
     double t = 1.0 / 3.0;
@@ -85,14 +88,43 @@ double walsh_coefficient_left(size_t k)
     {
         double cur;
         if (3 * i < V && V < 3 * (i + 1))
-            return ret + (i * d - t) * k.wal(v, i);
+        {
+            version (none) stderr.writefln("%d %s - break", i, k.wal(v, i) > 0 ? "positive" : "negative");
+            return ret + (t - i * d) * k.wal(v, i);
+        }
+        version (none) stderr.writefln("%d %s", i, k.wal(v, i) > 0 ? "positive" : "negative");
         ret += d * k.wal(v, i);
     }
     assert (false);
 }
 
-/// walsh coefficients of hamukazu(3) : x => 2 * (3x - floor 3x)
-double walsh_coefficient_3(size_t k)
+/** walsh coefficient of [2/3..1].
+*/
+double walsh_coefficient_right(size_t k)
+{
+    double t = 2.0 / 3.0;
+    double ret;
+    if (k == 0) return 1.0 / 3.0;
+    immutable v = k.greater_pow_of_two();
+    immutable V = 1 << v;
+    immutable d = 1.0 / V;
+    foreach (i; 0..V)
+    {
+        double cur;
+        if (3 * i < 2 * V && 2 * V < 3 * (i + 1))
+            ret = ((i+1) * d - t) * k.wal(v, i);
+        else if (2 * V < 3 * i)
+            ret += d * k.wal(v, i);
+    }
+    return ret;
+}
+
+/** walsh coefficients of hamukazu(3) : x => 2 * (3x - floor 3x)
+
+Bugs:
+wrong return value
+*/
+deprecated double walsh_coefficient_3(size_t k)
 {
     double ret = 0;
     if (k == 0) return 1;
@@ -126,6 +158,18 @@ double walsh_coefficient_3(size_t k)
     return ret / (V * V);
 }
 
+double[2][] walsh_function(size_t k, size_t v)
+{
+    double[2][] points;
+    foreach (i; 0..((1<<v)+1))
+    {
+        double x = i * (1.0 / (1 << v));
+        if (0 < i) points ~= [x, k.wal(v, i - 1)];
+        if (i < (1 << v)) points ~= [x, k.wal(v, i)];
+    }
+    return points;
+}
+
 int wal(size_t k, size_t v, size_t x)
 in
 {
@@ -154,7 +198,7 @@ unittest
 
 size_t greater_pow_of_two(T)(T k)
 {
-    size_t ret = 0;
+    size_t ret;
     T tmp = 1;
     while (tmp <= k)
     {
