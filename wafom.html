@@ -19,12 +19,18 @@
 generalize to f: R -&gt; T<br><br>
 
 </dd>
-<dt><big><a name="wafom"></a>double <u>wafom</u>(R)(R <i>P</i>);
+<dt><big><a name="nrt"></a>double <u>nrt</u>(size_t exponent, R)(R <i>P</i>);
 </big></dt>
-<dd>Compute <u>wafom</u> of a general quasi-Monte Carlo point set.
+<dd>Compute NRT WAFOM of point set P. <br><br>
+
+</dd>
+<dt><big><a name="rapid_dick"></a>double <u>rapid_dick</u>(size_t exponent, R)(R <i>P</i>);
+<br><a name="slow_dick"></a>double <u>slow_dick</u>(size_t exponent, R)(R <i>P</i>);
+</big></dt>
+<dd>Compute wafom of a general quasi-Monte Carlo point set.
 <br><br>
 <b>Algorithm:</b><br>
-Equation (4.2) of <u>wafom</u>-arxiv.<ul>
+Equation (4.2) of wafom-arxiv.<ul>
    <li>input P = (x[n] : 0 &lt;= n &lt; b<sup>m</sup>) in [0..1)<sup>s</sup>.</li>
    <li>return sum[x in P](prod[i in s][j in m](1+(-1)<sup>x[i,j]</sup>2<sup>-j-1</sup>)-1) / |P|.</li>
  </ul>

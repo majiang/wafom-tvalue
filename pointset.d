@@ -113,10 +113,24 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
         return [former, former.shifted(basis[0])];
     }
 
-    /// ShiftedBasisPoints with its outputs digital-shifted.
+    /// new ShiftedBasisPoints with its outputs digital-shifted.
     SBP shifted(in T[] shift) const
+    in
+    {
+        assert (shift.length == this.dimensionR);
+    }
+    body
     {
         return SBP(basis, precision, this.shift.XOR(shift));
+    }
+    /// ditto
+    SBP opBinary(string op)(in T[] shift) if (op == "+")
+    {
+        return this.shifted(shift);
+    }
+    SBP opBinary(string op)(in T[] vector) if (op == "*")
+    {
+        return SBP(basis ~ vector, precision);
     }
     /// ShiftedBasisPoints with its outputs bit-shifted.
     SBP opBinary(string op)(in int amount) //const
