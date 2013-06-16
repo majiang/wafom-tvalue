@@ -154,6 +154,6 @@ unittest
     import pointset : randomPoints;
     import integral : bintegral;
     import std.traits : ReturnType;
-    auto price = bintegral!(default_integrand, uint, ReturnType!(randomPoints!uint))(randomPoints!uint(4, 20, 20));
+    auto price = bintegral!(default_integrand, ReturnType!(randomPoints!uint))(randomPoints!uint(4, 20, 20));
     debug (verbose) "asian option price = ".writeln(price);
 }

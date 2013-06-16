@@ -30,7 +30,7 @@ double f(double[] x)
 double result = integral!f(randomPoints(dimension, precision, lg_length));
 ----------------
 */
-double integral(alias f, T, R)(R P) if (isUnsigned!T)
+double integral(alias f, R)(R P)// if (isUnsigned!T)
 {
     double factor = flist[P.precision];
     double shift = flist[P.precision + 1];
@@ -43,14 +43,14 @@ double integral(alias f, T, R)(R P) if (isUnsigned!T)
 }
 
 /// ditto
-double bintegral(alias f, T, R)(R P) if (isUnsigned!T && Bisectable!R)
+double bintegral(alias f, R)(R P) if (Bisectable!R)
 {
     if (P.bisectable)
     {
         auto Q = P.bisect();
-        return (Q[0].bintegral!(f, T, R) + Q[1].bintegral!(f, T, R)) * 0.5;
+        return (Q[0].bintegral!(f, R) + Q[1].bintegral!(f, R)) * 0.5;
     }
-    return P.integral!(f, T, R);
+    return P.integral!(f, R);
 }
 
 private double[] affine(T)(T[] x, double factor, double shift) if (isUnsigned!T)

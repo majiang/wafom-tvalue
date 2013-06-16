@@ -3,7 +3,8 @@ module main;
 import tvalue : tvalue, nu_star;
 import wafom : biwafom, binrtwafom, bimsnrtwafom, bimswafom;
 import sobol : defaultSobols;
-import pointset : randomPoints, ShiftedBasisPoints, randomVectors;
+import pointset : ShiftedBasisPoints, randomVector, nonshiftedRandomBasisPoints;
+import randomsearch : minimum;
 
 import integral : bintegral;
 import asianoption : default_integrand;
@@ -21,7 +22,7 @@ import std.array : split;
 import walsh;
 
 //version = nu;
-version = unittest_only;
+version = random_search;
 void main()
 {
     version (sharase)
@@ -86,11 +87,26 @@ void main()
     }
     version (random_search)
     {
+        immutable size_t precision = 32, dimensionR = 4, start_dimensionF2 = 8, end_dimensionF2 = 12;
+        alias ShiftedBasisPoints!uint PST;
+
         foreach (i; 0..100)
         {
             stderr.writefln("%d%% complete", i);
-            foreach (j; 0..1000)
-                randomPoints(4, 32, 12).write_performance();
+            auto P = minimum!
+                (biwafom, nonshiftedRandomBasisPoints!(PST.ComponentType), PST)
+                (100, precision, dimensionR, start_dimensionF2);
+            void rec (PST Q)
+            {
+                auto R = minimum!
+                    (biwafom, (PST S) => S * randomVector!(PST.ComponentType)(S.precision, S.dimensionR), PST)
+                    (10, Q);
+                R.write_performance!(Q => bintegral!(default_integrand)(Q))();
+                if (R.dimensionF2 < end_dimensionF2)
+                    rec(R);
+            }
+            P.write_performance!(Q => Q.bintegral!(default_integrand)())();
+            rec(P);
         }
     }
     version (large_sobol)
@@ -227,9 +243,9 @@ auto DN(size_t precision)()
 }
 
 
-void write_performance(R)(R P)
+void write_performance(alias tf, R)(R P)
 {
-    "%d,%.15f,%.15f%s".writefln(P.tvalue(), P.wafom(), P.tf(), P.basis.tocsv());
+    "%d,%.15f,%.15f%s".writefln(P.tvalue(), P.biwafom(), tf(P), P.basis.tocsv());
 }
 
 version (none) auto tocsv(T)(T xss) if (isInputRange!T && isInputRange!(ElementType!T) && !isInputRange!(ElementType!(ElementType!T)))

@@ -7,20 +7,22 @@ R minimum(alias score, alias generate, R, Param...)(size_t count, Param params)
 {
     R[] best = [generate(params)];
     auto best_score = score(best[$-1]);
+    debug stderr.writefln("0, %.15f", best_score);
     foreach (i; 1..count)
     {
         auto current = generate(params);
         auto current_score = score(current);
         if (best_score <= current_score)
             continue;
-        debug stderr.writefln("%s-th try generated better score: %.15f", i, current_score);
+        debug stderr.writefln("%s, %.15f", i, current_score);
         best ~= current;
         best_score = current_score;
     }
+    debug writeln();
     return best[$-1];
 }
 
-unittest
+debug (verbose) unittest
 {
     immutable size_t precision = 32, dimensionR = 4, dimensionF2 = 10;
     import wafom : biwafom;
@@ -54,7 +56,7 @@ R increment(alias score, alias incrementor, R, Param...)(R P, size_t count, Para
     return best[$-1];
 }
 
-unittest
+debug (verbose) unittest
 {
     immutable size_t precision = 32, dimensionR = 4, dimensionF2 = 10;
     import wafom : biwafom;
