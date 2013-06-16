@@ -39,6 +39,7 @@ foreach (x; P) assert (x.length == dimensionR);
 */
 struct ShiftedBasisPoints(T) if (isUnsigned!T)
 {
+    alias T ComponentType;
     immutable size_t dimensionF2;
     immutable size_t dimensionR;
     immutable size_t precision;

@@ -21,7 +21,7 @@ import std.array : split;
 import walsh;
 
 //version = nu;
-version = walsh;
+version = unittest_only;
 void main()
 {
     version (sharase)

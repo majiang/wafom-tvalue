@@ -24,11 +24,16 @@ unittest
 {
     immutable size_t precision = 32, dimensionR = 4, dimensionF2 = 10;
     import wafom : biwafom;
-    import pointset : ShiftedBasisPoints, nonshiftedRandomBasisPoints;
+    import pointset : ShiftedBasisPoints, nonshiftedRandomBasisPoints, randomVector;
     // count, precision, dimR, dimF2
-    auto P = minimum!
-        (biwafom, nonshiftedRandomBasisPoints!uint, ShiftedBasisPoints!uint)
+    alias ShiftedBasisPoints!uint PST;
+    PST P = minimum!
+        (biwafom, nonshiftedRandomBasisPoints!(PST.ComponentType), PST)
         (1000, precision, dimensionR, dimensionF2);
+    PST Q = minimum!
+        (biwafom,
+         (PST PS) => PS * randomVector!(PST.ComponentType)(PS.precision, PS.dimensionR),
+         PST)(1000, P);
 }
 
 /// Search randomly for increment and yield the one which attains minimum score.
