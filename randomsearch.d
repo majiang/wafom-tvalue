@@ -18,7 +18,7 @@ R minimum(alias score, alias generate, R, Param...)(size_t count, Param params)
         best ~= current;
         best_score = current_score;
     }
-    debug writeln();
+    debug stderr.writeln();
     return best[$-1];
 }
 

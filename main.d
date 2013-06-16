@@ -22,7 +22,7 @@ import std.array : split;
 import walsh;
 
 //version = nu;
-version = random_search;
+version = sharase;
 void main()
 {
     version (sharase)
@@ -45,11 +45,12 @@ void main()
                 assert (basis[i][j] < 1U << 30);
             }
         }
-        foreach (dimF2; 1..17)
+        foreach (dimF2; 1..28)
         {
             stderr.writefln("dimF2 = %d", dimF2);
             auto P = ShiftedBasisPoints!uint(basis[0..dimF2], precision);
-            "%d %.15f".writefln(P.dimensionF2, P.biwafom());
+            "%d,".writef(P.dimensionF2);
+            P.write_performance!(Q => bintegral!(default_integrand)(Q))();
         }
     }
     version (nu)
@@ -245,7 +246,7 @@ auto DN(size_t precision)()
 
 void write_performance(alias tf, R)(R P)
 {
-    "%d,%.15f,%.15f%s".writefln(P.tvalue(), P.biwafom(), tf(P), P.basis.tocsv());
+    "%d,%.15e,%.15f%s".writefln(P.tvalue(), P.biwafom(), tf(P), P.basis.tocsv());
 }
 
 version (none) auto tocsv(T)(T xss) if (isInputRange!T && isInputRange!(ElementType!T) && !isInputRange!(ElementType!(ElementType!T)))
@@ -262,15 +263,17 @@ version (none) auto tocsv(T)(T xss) if (isInputRange!T && isInputRange!(ElementT
     return ret;
 }
 
-import std.range : isInputRange;
-auto tocsv(T)(T xs) if (isInputRange!T && !isInputRange!(ElementType!T))
+auto tocsv(T)(const T[][] xss)
 {
     string ret;
-    string sep = "";
-    foreach (x; xs)
+    string sep = ",";
+    foreach (xs; xss)
     {
-        ret ~= sep ~ x.to!string();
-        sep = ",";
+        foreach (x; xs)
+        {
+            ret ~= x.to!string() ~ sep;
+        }
+        ret ~= sep;
     }
     return ret;
 }
