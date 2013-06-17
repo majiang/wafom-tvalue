@@ -16,15 +16,34 @@ import std.algorithm : min, max, reduce, map, sort, topN;
 
 
 import std.stdio;
-import std.conv : to, toImpl;
+import std.conv : to, toImpl, text;
 import std.string : strip;
 import std.array : split;
 import walsh;
 
 //version = nu;
-version = sharase;
+version = hamukazu;
+//version = small;
 void main()
 {
+    version (hamukazu)
+    {
+        import testfunction : Hamukazu;
+        alias Hamukazu!3.f ham;
+        immutable precision = 32;
+        auto c = 0;
+        foreach (line; stdin.byLine())
+        {
+            version (small) if (10 <= c++) break;
+            auto buf = line.strip().split();
+            uint[][] basis;
+            foreach (i, x; buf)
+                if (i)
+                    basis ~= [x.to!uint()];
+            auto P = ShiftedBasisPoints!uint(basis, precision);
+            "%s,%.15e,%.15e".writefln(buf[0], P.biwafom(), (x => x < 0 ? -x : x)(1.0 - P.bintegral!ham()));
+        }
+    }
     version (sharase)
     {
         immutable precision = 30;

@@ -50,7 +50,7 @@ double bintegral(alias f, R)(R P) if (Bisectable!R)
         auto Q = P.bisect();
         return (Q[0].bintegral!(f, R) + Q[1].bintegral!(f, R)) * 0.5;
     }
-    return P.integral!(f, R);
+    return P.integral!(f, R)();
 }
 
 private double[] affine(T)(T[] x, double factor, double shift) if (isUnsigned!T)
