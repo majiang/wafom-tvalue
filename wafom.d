@@ -95,7 +95,14 @@ double rapid_dick(size_t exponent, R)(R P)
 {
     double ret = 0;
     foreach (B; P)
-        ret += reduce!((cur, l) => cur * (l.rapid_wafom_factor!exponent(P.precision)))(1.0, B);
+    {
+        double cur = 1;
+        foreach (l; B)
+        {
+            cur *= l.rapid_wafom_factor!exponent(P.precision);
+        }
+        ret += cur;//reduce!((cur, l) => cur * (l.rapid_wafom_factor!exponent(P.precision)))(1.0, B);
+    }
     mixin (scale_and_return);
 }
 
@@ -135,7 +142,7 @@ template biwafom(R)
 {
     auto biwafom(R P)
     {
-        return Bisect!(rapid_dick!(1, R))(P);
+        return Bisect!(slow_dick!(1, R))(P);
     }
 }
 template bimswafom(R)
@@ -220,9 +227,9 @@ alias memoize!_factors factors;
 
 unittest
 {
-    debug (verbose) "factors(64) = ".writeln();
+    "factors(64) = ".writeln();
     foreach (x; factors(64, 1))
-        debug (verbose)
+//        debug (verbose)
             if (!(x[0] == 1.0 && x[1] == 1.0))
                 x.writeln();
 }
