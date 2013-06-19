@@ -39,7 +39,7 @@ void main()
                 if (i)
                     basis ~= [x.to!uint()];
             auto P = ShiftedBasisPoints!uint(basis, precision);
-            "%s,%.15e,%.15e".writefln(buf[0], P.biwafom(), (x => x < 0 ? -x : x)(1.0 - P.bintegral!ham()));
+            "%s,%.15e,%.15e".writefln(buf[0], P.prwafom(), (x => x < 0 ? -x : x)(1.0 - P.bintegral!ham()));
         }
     }
     version (sharase)

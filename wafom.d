@@ -246,13 +246,15 @@ double precise_dick(size_t exponent, R)(R P)
     Polynomial ret;
     foreach (B; P)
     {
-        Polynomial cur;
+        auto cur = Polynomial();
         foreach (l; B)
             foreach (j; 0..P.precision)
                 cur *= (P.precision - j) * ((l >> j & 1) ? -1 : 1);
-        ret = ret + cur;
+        ret += cur;
     }
-    return ret.subst(0.5 ^^ exponent, P.dimensionF2);
+    static if (exponent == 1) return ret.substinv(2, P.dimensionF2);
+    else static if (exponent == 2) return ret.substinv(4, P.dimensionF2);
+    else static assert (false);
 }
 
 import std.bigint;
@@ -262,7 +264,7 @@ double toDouble(BigInt x)
     double f = 1;
     while (long.max < x)
     {
-        f *= 0.5;
+        f *= 2;
         x >>= 1;
     }
     return x.toLong() * f;
@@ -276,27 +278,21 @@ struct Polynomial
         assert (1 <= this.coef.length);
         assert (this.coef[0] == 1);
     }
-    this (size_t position, bool negative)
+    version (none) this (size_t position, bool negative)
     {
         this.coef.length = position + 1;
         this.coef[0] = 1;
         this.coef[position] = negative ? -1 : 1;
     }
-    Polynomial opBinary(string op)(Polynomial other) if (op == "+")
+    Polynomial opOpAssign(string op)(Polynomial other) if (op == "+")
     {
-        Polynomial ret;
-        ret.coef.length = this.coef.length.max(other.coef.length);
-        foreach (i, c; this.coef)
-        {
-            ret.coef[i] = c;
-        }
+        this.coef.length = this.coef.length.max(other.coef.length);
         foreach (i, c; other.coef)
-        {
-            if (i) ret.coef[i] += c;
-        }
-        return ret;
+            if (i)
+                this.coef[i] += c;
+        return this;
     }
-    Polynomial opOpAssign(string op)(ptrdiff_t rhs) if (op == "*")
+    Polynomial opOpAssign(string op)(ptrdiff_t rhs) if (op == "*") in { assert (rhs); } body
     {
         immutable bool negative = rhs < 0;
         immutable size_t position = rhs < 0 ? -rhs : rhs;
@@ -326,6 +322,23 @@ struct Polynomial
         foreach (i, c; this.coef)
             if (i)
                 ret ~= " + " ~ c.to!string ~ "x^" ~ i.to!string;
+        return ret;
+    }
+    double substinv(size_t x, size_t scale)
+    {
+        BigInt invsubst = 0;
+        foreach (i, c; this.coef)
+        {
+            if (i == 0) continue;
+            invsubst += c;
+            invsubst *= x;
+        }
+        assert (0 < invsubst);
+        double ret = invsubst.toDouble();
+        foreach (i; 0..this.coef.length)
+            ret /= x;
+        foreach (i; 0..scale)
+            ret *= 0.5;
         return ret;
     }
     double subst(double x, size_t scale)
