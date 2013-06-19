@@ -4,7 +4,7 @@ import std.functional : memoize;
 import std.traits : isUnsigned, ReturnType, ParameterTypeTuple;
 import std.math;
 import std.algorithm : reduce;
-import std.conv : text;
+import std.conv : text, to;
 
 debug import std.stdio;
 debug = speedup;
@@ -145,6 +145,13 @@ template biwafom(R)
         return Bisect!(slow_dick!(1, R))(P);
     }
 }
+template prwafom(R)
+{
+    auto prwafom(R P)
+    {
+        return precise_dick!(1, R)(P);
+    }
+}
 template bimswafom(R)
 {
     auto bimswafom(R P)
@@ -227,12 +234,114 @@ alias memoize!_factors factors;
 
 unittest
 {
-    "factors(64) = ".writeln();
+    debug (verbose) "factors(64) = ".writeln();
     foreach (x; factors(64, 1))
-//        debug (verbose)
+        debug (verbose)
             if (!(x[0] == 1.0 && x[1] == 1.0))
                 x.writeln();
 }
+
+double precise_dick(size_t exponent, R)(R P)
+{
+    Polynomial ret;
+    foreach (B; P)
+    {
+        Polynomial cur;
+        foreach (l; B)
+            foreach (j; 0..P.precision)
+                cur = cur * Polynomial(P.precision - j, (l >> j & 1));
+        ret = ret + cur;
+    }
+    return ret.subst(0.5 ^^ exponent, P.dimensionF2);
+}
+
+import std.bigint;
+import std.algorithm : max;
+double toDouble(BigInt x)
+{
+    double f = 1;
+    while (long.max < x)
+    {
+        f *= 0.5;
+        x >>= 1;
+    }
+    return x.toLong() * f;
+}
+/// WAFOM-specified polynomial.
+struct Polynomial
+{
+    BigInt[] coef = [BigInt(1)];
+    invariant()
+    {
+        assert (1 <= this.coef.length);
+        assert (this.coef[0] == 1);
+    }
+    this (size_t position, bool negative)
+    {
+        this.coef.length = position + 1;
+        this.coef[0] = 1;
+        this.coef[position] = negative ? -1 : 1;
+    }
+    Polynomial opBinary(string op)(Polynomial other) if (op == "+")
+    {
+        Polynomial ret;
+        ret.coef.length = this.coef.length.max(other.coef.length);
+        foreach (i, c; this.coef)
+        {
+            ret.coef[i] = c;
+        }
+        foreach (i, c; other.coef)
+        {
+            if (i) ret.coef[i] += c;
+        }
+        return ret;
+    }
+    Polynomial opBinary(string op)(Polynomial other) if (op == "*")
+    {
+        Polynomial ret;
+        ret.coef.length = this.coef.length + other.coef.length - 1;
+        ret.coef[0] = 0;
+        foreach (i, c; this.coef)
+            foreach (j, d; other.coef)
+                ret.coef[i + j] += c * d;
+        return ret;
+    }
+    string toString()
+    {
+        auto ret = "1";
+        foreach (i, c; this.coef)
+            if (i)
+                ret ~= " + " ~ c.to!string ~ "x^" ~ i.to!string;
+        return ret;
+    }
+    double subst(double x, size_t scale)
+    {
+        double ret = 0;// = x;
+        foreach_reverse (i, c; coef)
+        {
+            if (i == 0) break;
+            ret += c.toDouble();
+            ret *= x;
+        }
+        foreach (i; 0..scale)
+        {
+            ret *= 0.5;
+        }
+        return ret;
+    }
+}
+
+unittest
+{
+    Polynomial().toString().writeln();
+    auto x = Polynomial(3, false);
+    auto y = Polynomial(1, false);
+    x.toString().writeln(" = ", x.subst(0.5, 0));
+    y.toString().writeln(" = ", y.subst(0.5, 0));
+    (x * y).toString().writeln(" = ", (x * y).subst(0.5, 0));
+}
+
+
 
 version (none){
 double[] _f(in size_t precision)

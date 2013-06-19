@@ -1,7 +1,7 @@
 module main;
 
 import tvalue : tvalue, nu_star;
-import wafom : biwafom, binrtwafom, bimsnrtwafom, bimswafom;
+import wafom : biwafom, binrtwafom, bimsnrtwafom, bimswafom, prwafom;
 import sobol : defaultSobols;
 import pointset : ShiftedBasisPoints, randomVector, nonshiftedRandomBasisPoints;
 import randomsearch : minimum;
@@ -22,7 +22,7 @@ import std.array : split;
 import walsh;
 
 //version = nu;
-version = hamukazu;
+version = sharase;
 //version = small;
 void main()
 {
@@ -265,7 +265,7 @@ auto DN(size_t precision)()
 
 void write_performance(alias tf, R)(R P)
 {
-    "%d,%.15e,%.15f%s".writefln(P.tvalue(), P.biwafom(), tf(P), P.basis.tocsv());
+    "%d,%.15e,%.15f%s".writefln(P.tvalue(), P.prwafom(), tf(P), P.basis.tocsv());
 }
 
 version (none) auto tocsv(T)(T xss) if (isInputRange!T && isInputRange!(ElementType!T) && !isInputRange!(ElementType!(ElementType!T)))
