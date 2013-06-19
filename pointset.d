@@ -101,6 +101,8 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
     /// bisectability
     @property bool bisectable() const
     {
+        if (this.dimensionR == 1)
+            return 2 <= basis.length;
         return BisectMin < basis.length;
     }
     private alias SBP[2] PSBP;
