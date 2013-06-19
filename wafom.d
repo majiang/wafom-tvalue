@@ -249,7 +249,7 @@ double precise_dick(size_t exponent, R)(R P)
         Polynomial cur;
         foreach (l; B)
             foreach (j; 0..P.precision)
-                cur = cur * Polynomial(P.precision - j, (l >> j & 1));
+                cur *= (P.precision - j) * ((l >> j & 1) ? -1 : 1);
         ret = ret + cur;
     }
     return ret.subst(0.5 ^^ exponent, P.dimensionF2);
@@ -296,7 +296,21 @@ struct Polynomial
         }
         return ret;
     }
-    Polynomial opBinary(string op)(Polynomial other) if (op == "*")
+    Polynomial opOpAssign(string op)(ptrdiff_t rhs) if (op == "*")
+    {
+        immutable bool negative = rhs < 0;
+        immutable size_t position = rhs < 0 ? -rhs : rhs;
+        immutable old_length = this.coef.length;
+        this.coef.length += position;
+        if (negative)
+            foreach_reverse (i; 0..old_length)
+                this.coef[i + position] -= this.coef[i];
+        else
+            foreach_reverse (i; 0..old_length)
+                this.coef[i + position] += this.coef[i];
+        return this;
+    }
+    version (none) Polynomial opBinary(string op)(Polynomial other) if (op == "*")// too slow
     {
         Polynomial ret;
         ret.coef.length = this.coef.length + other.coef.length - 1;
@@ -331,7 +345,7 @@ struct Polynomial
     }
 }
 
-unittest
+version (none) unittest
 {
     Polynomial().toString().writeln();
     auto x = Polynomial(3, false);

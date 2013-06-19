@@ -21,9 +21,7 @@ import std.string : strip;
 import std.array : split;
 import walsh;
 
-//version = nu;
-version = sharase;
-//version = small;
+version = hamukazu;
 void main()
 {
     version (hamukazu)
