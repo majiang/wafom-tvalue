@@ -1,39 +1,95 @@
 module walsh;
 import std.stdio;
 
-version (developing){
-Oresen walsh(Oresen f, size_t k)
+/// Compte product of f and k-th Walsh function.
+Oresen product_walsh(Oresen f, size_t k)
 {
-    immutable n = f.points.length;
-    immutable v = k.greater_pow_of_two();
-    immutable V = 1 << v;
-    auto d = 1.0 / V;
-    double[2][] ret;
-    int i, j;
-    while (i < V && j < f.points.length)
+    double[2][] points;
+    auto i_max = f.points.length;
+    auto v = k.greater_pow_of_two();
+    size_t j_max = 1U << v;
+    auto d = 1.0 / j_max;
+    points ~= f.points[0];
+    auto i = 1, j = 1;
+    double y_jj = 1;
+    debug "i < %d, j <= %d".writefln(i_max, j_max);
+    while (i < i_max && j <= j_max)
     {
-        auto x = i * d;
-        if (x == f.points[j][0])
+        auto x_i = f.points[i][0];
+        auto y_i = f.points[i][1];
+        auto x_j = j * d;
+        auto y_j = ((j == j_max) ? 0 : k.wal(v, j));
+        if (x_i < x_j) // (x_i, x_{j-1})
         {
-            
+            points ~= [x_i, y_i * y_jj]; debug "appended %s for x_i < x_j".writefln(points[$-1]);
+            i += 1;
         }
-        if (x < f.points[j][0])
+        else if (x_i == x_j)
         {
-
-            i += 1; continue;
+            points ~= [x_i, y_i * y_jj]; debug "appended %s for x_i = x_j".writefln(points[$-1]);
+            if (i + 1 < i_max && x_i == f.points[i + 1][0])
+            {
+                i += 1;
+                y_i = f.points[i][1];
+            }
+            if (j < j_max) {points ~= [x_i, y_i * y_j]; debug "appended %s for x_i = x_j".writefln(points[$-1]);}
+            i += 1;
+            j += 1;
         }
-        if (f.points[j][0] < x)
+        else //if (x_j < x_i)
         {
-
-            j += 1; continue;
+            debug (none)
+            {
+                "x_i = ".writeln(x_i);
+                "y_i = ".writeln(y_i);
+                "x_j = ".writeln(x_j);
+                "y_j = ".writeln(y_j);
+            }
+            auto y = x_j.interpolate(f.points[i - 1], f.points[i]);
+            points ~= [x_j, y * y_jj]; debug "appended %s for x_i > x_j".writefln(points[$-1]);
+            if (j < j_max) {points ~= [x_j, y * y_j]; debug "appended %s for x_i > x_j".writefln(points[$-1]);}
+            j += 1;
         }
+        if (2 <= points.length && points[$-1] == points[$-2])
+            points.length -= 1;
+        debug "i = %d, j = %d.".writefln(i, j);
+        y_jj = y_j;
     }
-    return Oresen(ret);
+    return Oresen(points);
 }
 
+unittest
+{
+    import std.stdio;
+    "Oresen test".writeln();
+    double[2][] P = [
+        [0.0, 0.0],
+        [0.3, 1.0],
+        [0.5, 0.0],
+        [0.8, 1.0],
+        [1.0, 0.0],
+    ];
+    foreach (p; Oresen(P).product_walsh(2).points)
+    {
+        p.writeln();
+    }
+}
+
+auto interpolate(double x, double[2] left, double[2] right)
+in
+{
+    assert (left[0] <= x && x <= right[0]);
+}
+body
+{
+    return (left[1] * (right[0] - x) + right[1] * (x - left[0])) / (right[0] - left[0]);
+}
+
+/// The type for piecewise affine (linear) functions.
 struct Oresen
 {
     double[2][] points;
+    version (none)
     double integral()
     {
         double ret = 0;
@@ -43,6 +99,7 @@ struct Oresen
         }
         return ret * 0.5;
     }
+    version (none)
     double opCall(double x)
     {
         foreach (i; 0..points.length)
@@ -61,6 +118,7 @@ struct Oresen
     }
 }
 
+/// Hamukazu function as piecewise affine.
 auto Hamukazu(size_t n)
 {
     double[2][] points;
@@ -71,7 +129,6 @@ auto Hamukazu(size_t n)
         if (i < n) points ~= [x, 0];
     }
     return Oresen(points);
-}
 }
 
 /** walsh coefficient of [0..1/3].
@@ -119,45 +176,7 @@ double walsh_coefficient_right(size_t k)
     return ret;
 }
 
-/** walsh coefficients of hamukazu(3) : x => 2 * (3x - floor 3x)
-
-Bugs:
-wrong return value
-*/
-deprecated double walsh_coefficient_3(size_t k)
-{
-    double ret = 0;
-    if (k == 0) return 1;
-    immutable v = k.greater_pow_of_two();
-    immutable V = 1 << v;
-    foreach (i; 0..V)
-    {
-        double cur = 0;
-        if (3 * i < V && V < 3 * (i + 1))
-        {
-            if (V % 3 == 1)
-                cur = 2 * V + 3; // (V - 1) + V + 0 + 1 + 1 + 2
-            else if (V % 3 == 2)
-                cur = 4 * V - 3; // (V - 2) + (V - 1) + (V - 1) + V + 0 + 1
-            cur /= 3;
-        }
-        else if (3 * i < 2 * V && 2 * V < 3 * (i + 1))
-        {
-            if (2 * V % 3 == 1)
-                cur = 2 * V + 3; // (V - 1) + V + 0 + 1 + 1 + 2
-            else if (2 * V % 3 == 2)
-                cur = 4 * V - 3; // (V - 2) + (V - 1) + (V - 1) + V + 0 + 1
-            cur /= 3;
-        }
-        else
-        {
-            cur = 3 * i % V + 3 * (i + 1) % V;
-        }
-        ret += cur * k.wal(v, i);
-    }
-    return ret / (V * V);
-}
-
+/// k-th Walsh function as oresen
 double[2][] walsh_function(size_t k, size_t v)
 {
     double[2][] points;
@@ -170,6 +189,7 @@ double[2][] walsh_function(size_t k, size_t v)
     return points;
 }
 
+/// k-th Walsh function value at x
 int wal(size_t k, size_t v, size_t x)
 in
 {
@@ -187,7 +207,7 @@ body
     return ret;
 }
 
-unittest
+unittest ///
 {
     assert (wal(0, 0, 0) == 1); assert (wal(1, 1, 0) == 1); assert (wal(1, 1, 1) == -1);
     assert (wal(2, 2, 0) == 1); assert (wal(2, 2, 1) == -1); assert (wal(2, 2, 2) == 1); assert (wal(2, 2, 3) == -1);
@@ -196,6 +216,7 @@ unittest
     assert (wal(5, 3, 0) == 1);
 }
 
+/// for k, return the smallest value i which satisfy 1 << i > k
 size_t greater_pow_of_two(T)(T k)
 {
     size_t ret;
@@ -208,7 +229,7 @@ size_t greater_pow_of_two(T)(T k)
     return ret;
 }
 
-unittest
+unittest ///
 {
     assert (greater_pow_of_two(1) == 1);
     assert (greater_pow_of_two(2) == 2);

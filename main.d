@@ -21,7 +21,7 @@ import std.string : strip;
 import std.array : split;
 import walsh;
 
-version = hamukazu;
+version = unittest_only;
 void main()
 {
     version (hamukazu)
