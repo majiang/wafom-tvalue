@@ -138,6 +138,7 @@ version (verbose) unittest
     }
 }
 
+/// WAFOM and other figure of merit computed by Bisect algorithm.
 template biwafom(R)
 {
     auto biwafom(R P)
@@ -145,28 +146,28 @@ template biwafom(R)
         return Bisect!(slow_dick!(1, R))(P);
     }
 }
-template prwafom(R)
+template prwafom(R) /// ditto
 {
     auto prwafom(R P)
     {
         return precise_dick!(1, R)(P);
     }
 }
-template bimswafom(R)
+template bimswafom(R) /// ditto
 {
     auto bimswafom(R P)
     {
         return Bisect!(rapid_dick!(2, R))(P).sqrt();
     }
 }
-template binrtwafom(R)
+template binrtwafom(R) /// ditto
 {
     auto binrtwafom(R P)
     {
         return Bisect!(nrt!(0, R))(P);
     }
 }
-template bimsnrtwafom(R)
+template bimsnrtwafom(R) /// ditto
 {
     auto bimsnrtwafom(R P)
     {
@@ -241,7 +242,7 @@ unittest
                 x.writeln();
 }
 
-double precise_dick(size_t exponent, R)(R P)
+private auto dick_wep(R)(R P)
 {
     Polynomial ret;
     foreach (B; P)
@@ -252,14 +253,24 @@ double precise_dick(size_t exponent, R)(R P)
                 cur *= (P.precision - j) * ((l >> j & 1) ? -1 : 1);
         ret += cur;
     }
-    static if (exponent == 1) return ret.substinv(2, P.dimensionF2);
-    else static if (exponent == 2) return ret.substinv(4, P.dimensionF2);
-    else static assert (false);
+    return ret;
+}
+
+/// WAFOM computed from dick weight enumerator polynomial.
+double precise_dick(size_t exponent, R)(R P)
+{
+    return P.dick_wep().substinv!(1 << exponent)(P.dimensionF2);
+}
+
+/// string representation for dick weight enumerator polynomial.
+string dick_weight_enumerator_polynomial(R)(R P)
+{
+    return P.dick_wep().toString();
 }
 
 import std.bigint;
 import std.algorithm : max;
-double toDouble(BigInt x)
+private double toDouble(BigInt x)
 {
     double f = 1;
     while (long.max < x)
@@ -269,8 +280,8 @@ double toDouble(BigInt x)
     }
     return x.toLong() * f;
 }
-/// WAFOM-specified polynomial.
-struct Polynomial
+
+private struct Polynomial // WAFOM-specified polynomial.
 {
     BigInt[] coef = [BigInt(1)];
     invariant()
@@ -324,7 +335,7 @@ struct Polynomial
                 ret ~= " + " ~ c.to!string ~ "x^" ~ i.to!string;
         return ret;
     }
-    double substinv(size_t x, size_t scale)
+    double substinv(size_t x)(size_t scale)
     {
         BigInt invsubst = 0;
         foreach (i, c; this.coef)
@@ -341,7 +352,7 @@ struct Polynomial
             ret *= 0.5;
         return ret;
     }
-    double subst(double x, size_t scale)
+    deprecated double subst(double x, size_t scale)
     {
         double ret = 0;// = x;
         foreach_reverse (i, c; coef)

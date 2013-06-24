@@ -44,9 +44,19 @@ Equation (4.2) of wafom-arxiv.<ul>
 Using double, precision &gt; 54 is no better than precision = 54.<br><br>
 
 </dd>
-<dt><big><a name="Polynomial"></a>struct <u>Polynomial</u>;
+<dt><big><a name="biwafom"></a>auto <u>biwafom</u>(R)(R <i>P</i>);
 </big></dt>
-<dd>WAFOM-specified polynomial.<br><br>
+<dd>WAFOM and other figure of merit computed by Bisect algorithm.<br><br>
+
+</dd>
+<dt><big><a name="precise_dick"></a>double <u>precise_dick</u>(size_t exponent, R)(R <i>P</i>);
+</big></dt>
+<dd>WAFOM computed from dick weight enumerator polynomial.<br><br>
+
+</dd>
+<dt><big><a name="dick_weight_enumerator_polynomial"></a>string <u>dick_weight_enumerator_polynomial</u>(R)(R <i>P</i>);
+</big></dt>
+<dd>string representation for dick weight enumerator polynomial.<br><br>
 
 </dd>
 </dl>
