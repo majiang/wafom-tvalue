@@ -281,19 +281,13 @@ private double toDouble(BigInt x)
     return x.toLong() * f;
 }
 
-private struct Polynomial // WAFOM-specified polynomial.
+private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
 {
     BigInt[] coef = [BigInt(1)];
     invariant()
     {
         assert (1 <= this.coef.length);
         assert (this.coef[0] == 1);
-    }
-    version (none) this (size_t position, bool negative)
-    {
-        this.coef.length = position + 1;
-        this.coef[0] = 1;
-        this.coef[position] = negative ? -1 : 1;
     }
     Polynomial opOpAssign(string op)(Polynomial other) if (op == "+")
     {
@@ -317,21 +311,11 @@ private struct Polynomial // WAFOM-specified polynomial.
                 this.coef[i + position] += this.coef[i];
         return this;
     }
-    version (none) Polynomial opBinary(string op)(Polynomial other) if (op == "*")// too slow
-    {
-        Polynomial ret;
-        ret.coef.length = this.coef.length + other.coef.length - 1;
-        ret.coef[0] = 0;
-        foreach (i, c; this.coef)
-            foreach (j, d; other.coef)
-                ret.coef[i + j] += c * d;
-        return ret;
-    }
     string toString()
     {
         auto ret = "1";
         foreach (i, c; this.coef)
-            if (i)
+            if (i && c)
                 ret ~= " + " ~ c.to!string ~ "x^" ~ i.to!string;
         return ret;
     }

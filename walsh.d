@@ -89,7 +89,10 @@ body
 struct Oresen
 {
     double[2][] points;
-    version (none)
+    this (double[2][] points)
+    {
+        this.points = points;
+    }
     double integral()
     {
         double ret = 0;
@@ -99,7 +102,6 @@ struct Oresen
         }
         return ret * 0.5;
     }
-    version (none)
     double opCall(double x)
     {
         foreach (i; 0..points.length)
@@ -112,7 +114,7 @@ struct Oresen
                 return points[i][1];
             }
             assert (0 < i);
-            return (points[i][1] * (x - points[i-1][0]) + points[i-1][1] * (points[i][0] - x)) / (points[i][0] - points[i-1][0]);
+            return x.interpolate(points[i-1], points[i]);
         }
         assert (false);
     }

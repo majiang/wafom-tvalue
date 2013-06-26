@@ -374,3 +374,30 @@ unittest
     debug (verbose) "OK?".writeln();
     debug (verbose) readln();
 }
+
+/// construct ShiftedBasisPoints from string
+auto fromString(T)(string line) if (isUnsigned!T)
+{
+    import std.string : strip;
+    import std.array : split, front, popFront;
+    auto buf = line.strip().split();
+    immutable precision = buf.front.to!size_t(); buf.popFront();
+    immutable dimensionF2 = buf.front.to!size_t(); buf.popFront();
+    immutable dimensionR = buf.front.to!size_t(); buf.popFront();
+    T[][] basis;
+    basis.length = basis.dimensionF2;
+    foreach (i; 0..dimensionF2)
+        foreach (j; 0..dimensionR)
+        {
+            basis[i] ~= buf.front.to!T();
+            buf.popFront();
+        }
+    return ShiftedBasisPoints!T(basis, precision);
+}
+
+///
+unittest
+{
+    assert ("32 16 1 2147486260 1073761228 536900390 268705022 134484065 67133232 33829545 17045993 8658469 4205512 2368453 1340400 789021 161910 72838 54636"
+            .fromString!uint().front == [0u, 0u, 0u, 0u]);
+}

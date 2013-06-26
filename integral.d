@@ -2,7 +2,7 @@ import std.stdio;
 import std.traits : isUnsigned;
 import pointset : Bisectable;
 
-static flist = function (size_t n)
+private static flist = function (size_t n)
 {
     double ret[];
     double cur = 1.0;
@@ -56,6 +56,7 @@ double bintegral(alias f, R)(R P) if (Bisectable!R)
 private double[] affine(T)(T[] x, double factor, double shift) if (isUnsigned!T)
 {
     auto ret = new double[x.length];
+    //ret[] = x[] * factor + shift;
     foreach (i, c; x)
     {
         ret[i] = c * factor + shift;

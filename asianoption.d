@@ -151,9 +151,10 @@ Double gaussinv_(Double x)// [0..1)^2 -> gauss
 
 unittest
 {
+    import std.stdio;
     import pointset : randomPoints;
     import integral : bintegral;
     import std.traits : ReturnType;
     auto price = bintegral!(default_integrand, ReturnType!(randomPoints!uint))(randomPoints!uint(4, 20, 20));
-    debug (verbose) "asian option price = ".writeln(price);
+    debug "asian option price = ".writeln(price);
 }

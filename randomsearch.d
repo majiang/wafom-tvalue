@@ -2,7 +2,16 @@ module randomsearch;
 
 import std.stdio;
 
-/// Search randomly and yield the one which attains minimum score.
+/** Random search for an object with minimum score.
+
+Execute a random search function repeatedly with parameters specified and yield the best result according to scoring function.
+
+Params:
+score = the scoring function, smaller score indicates better.
+generate = the random search function.
+count = number of search.
+params = arguments passed to generate.
+*/
 R minimum(alias score, alias generate, R, Param...)(size_t count, Param params)
 {
     R[] best = [generate(params)];

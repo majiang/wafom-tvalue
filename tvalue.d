@@ -65,7 +65,7 @@ ulong tvalue1(R)(R P)
     }
     foreach (i, x; P.dimensionF2.Q1(P.dimensionR).times(total)) // (b^-m) is unnecessary
     {
-        if (i && x.toLong)
+        if (i && x)
         {
             return P.dimensionF2 + 1 - i;
         }
