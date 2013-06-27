@@ -9,7 +9,7 @@ import std.algorithm : min;
 import std.random : uniform;
 public import sobol : defaultSobols;
 import graycode;
-import std.conv : to;
+import std.conv : to, text;
 
 enum BisectMin = 10;
 
@@ -192,6 +192,14 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
         if (new_precision < precision)
             return this >> (precision - new_precision);
         return this;
+    }
+    string toString()
+    {
+        string ret = text(precision, " ", dimensionF2, " ", dimensionR);
+        foreach (l; basis)
+            foreach (x; l)
+                ret ~= text(" ", x);
+        return ret;
     }
 }
 

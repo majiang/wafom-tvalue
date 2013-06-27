@@ -18,10 +18,10 @@ import std.algorithm : min, max, reduce, map, sort, topN;
 import std.stdio;
 import std.conv : to, toImpl, text;
 import std.string : strip;
-import std.array : split;
+import std.array : split, replace;
 import walsh;
 
-version = unittest_only;
+version = random_search;
 void main()
 {
     version (hamukazu)
@@ -106,7 +106,7 @@ void main()
     }
     version (random_search)
     {
-        immutable size_t precision = 32, dimensionR = 4, start_dimensionF2 = 8, end_dimensionF2 = 12;
+        immutable size_t precision = 32, dimensionR = 4, start_dimensionF2 = 8, end_dimensionF2 = 16;
         alias ShiftedBasisPoints!uint PST;
 
         foreach (i; 0..100)
@@ -114,17 +114,17 @@ void main()
             stderr.writefln("%d%% complete", i);
             auto P = minimum!
                 (biwafom, nonshiftedRandomBasisPoints!(PST.ComponentType), PST)
-                (100, precision, dimensionR, start_dimensionF2);
+                (10000, precision, dimensionR, start_dimensionF2);
             void rec (PST Q)
             {
                 auto R = minimum!
                     (biwafom, (PST S) => S * randomVector!(PST.ComponentType)(S.precision, S.dimensionR), PST)
-                    (10, Q);
-                R.write_performance!(Q => bintegral!(default_integrand)(Q))();
+                    (10000, Q);
+                R.write_performance();
                 if (R.dimensionF2 < end_dimensionF2)
                     rec(R);
             }
-            P.write_performance!(Q => Q.bintegral!(default_integrand)())();
+            P.write_performance();
             rec(P);
         }
     }
@@ -261,7 +261,13 @@ auto DN(size_t precision)()
     return ret;
 }
 
-
+version (random_search)
+void write_performance(R)(R P)
+{
+    import std.datetime;
+    "%s,%s,%.15e,%.15e".writefln(P.toString(), Clock.currTime().toSimpleString(), P.biwafom(), P.bimswafom());
+}
+else
 void write_performance(alias tf, R)(R P)
 {
     "%d,%.15e,%.15f%s".writefln(P.tvalue(), P.prwafom(), tf(P), P.basis.tocsv());
