@@ -3,7 +3,7 @@ module main;
 import tvalue : tvalue, nu_star;
 import wafom : biwafom, binrtwafom, bimsnrtwafom, bimswafom, prwafom;
 import sobol : defaultSobols;
-import pointset : ShiftedBasisPoints, randomVector, nonshiftedRandomBasisPoints;
+import pointset : ShiftedBasisPoints, randomVector, nonshiftedRandomBasisPoints, fromString;
 import randomsearch : minimum;
 
 import integral : bintegral;
@@ -21,26 +21,17 @@ import std.string : strip;
 import std.array : split, replace;
 import walsh;
 
-version = random_search;
+version = hamukazu;
+version = small;
 void main()
 {
     version (hamukazu)
     {
-        import testfunction : Hamukazu;
-        alias Hamukazu!3.f ham;
-        immutable precision = 32;
-        auto c = 0;
+        version (small) int c;
         foreach (line; stdin.byLine())
         {
             version (small) if (10 <= c++) break;
-            auto buf = line.strip().split();
-            uint[][] basis;
-            foreach (i, x; buf)
-                if (i)
-                    basis ~= [x.to!uint()];
-            auto P = ShiftedBasisPoints!uint(basis, precision);
-            //"%s,%.15e,%.15e".writefln(buf[0], P.prwafom(), (x => x < 0 ? -x : x)(1.0 - P.bintegral!ham()));
-            "%s,%s,%.15e".writefln(buf[0], P.prwafom(), P.biwafom());
+            line.fromString!uint().write_performance();
         }
     }
     version (sharase)
@@ -266,6 +257,14 @@ void write_performance(R)(R P)
 {
     import std.datetime;
     "%s,%s,%.15e,%.15e".writefln(P.toString(), Clock.currTime().toSimpleString(), P.biwafom(), P.bimswafom());
+}
+else version (hamukazu)
+void write_performance(R)(R P)
+{
+    import std.datetime;
+    import testfunction : Hamukazu;
+    alias Hamukazu!3.f ham;
+    "%s,%s,%.15e,%.15e".writefln(P.toString(), Clock.currTime().toSimpleString(), P.prwafom(), (x => x < 0 ? -x : x)(1.0 - P.bintegral!ham()));
 }
 else
 void write_performance(alias tf, R)(R P)

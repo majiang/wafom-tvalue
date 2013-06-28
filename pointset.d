@@ -384,7 +384,7 @@ unittest
 }
 
 /// construct ShiftedBasisPoints from string
-auto fromString(T)(string line) if (isUnsigned!T)
+auto fromString(T)(const(char)[] line) if (isUnsigned!T)
 {
     import std.string : strip;
     import std.array : split, front, popFront;
@@ -393,7 +393,7 @@ auto fromString(T)(string line) if (isUnsigned!T)
     immutable dimensionF2 = buf.front.to!size_t(); buf.popFront();
     immutable dimensionR = buf.front.to!size_t(); buf.popFront();
     T[][] basis;
-    basis.length = basis.dimensionF2;
+    basis.length = dimensionF2;
     foreach (i; 0..dimensionF2)
         foreach (j; 0..dimensionR)
         {
