@@ -109,9 +109,9 @@ void main()
         immutable size_t precision = 32, dimensionR = 4, start_dimensionF2 = 8, end_dimensionF2 = 16;
         alias ShiftedBasisPoints!uint PST;
 
-        foreach (i; 0..100)
+        foreach (i; 0..10)
         {
-            stderr.writefln("%d%% complete", i);
+            stderr.writefln("%d%% complete", i * 10);
             auto P = minimum!
                 (biwafom, nonshiftedRandomBasisPoints!(PST.ComponentType), PST)
                 (10000, precision, dimensionR, start_dimensionF2);
