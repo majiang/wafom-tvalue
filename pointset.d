@@ -387,8 +387,8 @@ unittest
 auto fromString(T)(const(char)[] line) if (isUnsigned!T)
 {
     import std.string : strip;
-    import std.array : split, front, popFront;
-    auto buf = line.strip().split();
+    import std.array : split, front, popFront, findSplitBefore;
+    auto buf = line.strip().findSplitBefore(",")[0].split();
     immutable precision = buf.front.to!size_t(); buf.popFront();
     immutable dimensionF2 = buf.front.to!size_t(); buf.popFront();
     immutable dimensionR = buf.front.to!size_t(); buf.popFront();

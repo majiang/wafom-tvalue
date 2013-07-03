@@ -21,10 +21,14 @@ import std.string : strip;
 import std.array : split, replace;
 import walsh;
 
-version = hamukazu;
-version = small;
+version = random_search_distribution;
 void main()
 {
+    version (random_search_distribution)
+    {
+        foreach (line; stdin.byLine())
+            line.fromString!uint().write_wafoms(16384);
+    }
     version (hamukazu)
     {
         version (small) int c;
@@ -252,6 +256,17 @@ auto DN(size_t precision)()
     return ret;
 }
 
+void write_wafoms(R)(R P, size_t count)
+{
+    auto w = P.biwafom();
+    foreach (i; 0..count)
+    {
+        auto v = randomVector!(R.ComponentType)(P.precision, P.dimensionR);
+        "%.15e,%s".writefln((P + v).biwafom() + w, v.toSSV());
+    }
+    writeln();
+}
+
 version (random_search)
 void write_performance(R)(R P)
 {
@@ -282,6 +297,18 @@ version (none) auto tocsv(T)(T xss) if (isInputRange!T && isInputRange!(ElementT
         {
             ret ~= "," ~ x.to!string();
         }
+    }
+    return ret;
+}
+
+auto toSSV(T)(const T[] xs)
+{
+    string ret;
+    string sep = "";
+    foreach (x; xs)
+    {
+        ret ~= sep ~ x.to!string();
+        sep = " ";
     }
     return ret;
 }
