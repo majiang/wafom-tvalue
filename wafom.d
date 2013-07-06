@@ -262,6 +262,11 @@ double precise_dick(size_t exponent, R)(R P)
     return P.dick_wep().substinv!(1 << exponent)(P.dimensionF2);
 }
 
+string dick_weight_enumerator_polynomial_csv(R)(R P)
+{
+    return P.dick_wep().toCSV();
+}
+
 /// string representation for dick weight enumerator polynomial.
 string dick_weight_enumerator_polynomial(R)(R P)
 {
@@ -316,7 +321,14 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
         auto ret = "1";
         foreach (i, c; this.coef)
             if (i && c)
-                ret ~= " + " ~ c.to!string ~ "x^" ~ i.to!string;
+                ret ~= " + " ~ c.to!string() ~ "x^" ~ i.to!string();
+        return ret;
+    }
+    string toCSV()
+    {
+        string ret;
+        foreach (c; this.coef)
+            ret ~= "," ~ c.to!string();
         return ret;
     }
     double substinv(size_t x)(size_t scale)

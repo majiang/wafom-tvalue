@@ -1,7 +1,7 @@
 module main;
 
 import tvalue : tvalue, nu_star;
-import wafom : biwafom, binrtwafom, bimsnrtwafom, bimswafom, prwafom;
+import wafom : biwafom, binrtwafom, bimsnrtwafom, bimswafom, prwafom, dick_weight_enumerator_polynomial_csv;
 import sobol : defaultSobols;
 import pointset : ShiftedBasisPoints, randomVector, nonshiftedRandomBasisPoints, fromString;
 import randomsearch : minimum;
@@ -11,9 +11,7 @@ import asianoption : default_integrand;
 //alias integral!default_integrand tf;
 import testfunction;
 
-
 import std.algorithm : min, max, reduce, map, sort, topN;
-
 
 import std.stdio;
 import std.conv : to, toImpl, text;
@@ -21,9 +19,19 @@ import std.string : strip;
 import std.array : split, replace;
 import walsh;
 
-version = random_search_distribution;
+version = wep;
 void main()
 {
+    version (wep)
+    {
+        foreach (line; stdin.byLine())
+        {
+            auto x = line ~ (line.fromString!uint().dick_weight_enumerator_polynomial_csv());
+            x.writeln();
+            stdout.flush();
+            //stderr.writeln(x);
+        }
+    }
     version (random_search_distribution)
     {
         foreach (line; stdin.byLine())
