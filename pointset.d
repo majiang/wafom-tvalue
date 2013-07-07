@@ -407,5 +407,5 @@ auto fromString(T)(const(char)[] line) if (isUnsigned!T)
 unittest
 {
     assert ("32 16 1 2147486260 1073761228 536900390 268705022 134484065 67133232 33829545 17045993 8658469 4205512 2368453 1340400 789021 161910 72838 54636"
-            .fromString!uint().front == [0u, 0u, 0u, 0u]);
+            .fromString!uint().front == [0u]);
 }

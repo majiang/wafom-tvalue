@@ -3,7 +3,6 @@ module wafom;
 import std.functional : memoize;
 import std.traits : isUnsigned, ReturnType, ParameterTypeTuple;
 import std.math;
-import std.algorithm : reduce;
 import std.conv : text, to;
 
 debug import std.stdio;
@@ -72,6 +71,7 @@ static immutable string scale_and_return = q{
 /** Compute NRT WAFOM of point set P. */
 double nrt(size_t exponent, R)(R P)
 {
+    import std.algorithm : reduce;
     auto f =P.precision._ff_!exponent();
     double ret = reduce!((ret, B) => ret + reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B))(0.0, P);
     mixin (scale_and_return);
@@ -98,9 +98,7 @@ double rapid_dick(size_t exponent, R)(R P)
     {
         double cur = 1;
         foreach (l; B)
-        {
             cur *= l.rapid_wafom_factor!exponent(P.precision);
-        }
         ret += cur;//reduce!((cur, l) => cur * (l.rapid_wafom_factor!exponent(P.precision)))(1.0, B);
     }
     mixin (scale_and_return);
@@ -253,13 +251,13 @@ private auto dick_wep(R)(R P)
                 cur *= (P.precision - j) * ((l >> j & 1) ? -1 : 1);
         ret += cur;
     }
-    return ret;
+    return ret >> P.dimensionF2;
 }
 
 /// WAFOM computed from dick weight enumerator polynomial.
 double precise_dick(size_t exponent, R)(R P)
 {
-    return P.dick_wep().substinv!(1 << exponent)(P.dimensionF2);
+    return P.dick_wep().substinv!(1 << exponent)();
 }
 
 string dick_weight_enumerator_polynomial_csv(R)(R P)
@@ -302,10 +300,30 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
                 this.coef[i] += c;
         return this;
     }
-    Polynomial opOpAssign(string op)(ptrdiff_t rhs) if (op == "*") in { assert (rhs); } body
+    Polynomial opBinary(string op)(size_t rhs)
+        if (op == ">>")
+    {
+        Polynomial tmp;
+        tmp.coef = this.coef.dup;
+        tmp >>= rhs;
+        return tmp;
+    }
+    Polynomial opOpAssign(string op)(size_t rhs)
+        if (op == ">>")
+    {
+        foreach (ref c; coef[1..$])
+        {
+            assert (c == (c >> rhs) << rhs);
+            c >>= rhs;
+        }
+        return this;
+    }
+    Polynomial opOpAssign(string op)(ptrdiff_t rhs)
+        if (op == "*")
+        in { assert (rhs); } body
     {
         immutable bool negative = rhs < 0;
-        immutable size_t position = rhs < 0 ? -rhs : rhs;
+        immutable size_t position = negative ? -rhs : rhs;
         immutable old_length = this.coef.length;
         this.coef.length += position;
         if (negative)
@@ -331,7 +349,7 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
             ret ~= "," ~ c.to!string();
         return ret;
     }
-    double substinv(size_t x)(size_t scale)
+    double substinv(size_t x)()
     {
         BigInt invsubst = 0;
         foreach (i, c; this.coef)
@@ -344,8 +362,6 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
         double ret = invsubst.toDouble();
         foreach (i; 0..this.coef.length)
             ret /= x;
-        foreach (i; 0..scale)
-            ret *= 0.5;
         return ret;
     }
     deprecated double subst(double x, size_t scale)
@@ -365,6 +381,15 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
     }
 }
 
+Polynomial fromCSV(string line)
+{
+    import std.array : split;
+    BigInt[] coef;
+    foreach (w; line.split(","))
+        coef ~= BigInt(w);
+    return Polynomial(coef);
+}
+
 version (none) unittest
 {
     Polynomial().toString().writeln();
@@ -374,66 +399,6 @@ version (none) unittest
     y.toString().writeln(" = ", y.subst(0.5, 0));
     (x * y).toString().writeln(" = ", (x * y).subst(0.5, 0));
 }
-
-
-
-version (none){
-double[] _f(in size_t precision)
-{
-    auto ret = [precision * 0.5 + 1];
-    foreach (i; 1..(precision+1))
-        ret ~= i * 0.5;
-    return ret;
-}
-alias memoize!_f get_f;
-
-double[] _g(in size_t precision)
-{
-    auto ret = [1.5 - 0.5 ^^ (precision + 1)];
-    foreach (i; 1..(precision+1))
-        ret ~= 1.5 * (1 - 0.5 ^^ i);
-    return ret;
-}
-alias memoize!_g get_g;
-
-unittest
-{
-    foreach (e; _f(8))
-        e.write(","); writeln();
-    foreach (e; _g(8))
-        e.write(","); writeln();
-    foreach (e; _ff_!0(8))
-        e.write(","); writeln();
-    foreach (e; _ff_!1(8))
-        e.write(","); writeln();
-}
-}
-version (none)
-{
-double nrtwafom(R)(R P)
-{
-    auto f = P.precision.get_f();
-    double ret = 0;
-    foreach (B; P)
-        ret += reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B);
-    mixin (scale_and_return);
-}
-double msnrtwafom(R)(R P)
-{
-    auto g = P.precision.get_g();
-    double ret = 0;
-    foreach (B; P)
-        ret += reduce!((a, b) => a * g[b.mu_star(P.precision)])(1.0, B);
-    mixin (scale_and_return);
-}
-}
-
-//double biwafom(R)(R P) if (Bisectable!R)
-//{
-//    if (!P.bisectable) return P.wafom();
-//    auto Q = P.bisect();
-//    return (Q[0].biwafom() + Q[1].biwafom()) * 0.5;
-//}
 
 version (verbose) unittest
 {
@@ -471,22 +436,6 @@ deprecated double wafom(R)(R P)
     return ret - 1;
 }
 
-
-version (none) double mswafom(R)(R P)
-{
-    double ret = 0;
-    auto f = factors(P.precision, 2);
-    foreach (B; P)
-    {
-        double cur = 1;
-        foreach (l; B)
-            foreach (j, c; f)
-                cur *= c[(l >> j) & 1];
-        ret += cur;
-    }
-    mixin (scale_and_return);
-}
-
 version (verbose) unittest
 {
     import pointset : randomPoints;
@@ -498,8 +447,6 @@ version (verbose) unittest
         debug (verbose) "wafom = %.15f; mswfm = %.15f".writefln(w, m);
     }
 }
-
-
 
 deprecated double wafom_factor(ulong x, ptrdiff_t precision)
 {
@@ -521,15 +468,11 @@ deprecated double[256][64] get_memo()
     double[256][64] ret;
     auto f = _factors(64);
     foreach (i; 0..64)
-    {
         foreach (j; 0..2 << min(i, 7))
         {
             ret[i][j] = 1;
             foreach (k, c; f[$-(i+1)..$-max(0, i-7)])
-            {
                 ret[i][j] *= c[(j >> k) & 1];
-            }
         }
-    }
     return ret;
 }
