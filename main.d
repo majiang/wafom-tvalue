@@ -8,7 +8,6 @@ import randomsearch : minimum;
 
 import integral : bintegral;
 import asianoption : default_integrand;
-//alias integral!default_integrand tf;
 import testfunction;
 
 import std.algorithm : min, max, reduce, map, sort, topN;
@@ -19,7 +18,7 @@ import std.array : split, replace;
 import walsh;
 import std.range : isInputRange;
 
-version = test_funx;
+version = large_sobol;
 void main()
 {
     version (wep)
@@ -133,23 +132,22 @@ void main()
     }
     version (large_sobol)
     {
+        import std.conv : to;
         auto stoptime = readln().strip().to!int();
         foreach (j; 2..33)
         {
             defaultSobols(4, j, j).write_performance();
-            if (j == stoptime) 
-            {
-                readln();
+            if (j == stoptime)
                 return;
-            }
         }
     }
     version (small_wafom)
     {
+        import std.conv : to;
         foreach (i; 0..100)
         {
-            auto P = randomPoints(2, 6, 6);
-            auto w = P.save.wafom();
+            auto P = nonshiftedRandomBasisPoints!ubyte(6, 2, 6);
+            auto w = P.biwafom();
             writeln(i, ",", w);
             auto f = File("small-" ~ i.to!string() ~ "-" ~ (w * 10000).to!int().to!string() ~ ".csv", "w");
             f.writeln(w);
@@ -291,6 +289,17 @@ void write_performance(R)(R P)
     import testfunction : Hamukazu;
     alias Hamukazu!3.f ham;
     "%s,%s,%.15e,%.15e".writefln(P.toString(), Clock.currTime().toSimpleString(), P.prwafom(), (x => x < 0 ? -x : x)(1.0 - P.bintegral!ham()));
+}
+else version (large_sobol)
+{
+void write_performance(R)(R P)
+{
+    import std.typecons : Tuple;
+    import pointset : InfoPointSet;
+    alias Tuple!(double, "wafom", ulong, "tvalue", double, "aoPrice") InfoType;
+    alias InfoPointSet!(R, InfoType) IPS;
+    IPS(P, InfoType(P.biwafom(), P.tvalue(), P.bintegral!default_integrand())).toString().writeln();
+}
 }
 else
 void write_performance(alias tf, R)(R P)

@@ -434,7 +434,6 @@ struct InfoPointSet(PointSetType, InfoType)
     PointSetType pointSet;
     InfoType info;
     alias info this;
-//    alias pointSet this;
     string toString()
     {
         return pointSet.toString() ~ "," ~ info.toString();
