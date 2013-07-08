@@ -372,16 +372,6 @@ auto integrationErrors(alias tf, PointSetTypeRange)(PointSetTypeRange Ps)
 {
     return Ps.map!(integrationError!(tf, ElementType!PointSetTypeRange))();
 }
-/** Shift a point set by each element of shifts.
-
-Params:
-P = point set.
-shifts = shifts
-*/
-auto shifteds(PointSetType, ShifterRange)(PointSetType P, ShifterRange shifts)
-{
-    return shifts.map!(x => P.shifted(x));
-}
 
 import std.math : sqrt;
 auto squareRootMeanSquare(NumericRange)(NumericRange r)
@@ -440,6 +430,8 @@ version (test_funx)
         pss.test_one!(hmo, trf).writeln();
         pss.test_one!(hme, trf).writeln();
     }
+    version (none)
+    {
     void shifttest(DigitalNet!ulong[] pss)
     {
         import pointset : randomVectors;
@@ -470,7 +462,34 @@ version (test_funx)
     {
         return P.shifteds(shifts).integrationErrors!tf().squareRootMeanSquare();
     }
+    /** Shift a point set by each element of shifts.
 
+    Params:
+    P = point set.
+    shifts = shifts
+    */
+    auto shifteds(PointSetType, ShifterRange)(PointSetType P, ShifterRange shifts)
+    {
+        import std.array : empty, front, popFront;
+        struct R
+        {
+            @property bool empty()
+            {
+                return shifts.empty;
+            }
+            @property PointSetType front()
+            {
+                return P.shifted(shifts.front);
+            }
+            void popFront()
+            {
+                shifts.popFront();
+            }
+        }
+        return R();
+        //return shifts.map!(x => P.shifted(x));
+    }
+    }
     auto lineToDN(T)(string line, size_t precision = size_t.max) if (isUnsigned!T)
     {
         import std.conv : to;

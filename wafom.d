@@ -115,7 +115,7 @@ double nrt(size_t exponent, R)(R P)
     mixin (scale_and_return);
 }
 
-/** Compute WAFOM of a digital net.
+/** Compute Dick WAFOM of a digital net.
 
 * Algorithm:
 * Equation (4.2) of wafom-arxiv.<ul>

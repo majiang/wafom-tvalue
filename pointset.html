@@ -106,7 +106,13 @@ Outputs of elements joined together is equal as multiset to output of this.<br><
 </dd>
 <dt><big><a name="fromString"></a>auto <u>fromString</u>(T)(const(char)[] <i>line</i>);
 </big></dt>
-<dd>construct ShiftedBasisPoints from string<br><br>
+<dd>construct ShiftedBasisPoints from string.
+<br><br>
+In case line is a part of CSV data, ignore the first comma and the following.
+The rest is interpreted as space-separated values:
+    precision dimensionF2 dimensionR <basis>
+where <basis> is lexicographically ordered by dimF2 and dimR.
+i.e., the first dimR element is the first vector of the basis.<br><br>
 <b>Examples:</b><br>
 <pre class="d_code">
     <font color=blue>assert</font> (<font color=red>"32 16 1 2147486260 1073761228 536900390 268705022 134484065 67133232 33829545 17045993 8658469 4205512 2368453 1340400 789021 161910 72838 54636"</font>

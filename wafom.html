@@ -21,13 +21,13 @@ generalize to f: R -&gt; T<br><br>
 </dd>
 <dt><big><a name="nrt"></a>double <u>nrt</u>(size_t exponent, R)(R <i>P</i>);
 </big></dt>
-<dd>Compute NRT WAFOM of point set P. <br><br>
+<dd>Compute NRT WAFOM of a digital net. <br><br>
 
 </dd>
 <dt><big><a name="rapid_dick"></a>double <u>rapid_dick</u>(size_t exponent, R)(R <i>P</i>);
 <br><a name="slow_dick"></a>double <u>slow_dick</u>(size_t exponent, R)(R <i>P</i>);
 </big></dt>
-<dd>Compute wafom of a general quasi-Monte Carlo point set.
+<dd>Compute Dick WAFOM of a digital net.
 <br><br>
 <b>Algorithm:</b><br>
 Equation (4.2) of wafom-arxiv.<ul>
@@ -42,11 +42,6 @@ Equation (4.2) of wafom-arxiv.<ul>
 </table><br>
 <b>Remarks:</b><br>
 Using double, precision &gt; 54 is no better than precision = 54.<br><br>
-
-</dd>
-<dt><big><a name="biwafom"></a>auto <u>biwafom</u>(R)(R <i>P</i>);
-</big></dt>
-<dd>WAFOM and other figure of merit computed by Bisect algorithm.<br><br>
 
 </dd>
 <dt><big><a name="precise_dick"></a>double <u>precise_dick</u>(size_t exponent, R)(R <i>P</i>);
