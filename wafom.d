@@ -1,13 +1,51 @@
 module wafom;
 
 import std.functional : memoize;
-import std.traits : isUnsigned, ReturnType, ParameterTypeTuple;
+import std.traits : isUnsigned;
 import std.math;
-import std.conv : text, to;
+import std.conv : to;
+
+import pointset : Bisectable, isPointSet;
 
 debug import std.stdio;
-debug = speedup;
-import pointset : Bisectable, nonshiftedRandomBasisPoints;
+debug import pointset : nonshiftedRandomBasisPoints;
+
+template biwafom(R) /// Bisect Dick WAFOM
+{
+    auto biwafom(R P)
+    {
+        return Bisect!(rapid_dick!(1, R))(P);
+    }
+}
+template prwafom(R) /// Precise Dick WAFOM
+{
+    auto prwafom(R P)
+    {
+        return precise_dick!(1, R)(P);
+    }
+}
+template bimswafom(R) /// Bisect root mean square Dick WAFOM
+{
+    auto bimswafom(R P)
+    {
+        return Bisect!(rapid_dick!(2, R))(P).sqrt();
+    }
+}
+template binrtwafom(R) /// Bisect NRT WAFOM
+{
+    auto binrtwafom(R P)
+    {
+        return Bisect!(nrt!(1, R))(P);
+    }
+}
+template bimsnrtwafom(R) /// Bisect root mean square NRT WAFOM
+{
+    auto bimsnrtwafom(R P)
+    {
+        return Bisect!(nrt!(2, R))(P).sqrt();
+    }
+}
+
 
 private
 size_t mu_star(T)(T x, in size_t precision) if (isUnsigned!T)
@@ -25,16 +63,16 @@ size_t mu_star(T)(T x, in size_t precision) if (isUnsigned!T)
 
 private double[] _ff_(size_t exponent)(in size_t precision)
 {
-    static assert (exponent < 2);
+    static assert (exponent == 1 || exponent == 2);
     static if (exponent == 0)
         auto ret = [precision * 0.5 + 1];
     else
         auto ret = [1.5 - 0.5 ^^ (precision + 1)];
     foreach (i; 1..(precision + 1))
     {
-        static if (exponent == 0)
+        static if (exponent == 1)
             ret ~= i * 0.5;
-        else
+        static if (exponent == 2)
             ret ~= 1.5 * (1 - 0.5 ^^ i);
     }
     return ret;
@@ -68,7 +106,7 @@ static immutable string scale_and_return = q{
     return ret - 1;
 };
 
-/** Compute NRT WAFOM of point set P. */
+/** Compute NRT WAFOM of a digital net. */
 double nrt(size_t exponent, R)(R P)
 {
     import std.algorithm : reduce;
@@ -77,7 +115,7 @@ double nrt(size_t exponent, R)(R P)
     mixin (scale_and_return);
 }
 
-/** Compute wafom of a general quasi-Monte Carlo point set.
+/** Compute WAFOM of a digital net.
 
 * Algorithm:
 * Equation (4.2) of wafom-arxiv.<ul>
@@ -130,48 +168,12 @@ version (verbose) unittest
         "%d,%s,%.15e,%.15e,%.15e,%.15e,".writefln
             (i, "orig", P.biwafom(), P.bimswafom(), P.binrtwafom(), P.bimsnrtwafom());
         "%d,%s,%.15e,%.15e,%.15e,%.15e,".writefln
-            (i, "fast", P.rapid_dick!1(), P.rapid_dick!2().sqrt(), P.nrt!0(), P.nrt!1().sqrt());
+            (i, "fast", P.rapid_dick!1(), P.rapid_dick!2().sqrt(), P.nrt!1(), P.nrt!2().sqrt());
         "%d,%s,%.15e,%.15e,".writefln
             (i, "slow", P.slow_dick!1(), P.slow_dick!2().sqrt());
     }
 }
 
-/// WAFOM and other figure of merit computed by Bisect algorithm.
-template biwafom(R)
-{
-    auto biwafom(R P)
-    {
-        return Bisect!(slow_dick!(1, R))(P);
-    }
-}
-template prwafom(R) /// ditto
-{
-    auto prwafom(R P)
-    {
-        return precise_dick!(1, R)(P);
-    }
-}
-template bimswafom(R) /// ditto
-{
-    auto bimswafom(R P)
-    {
-        return Bisect!(rapid_dick!(2, R))(P).sqrt();
-    }
-}
-template binrtwafom(R) /// ditto
-{
-    auto binrtwafom(R P)
-    {
-        return Bisect!(nrt!(0, R))(P);
-    }
-}
-template bimsnrtwafom(R) /// ditto
-{
-    auto bimsnrtwafom(R P)
-    {
-        return Bisect!(nrt!(1, R))(P).sqrt();
-    }
-}
 
 double rapid_wafom_factor(size_t exponent)(ulong x, ptrdiff_t precision)
 {
@@ -413,8 +415,12 @@ version (verbose) unittest
     }
 }
 
-deprecated double wafom(R)(R P)
+deprecated:
+
+debug = speedup;
+double wafom(R)(R P)
 {
+    import std.conv : text;
     assert (P.precision);
     double ret = 0;
     debug (speedup) auto f = factors(P.precision, 1);
@@ -448,7 +454,7 @@ version (verbose) unittest
     }
 }
 
-deprecated double wafom_factor(ulong x, ptrdiff_t precision)
+double wafom_factor(ulong x, ptrdiff_t precision)
 {
     debug auto memo = memoize!get_memo(); 
     else static memo = get_memo(); 
@@ -462,7 +468,7 @@ deprecated double wafom_factor(ulong x, ptrdiff_t precision)
     return ret;
 }
 
-deprecated double[256][64] get_memo()
+double[256][64] get_memo()
 {
     import std.algorithm : min, max;
     double[256][64] ret;
