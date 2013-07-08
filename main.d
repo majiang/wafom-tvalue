@@ -82,13 +82,6 @@ void main()
             P.write_performance!(Q => bintegral!(default_integrand)(Q))();
         }
     }
-    version (nu)
-    {
-        foreach (ushort i; 0..1024)
-        {
-            "%d:%d:%d".writefln(i, mu_star!ushort(i, 10), nu_star(i, 10));
-        }
-    }
     version (walsh)
     {
         stderr.writeln("walsh start.");
