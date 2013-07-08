@@ -11,7 +11,7 @@ public import sobol : defaultSobols;
 import graycode;
 import std.conv : to, text;
 
-enum BisectMin = 10;
+private enum BisectMin = 10;
 
 /** Test whether the type has method bisect.
 
@@ -19,7 +19,14 @@ A point-set type T is Bisectable if it has bisect method and bisectable property
 */
 template Bisectable(T)
 {
-    enum Bisectable = __traits(hasMember, T, "bisect") && __traits(hasMember, T, "bisectable");
+    enum Bisectable =
+        __traits(hasMember, T, "bisect") && __traits(hasMember, T, "bisectable");
+}
+
+template isPointSet(T)
+{
+    import std.range : isInputRange;
+    enum isPointSet = isInputRange!T && __traits(hasMember, T, "dimensionF2") && __traits(hasMember, T, "precision");
 }
 
 /** Digital Shifted Net over F_2.
@@ -202,6 +209,10 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
         return ret;
     }
 }
+unittest ///
+{
+    static assert (isPointSet!(ShiftedBasisPoints!uint));
+}
 
 /// Return a T with random lower precision bits.
 T randomBits(T)(in size_t precision) if (isUnsigned!T)
@@ -247,25 +258,26 @@ ShiftedBasisPoints!T nonshiftedRandomBasisPoints(T) (in size_t precision, in siz
 /// ditto
 ShiftedBasisPoints!T shiftedRandomBasisPoints(T) (in size_t precision, in size_t dimensionR, in size_t dimensionF2) if (isUnsigned!T)
 {
-    return ShiftedBasisPoints!T (precision.randomVectors!T(dimensionR, dimensionF2), precision, precision.randomVector!T(dimensionR));
+    return ShiftedBasisPoints!T(precision.randomVectors!T(dimensionR, dimensionF2), precision, precision.randomVector!T(dimensionR));
 }
 
-import wafom : biwafom;
 unittest
 {
+    import wafom : biwafom;
+    import std.math : approxEqual;
     auto P = nonshiftedRandomBasisPoints!uint(32, 4, 12);
     auto
         x = P.bisect()[0].biwafom(),
         y = P.bisect()[1].biwafom(),
         z = P.biwafom();
+    assert ((x + y).approxEqual(z * 2));
     debug (verbose)
     {
         "P is a SBP with wafom = ".writeln(z);
         "P.bisect[0].wafom = ".writeln(x);
         "P.bisect[1].wafom = ".writeln(y);
         "average wafom = ".writeln((x + y) * 0.5);
-        "OK?".writeln();
-        readln();
+        "OK.".writeln();
     }
 }
 
@@ -297,7 +309,7 @@ ShiftedBasisPoints!T transposedBasisPoints(T)(in T[][] basis, in size_t precisio
     return ShiftedBasisPoints!T(new_basis, precision);
 }
 
-
+version (none){
 import std.array : split;
 import std.typecons : Tuple, Flag;
 import std.string : strip;
@@ -331,6 +343,19 @@ DigitalNet!T lineToBP(T)(string line, size_t precision = size_t.max) if (isUnsig
     assert (basis.length);
     return DigitalNet!T(transposedBasisPoints(basis, precision = size_t.max ? basis.guess_precision() : precision), wafom, t);
 }
+unittest
+{
+    debug (verbose) "testing lineToBP".writeln();
+    debug (verbose) scope (success) "unittest passed with %d elements".writefln(c);
+    auto c = 0;
+    foreach (x; "5,0.002124192556608,5.236969948020973,,2600265188,692020818,1829963221,894032275,1090497089,651123054,2898340559,1909687544,843513215,1542217271,39519261,3977641622,,2144888475,2941401343,1387697674,1986117176,3702571292,2647056038,3871827325,2263216594,3008901273,4224148358,3048652205,3799831373,,737302895,1233368001,1654098828,2764743171,239054234,249267380,1039474368,3378013260,2468295934,902812364,993745693,2410603677,,3726908047,3018079636,1719761848,2421945980,8259646,1793582138,3611200899,137680621,2493595579,2004711502,1809926346,2378246536\n".
+             lineToBP!uint().ps)
+    {
+        debug (verbose) "%s".writefln(x);
+        c += 1;
+    }
+}
+}
 
 import std.algorithm : max;
 size_t guess_precision(T)(T[][] basis) if (isUnsigned!T)
@@ -348,18 +373,6 @@ size_t guess_precision(T)(T[][] basis) if (isUnsigned!T)
     return precision;
 }
 
-unittest
-{
-    debug (verbose) "testing lineToBP".writeln();
-    debug (verbose) scope (success) "unittest passed with %d elements".writefln(c);
-    auto c = 0;
-    foreach (x; "5,0.002124192556608,5.236969948020973,,2600265188,692020818,1829963221,894032275,1090497089,651123054,2898340559,1909687544,843513215,1542217271,39519261,3977641622,,2144888475,2941401343,1387697674,1986117176,3702571292,2647056038,3871827325,2263216594,3008901273,4224148358,3048652205,3799831373,,737302895,1233368001,1654098828,2764743171,239054234,249267380,1039474368,3378013260,2468295934,902812364,993745693,2410603677,,3726908047,3018079636,1719761848,2421945980,8259646,1793582138,3611200899,137680621,2493595579,2004711502,1809926346,2378246536\n".
-        lineToBP!uint().ps)
-    {
-        debug (verbose) "%s".writefln(x);
-        c += 1;
-    }
-}
 
 unittest
 {
@@ -383,7 +396,14 @@ unittest
     debug (verbose) readln();
 }
 
-/// construct ShiftedBasisPoints from string
+/** construct ShiftedBasisPoints from string.
+
+In case line is a part of CSV data, ignore the first comma and the following.
+The rest is interpreted as space-separated values:
+    precision dimensionF2 dimensionR <basis>
+where <basis> is lexicographically ordered by dimF2 and dimR.
+i.e., the first dimR element is the first vector of the basis.
+*/
 auto fromString(T)(const(char)[] line) if (isUnsigned!T)
 {
     import std.string : strip;
@@ -392,8 +412,7 @@ auto fromString(T)(const(char)[] line) if (isUnsigned!T)
     immutable precision = buf.front.to!size_t(); buf.popFront();
     immutable dimensionF2 = buf.front.to!size_t(); buf.popFront();
     immutable dimensionR = buf.front.to!size_t(); buf.popFront();
-    T[][] basis;
-    basis.length = dimensionF2;
+    auto basis = new T[][dimensionF2];
     foreach (i; 0..dimensionF2)
         foreach (j; 0..dimensionR)
         {
@@ -408,4 +427,24 @@ unittest
 {
     assert ("32 16 1 2147486260 1073761228 536900390 268705022 134484065 67133232 33829545 17045993 8658469 4205512 2368453 1340400 789021 161910 72838 54636"
             .fromString!uint().front == [0u]);
+}
+
+struct InfoPointSet(PointSetType, InfoType)
+{
+    PointSetType pointSet;
+    InfoType info;
+    alias info this;
+//    alias pointSet this;
+    string toString()
+    {
+        return pointSet.toString() ~ "," ~ info.toString();
+    }
+}
+
+unittest
+{
+    import std.typecons : Tuple;
+    alias InfoPointSet!(ShiftedBasisPoints!uint, Tuple!(double, "wafom", ulong, "tvalue")) IPS;
+    IPS().toString().writeln();
+    readln();
 }

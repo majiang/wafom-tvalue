@@ -14,12 +14,12 @@ import testfunction;
 import std.algorithm : min, max, reduce, map, sort, topN;
 
 import std.stdio;
-import std.conv : to, toImpl, text;
 import std.string : strip;
 import std.array : split, replace;
 import walsh;
+import std.range : isInputRange;
 
-version = wep;
+version = test_funx;
 void main()
 {
     version (wep)
@@ -161,15 +161,16 @@ void main()
     }
     version (test_funx)
     {
-        DigitalNet!ulong[] x;
+        import std.conv : to;
+        DigitalNet!uint[] x;
         double[] wafoms;
         ulong[] tvalues;
         foreach (line; stdin.byLine())
         {
-            auto ps = line.to!string().lineToBP();
+            auto ps = line.to!string().lineToDN!uint();
             x ~= ps;
             wafoms ~= ps.wafom;
-            tvalues ~= ps.t;
+            tvalues ~= ps.tvalue;
         }
         sort(tvalues);
         sort(wafoms);
@@ -187,14 +188,14 @@ void main()
         }
         thresholdt ~= tvalues[$ - 1] + 1;
         thresholdw ~= wafoms[$ - 1] * 2;
-        DigitalNet!ulong[][] ts, ws;
+        DigitalNet!uint[][] ts, ws;
         ts.length = thresholdt.length;
         ws.length = thresholdw.length;
         foreach (ps; x)
         {
             foreach (i, t; thresholdt)
             {
-                if (ps.t < t)
+                if (ps.tvalue < t)
                 {
                     ts[i] ~= ps;
                     break;
@@ -226,8 +227,8 @@ void main()
             //    ts[i] = ts[i][0..100];
             //    ws[i] = ws[i][0..100];
             //}
-            manytest("t-ordered", ts[i]);
-            manytest("wafom-ordered", ws[i]);
+            manytest!uint("t-ordered", ts[i]);
+            manytest!uint("wafom-ordered", ws[i]);
             //if (i == 2) break;
         }
     }
@@ -251,6 +252,8 @@ void main()
         }
     }
 }
+version(none)
+{
 import pointset : lineToBP, DigitalNet;
 
 auto DN(size_t precision)()
@@ -263,7 +266,7 @@ auto DN(size_t precision)()
     }
     return ret;
 }
-
+}
 void write_wafoms(R)(R P, size_t count)
 {
     auto w = P.biwafom();
@@ -321,8 +324,21 @@ auto toSSV(T)(const T[] xs)
     return ret;
 }
 
-auto tocsv(T)(const T[][] xss)
+auto tocsv(T)(T xs) if (isInputRange!T && !(isInputRangeOfInputRange!T))
 {
+    import std.conv : to;
+    string ret;
+    string sep = ",";
+    foreach (x; xs)
+    {
+        ret ~= x.to!string() ~ sep;
+    }
+    return ret;
+}
+
+auto tocsv(T)(T xss) if (isInputRangeOfInputRange!T)
+{
+    import std.conv : to;
     string ret;
     string sep = ",";
     foreach (xs; xss)
@@ -346,7 +362,7 @@ P = a point set.
 */
 double integrationError(alias tf, PointSetType)(PointSetType P)
 {
-    return -tf.I + P.bintegral!(tf.f, ElementType!(ElementType!PointSetType), PointSetType)();
+    return -tf.I + P.bintegral!(tf.f, PointSetType)();
 }
 /** ditto
 Params:
@@ -383,6 +399,15 @@ auto squareRootMeanSquare(NumericRange)(NumericRange r)
 
 version (test_funx) 
 {
+    import std.typecons : Tuple;
+    alias Tuple!(double, "wafom", ulong, "tvalue") InfoType;
+
+    import std.traits : isUnsigned;
+    template DigitalNet(T) if (isUnsigned!T)
+    {
+        import pointset : InfoPointSet;
+        alias InfoPointSet!(ShiftedBasisPoints!T, InfoType) DigitalNet;
+    }
     import testfunction;
 
     alias Hellekalek!(1.1, 1.7, 2.3, 2.9) hel;
@@ -399,11 +424,11 @@ version (test_funx)
     {
         return transformer(pss.integrationErrors!tf());
     }
-    void manytest(string header, DigitalNet!ulong[] dns)
+    void manytest(T)(string header, DigitalNet!T[] dns)
     {
         alias tocsv trf;
         //alias squareRootMeanSquare trf;
-        auto pss = dns.map!(x => x.ps);
+        auto pss = dns.map!(x => x.pointSet);
         header.writeln();
         pss.test_one!(hel, trf).writeln();
         pss.test_one!(s01, trf).writeln();
@@ -415,21 +440,21 @@ version (test_funx)
         pss.test_one!(hmo, trf).writeln();
         pss.test_one!(hme, trf).writeln();
     }
-    import std.typecons : Tuple;
     void shifttest(DigitalNet!ulong[] pss)
     {
+        import pointset : randomVectors;
         auto shift = randomVectors!ulong(32, 4, 10);
         stderr.writeln(shift.length);
         assert (pss.length);
         foreach (ps; pss)
         {
-            auto P = ps.ps;
+            auto P = ps.pointSet;
             // old: [wafom, squarerootmeansquarewafom, squarerootmeansquareerror, t]
             // new: [wafom, srmsw, t] [srmse]
             // rationale: wafom, srmsw, t is independent of test funx.
             ps.wafom.write(",");
-            P.mswafom().write(",");
-            ps.t.write(",,");
+            P.bimswafom().write(",");
+            ps.tvalue.write(",,");
             P.srmse!hel(shift).write(",");
             P.srmse!s01(shift).write(",");
             P.srmse!s94(shift).write(",");
@@ -441,12 +466,48 @@ version (test_funx)
             P.srmse!hme(shift).writeln();
         }
     }
-    import wafom : mswafom;
-    import std.conv : text;
     auto srmse(alias tf, PointSetType)(PointSetType P, ulong[][] shifts)
     {
         return P.shifteds(shifts).integrationErrors!tf().squareRootMeanSquare();
     }
+
+    auto lineToDN(T)(string line, size_t precision = size_t.max) if (isUnsigned!T)
+    {
+        import std.conv : to;
+        InfoType info;
+        T[][] basis;
+        foreach (i, bufs; line.strip().split(",,"))
+        {
+            auto buf = bufs.split(",");
+            if (!i)
+            {
+                info.tvalue = buf[0].to!ulong();
+                info.wafom = buf[1].to!double();
+                continue;
+            }
+            basis.length += 1;
+            foreach (s; bufs.split(","))
+                basis[$-1] ~= s.to!T();
+        }
+        import pointset : guess_precision;
+        return DigitalNet!T(ShiftedBasisPoints!T(basis.transpose(), precision = size_t.max ? basis.guess_precision() : precision), info);
+    }
+}
+
+T[][] transpose(T)(T[][] xs)
+{
+    import std.exception : enforce;
+    if (xs.length == 0)
+        return [];
+    immutable n = xs[0].length;
+    auto ret = new T[][n];
+    foreach (x; xs)
+    {
+        enforce(x.length == n);
+        foreach (i; 0..n)
+            ret[i] ~= x[i];
+    }
+    return ret;
 }
 
 double[][m] transpose(size_t m)(double[m][] xs)
@@ -456,4 +517,18 @@ double[][m] transpose(size_t m)(double[m][] xs)
         foreach (i; 0..m)
             ret[i] ~= x[i];
     return ret;
+}
+
+template isInputRangeOfInputRange(R)
+{
+    enum bool isInputRangeOfInputRange = is(typeof((void)
+    {
+        R r = void;
+        if (r.empty){}
+        r.popFront();
+        auto e = r.front;
+        if (e.empty){}
+        e.popFront();
+        auto ee = e.front;
+    }));
 }
