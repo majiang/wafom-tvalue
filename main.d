@@ -18,7 +18,17 @@ import std.array : split, replace;
 import walsh;
 import std.range : isInputRange;
 
-version = large_sobol;
+import std.conv : toImpl;
+template fromHex(T) if (isUnsigned!T)
+{
+    T fromHex(S)(S x)
+    {
+        return x.toImpl!(T, S)(16);
+    }
+}
+
+
+version = sharase;
 void main()
 {
     version (wep)
@@ -61,7 +71,7 @@ void main()
         {
             foreach (j; 0..dimensionR)
             {
-                basis[i][j] = buf[i + dimensionF2 * j].toImpl!(uint, string)(16) >> 2;
+                basis[i][j] = buf[i + dimensionF2 * j].fromHex!uint() >> 2;
                 assert (basis[i][j] < 1U << 30);
             }
         }
@@ -69,7 +79,6 @@ void main()
         {
             stderr.writefln("dimF2 = %d", dimF2);
             auto P = ShiftedBasisPoints!uint(basis[0..dimF2], precision);
-            "%d,".writef(P.dimensionF2);
             P.write_performance!(Q => bintegral!(default_integrand)(Q))();
         }
     }
@@ -276,7 +285,12 @@ void write_wafoms(R)(R P, size_t count)
     writeln();
 }
 
-version (random_search)
+version (sharase)
+void write_performance(alias f, R)(R P)
+{
+    "%s,%.15e,%.15e,%d".writefln(P.toString(), P.biwafom(), P.bintegral!default_integrand(), P.tvalue());
+}
+else version (random_search)
 void write_performance(R)(R P)
 {
     import std.datetime;
