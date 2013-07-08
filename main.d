@@ -21,10 +21,9 @@ import std.range : isInputRange;
 import std.conv : to;
 template fromHex(T) if (isUnsigned!T)
 {
-    import std.conv : parse;
     T fromHex(S)(S x)
     {
-        return x.parse!(T, S)(16);
+        return x.to!T(16);
     }
 }
 
