@@ -21,15 +21,15 @@ import std.range : isInputRange;
 import std.conv : to;
 template fromHex(T) if (isUnsigned!T)
 {
-    import std.conv : toImpl;
+    import std.conv : parse;
     T fromHex(S)(S x)
     {
-        return x.toImpl!(T, S)(16);
+        return x.parse!(T, S)(16);
     }
 }
 
 
-version = test_funx;
+version = sharase;
 void main()
 {
     version (wep)
