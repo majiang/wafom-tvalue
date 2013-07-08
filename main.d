@@ -18,9 +18,10 @@ import std.array : split, replace;
 import walsh;
 import std.range : isInputRange;
 
-import std.conv : toImpl;
+import std.conv : to;
 template fromHex(T) if (isUnsigned!T)
 {
+    import std.conv : toImpl;
     T fromHex(S)(S x)
     {
         return x.toImpl!(T, S)(16);
@@ -28,7 +29,7 @@ template fromHex(T) if (isUnsigned!T)
 }
 
 
-version = sharase;
+version = test_funx;
 void main()
 {
     version (wep)
@@ -134,7 +135,6 @@ void main()
     }
     version (large_sobol)
     {
-        import std.conv : to;
         auto stoptime = readln().strip().to!int();
         foreach (j; 2..33)
         {
@@ -145,7 +145,6 @@ void main()
     }
     version (small_wafom)
     {
-        import std.conv : to;
         foreach (i; 0..100)
         {
             auto P = nonshiftedRandomBasisPoints!ubyte(6, 2, 6);
@@ -161,7 +160,6 @@ void main()
     }
     version (test_funx)
     {
-        import std.conv : to;
         DigitalNet!uint[] x;
         double[] wafoms;
         ulong[] tvalues;
@@ -342,7 +340,6 @@ auto toSSV(T)(const T[] xs)
 
 auto tocsv(T)(T xs) if (isInputRange!T && !(isInputRangeOfInputRange!T))
 {
-    import std.conv : to;
     string ret;
     string sep = ",";
     foreach (x; xs)
@@ -354,16 +351,11 @@ auto tocsv(T)(T xs) if (isInputRange!T && !(isInputRangeOfInputRange!T))
 
 auto tocsv(T)(T xss) if (isInputRangeOfInputRange!T)
 {
-    import std.conv : to;
     string ret;
     string sep = ",";
     foreach (xs; xss)
     {
-        foreach (x; xs)
-        {
-            ret ~= x.to!string() ~ sep;
-        }
-        ret ~= sep;
+        ret ~= xs.tocsv() ~ sep;
     }
     return ret;
 }
@@ -508,7 +500,6 @@ version (test_funx)
     }
     auto lineToDN(T)(string line, size_t precision = size_t.max) if (isUnsigned!T)
     {
-        import std.conv : to;
         InfoType info;
         T[][] basis;
         foreach (i, bufs; line.strip().split(",,"))
