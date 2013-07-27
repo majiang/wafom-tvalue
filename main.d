@@ -28,8 +28,161 @@ template fromHex(T) if (isUnsigned!T)
 }
 
 
-version = sharase;
-void main()
+version = working;
+version (working)
+{
+void main(string[] args)
+{
+    foreach (i, w; args)
+        stderr.writeln(i, ": ", w);
+    auto command = args[1];
+    args = args[2..$];
+    if (command.length >= 3 && command[0..3] == "gen")
+        return args.generate_point_sets();
+    if (command.length >= 4 && command[0..4] == "filt")
+        return args.point_sets_filters();
+}
+void generate_point_sets(string[] args)
+// dimR, dimF, prec=32, count=1,
+{
+    size_t dimensionR, dimensionF2, precision, count;
+    foreach (arg; args)
+    {
+        if (arg.length >= 9 && arg[0..9] == "dimension")
+            arg = "d" ~ arg[9..$];
+        if (arg.length >= 3 && arg[0..3] == "dim")
+            arg = "d" ~ arg[3..$];
+        if (arg[0] == 'd')
+        {
+            if (arg[1] == 'R' || arg[1] == 'r')
+                dimensionR = arg[2..$].to!size_t();
+            if (arg[1] == 'F' || arg[1] == 'f')
+                dimensionF2 = arg[2..$].to!size_t();
+        }
+
+        if (arg.length >= 9 && arg[0..9] == "precision")
+            arg = "p" ~ arg[9..$];
+        if (arg.length >= 4 && arg[0..4] == "prec")
+            arg = "p" ~ arg[4..$];
+        if (arg[0] == 'p')
+            precision = arg[1..$].to!size_t();
+
+        if (arg.length >= 5 && arg[0..5] == "count")
+            arg = "c" ~ arg[5..$];
+        if (arg.length >= 3 && arg[0..3] == "cnt")
+            arg = "c" ~ arg[5..$];
+        if (arg.length >= 1 && arg[0] == 'c')
+            count = arg[1..$].to!size_t();
+    }
+    if (!count)
+        return;
+    if (!dimensionR)
+        stderr.writeln("Use dimensionR# (or dimR, dr in short) to specify dimension of the point sets over [0..1].");
+    if (!dimensionF2)
+        stderr.writeln("Use dimensionF# (or dimF, df in short) to specify dimension of the point sets over Z/2Z.");
+    if (!(count && dimensionR && dimensionF2))
+        return;
+    if (!precision)
+    {
+        stderr.writeln("Precision is by default 32.  To change, use precision# (or prec, p in short).");
+        precision = 32;
+    }
+
+    import pointset : randomBasisPoints;
+    import std.typecons : Flag;
+
+    foreach (i; 0..count)
+    {
+        if (precision <= 8)
+            randomBasisPoints!ubyte(precision, dimensionR, dimensionF2, Flag!"shift".no).toString().writeln();
+        else if (precision <= 16)
+            randomBasisPoints!ushort(precision, dimensionR, dimensionF2, Flag!"shift".no).toString().writeln();
+        else if (precision <= 32)
+            randomBasisPoints!uint(precision, dimensionR, dimensionF2, Flag!"shift".no).toString().writeln();
+        else if (precision <= 64)
+            randomBasisPoints!ulong(precision, dimensionR, dimensionF2, Flag!"shift".no).toString().writeln();
+        else assert (false);
+    }
+}
+
+
+//interface FilterFunction(T)
+//{void writeResult(string format, T pointset);}
+//class RapidDick(T) : FilterFunction!T
+//{void writeResult(string format, T pointset)
+//{format.writef(pointset.biwafom());}}
+//class PrecDick(T) : FilterFunction!T
+//{void writeResult(string format, T pointset)
+//{format.writef(pointset.prwafom());}}
+//class RMSDick(T) : FilterFunction!T
+//{void writeResult(string format, T pointset)
+//{format.writef(pointset.bimswafom());}}
+//class DickWEP(T) : FilterFunction!T
+//{void writeResult(string format, T pointset)
+//{format.writef(pointset.dick_weight_enumerator_polynomial());}}
+//class NRT(T) : FilterFunction!T
+//{void writeResult(string format, T pointset)
+//{format.writef(pointset.binrtwafom());}}
+//class RMSNRT(T) : FilterFunction!T
+//{void writeResult(string format, T pointset)
+//{format.writef(pointset.bimsnrtwafom());}}
+
+void RapidDick(T)(string format, T pointset)
+{format.writef(pointset.biwafom());}
+void PrecDick(T)(string format, T pointset)
+{format.writef(pointset.prwafom());}
+void RMSDick(T)(string format, T pointset)
+{format.writef(pointset.bimswafom());}
+void DickWEP(T)(string format, T pointset)
+{import wafom : dick_weight_enumerator_polynomial;format.writef(pointset.dick_weight_enumerator_polynomial());}
+void NRT(T)(string format, T pointset)
+{format.writef(pointset.binrtwafom());}
+void RMSNRT(T)(string format, T pointset)
+{format.writef(pointset.bimsnrtwafom());}
+
+void point_set_filters(T)(T pointset, string[] args)
+{
+    pointset.toString().write();
+    auto sep = ",";
+    foreach (arg; args)
+    {
+        sep.write();
+        if (arg == "RapidDick") "%.15e".RapidDick(pointset);
+        else if (arg == "PrecDick") "%.15e".PrecDick(pointset);
+        else if (arg == "RMSDick") "%.15e".RMSDick(pointset);
+        else if (arg == "DickWEP") "%s".DickWEP(pointset);
+        else if (arg == "NRT") "%.15e".NRT(pointset);
+        else if (arg == "RMSNRT") "%.15e".RMSNRT(pointset);
+        sep = " ";
+    }
+    writeln();
+}
+
+void point_sets_filters(string[] args)
+{
+    foreach (line; stdin.byLine)
+    {
+        auto precision = line.strip().split()[0].to!size_t();
+        if (precision <= 8)
+            line.fromString!(ubyte).point_set_filters(args);
+        else if (precision <= 16)
+            line.fromString!(ushort).point_set_filters(args);
+        else if (precision <= 32)
+            line.fromString!(uint).point_set_filters(args);
+        else if (precision <= 64)
+            line.fromString!(ulong).point_set_filters(args);
+        else assert (false);
+    }
+}
+
+void display_usage()
+{
+    stderr.writeln("usage:");
+    stderr.writeln("bin gen c#: generate point sets");
+    stderr.writeln("bin filter: compute some function for each point set");
+}
+}
+else void main()
 {
     version (wep)
     {

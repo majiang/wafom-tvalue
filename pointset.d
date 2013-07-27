@@ -5,6 +5,7 @@ debug (working) import std.stdio;
 import std.exception : enforce;
 import std.traits : isUnsigned;
 import std.algorithm : min;
+import std.typecons : Flag;
 
 import std.random : uniform;
 public import sobol : defaultSobols;
