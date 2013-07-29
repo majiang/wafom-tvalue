@@ -35,6 +35,8 @@ void main(string[] args)
 {
     foreach (i, w; args)
         stderr.writeln(i, ": ", w);
+    if (args.length == 1)
+        return args[0].split("\\")[$-1].split("/")[$-1].display_usage();
     auto command = args[1];
     args = args[2..$];
     if (command.length >= 3 && command[0..3] == "gen")
@@ -75,7 +77,7 @@ void generate_point_sets(string[] args)
             count = arg[1..$].to!size_t();
     }
     if (!count)
-        return;
+        stderr.writeln("Use count# (or cnt, c in short) to specify the number of point sets to generate.");
     if (!dimensionR)
         stderr.writeln("Use dimensionR# (or dimR, dr in short) to specify dimension of the point sets over [0..1].");
     if (!dimensionF2)
@@ -106,40 +108,46 @@ void generate_point_sets(string[] args)
 }
 
 
-//interface FilterFunction(T)
-//{void writeResult(string format, T pointset);}
-//class RapidDick(T) : FilterFunction!T
-//{void writeResult(string format, T pointset)
-//{format.writef(pointset.biwafom());}}
-//class PrecDick(T) : FilterFunction!T
-//{void writeResult(string format, T pointset)
-//{format.writef(pointset.prwafom());}}
-//class RMSDick(T) : FilterFunction!T
-//{void writeResult(string format, T pointset)
-//{format.writef(pointset.bimswafom());}}
-//class DickWEP(T) : FilterFunction!T
-//{void writeResult(string format, T pointset)
-//{format.writef(pointset.dick_weight_enumerator_polynomial());}}
-//class NRT(T) : FilterFunction!T
-//{void writeResult(string format, T pointset)
-//{format.writef(pointset.binrtwafom());}}
-//class RMSNRT(T) : FilterFunction!T
-//{void writeResult(string format, T pointset)
-//{format.writef(pointset.bimsnrtwafom());}}
-
-void RapidDick(T)(string format, T pointset)
-{format.writef(pointset.biwafom());}
-void PrecDick(T)(string format, T pointset)
-{format.writef(pointset.prwafom());}
-void RMSDick(T)(string format, T pointset)
-{format.writef(pointset.bimswafom());}
-void DickWEP(T)(string format, T pointset)
-{import wafom : dick_weight_enumerator_polynomial;format.writef(pointset.dick_weight_enumerator_polynomial());}
-void NRT(T)(string format, T pointset)
-{format.writef(pointset.binrtwafom());}
-void RMSNRT(T)(string format, T pointset)
-{format.writef(pointset.bimsnrtwafom());}
-
+void RapidDick(T)(string arg, T pointset)
+{
+    if (
+        arg == "Dick" || arg == "dick" || arg == "D" || arg == "d" ||
+        arg == "RapidDick" || arg == "rDick" || arg == "rd" || arg == "Rd" || arg == "rD" || arg == "RD" ||
+        arg == "WAFOM" || arg == "wafom" || arg == "W" || arg == "w")
+        "%.15e".writef(pointset.biwafom());
+}
+void PrecDick(T)(string arg, T pointset)
+{
+    if (
+        arg == "PrecDick" || arg == "pDick" || arg == "pd" || arg == "Pd" || arg == "pD" || arg == "PD" ||
+        arg == "PrecWAFOM" || arg == "pWAFOM" || arg == "pW" || "Pw")
+        "%.15e".writef(pointset.prwafom());
+}
+void RMSDick(T)(string arg, T pointset)
+{
+    if (
+        arg == "RMSDick" || arg == "MSDick" || arg == "rmsd" || arg == "msd" || arg == "msw")
+        "%.15e".writef(pointset.bimswafom());
+}
+void DickWEP(T)(string arg, T pointset)
+{
+    import wafom : dick_weight_enumerator_polynomial;
+    if (
+        arg == "DickWEP" || arg == "dwep")
+        "%s".writef(pointset.dick_weight_enumerator_polynomial());
+}
+void NRT(T)(string arg, T pointset)
+{
+    if (
+        arg == "NRT" || arg == "nrt")
+        "%.15e".writef(pointset.binrtwafom());
+}
+void RMSNRT(T)(string arg, T pointset)
+{
+    if (
+        arg == "RMSNRT" || arg == "MSNRT" || arg == "rmsnrt" || arg == "msnrt")
+        "%.15e".writef(pointset.bimsnrtwafom());
+}
 void point_set_filters(T)(T pointset, string[] args)
 {
     pointset.toString().write();
@@ -147,13 +155,12 @@ void point_set_filters(T)(T pointset, string[] args)
     foreach (arg; args)
     {
         sep.write();
-        if (arg == "RapidDick") "%.15e".RapidDick(pointset);
-        else if (arg == "PrecDick") "%.15e".PrecDick(pointset);
-        else if (arg == "RMSDick") "%.15e".RMSDick(pointset);
-        else if (arg == "DickWEP") "%s".DickWEP(pointset);
-        else if (arg == "NRT") "%.15e".NRT(pointset);
-        else if (arg == "RMSNRT") "%.15e".RMSNRT(pointset);
-        sep = " ";
+        arg.RapidDick(pointset);
+        arg.PrecDick(pointset);
+        arg.RMSDick(pointset);
+        arg.DickWEP(pointset);
+        arg.NRT(pointset);
+        arg.RMSNRT(pointset);
     }
     writeln();
 }
@@ -163,23 +170,31 @@ void point_sets_filters(string[] args)
     foreach (line; stdin.byLine)
     {
         auto precision = line.strip().split()[0].to!size_t();
-        if (precision <= 8)
-            line.fromString!(ubyte).point_set_filters(args);
-        else if (precision <= 16)
-            line.fromString!(ushort).point_set_filters(args);
-        else if (precision <= 32)
-            line.fromString!(uint).point_set_filters(args);
-        else if (precision <= 64)
-            line.fromString!(ulong).point_set_filters(args);
-        else assert (false);
+        if (precision <= 16)
+        {
+            if (precision <= 8)
+                line.fromString!(ubyte).point_set_filters(args);
+            else
+                line.fromString!(ushort).point_set_filters(args);
+        }
+        else
+        {
+            if (precision <= 32)
+                line.fromString!(uint).point_set_filters(args);
+            else
+            {
+                assert (precision <= 64);
+                line.fromString!(ulong).point_set_filters(args);
+            }
+        }
     }
 }
 
-void display_usage()
+void display_usage(string arg)
 {
     stderr.writeln("usage:");
-    stderr.writeln("bin gen c#: generate point sets");
-    stderr.writeln("bin filter: compute some function for each point set");
+    stderr.writeln(arg ~ " gen: generate point sets");
+    stderr.writeln(arg ~ " filter: compute some function for each point set");
 }
 }
 else void main()
