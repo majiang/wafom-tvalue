@@ -31,6 +31,11 @@ template fromHex(T) if (isUnsigned!T)
 version = working;
 version (working)
 {
+void write_performance(R)(R P)
+{
+    import std.datetime;
+    "%s,%s,%.15e,%.15e".writefln(P.toString(), Clock.currTime().toSimpleString(), P.biwafom(), P.bimswafom());
+}
 void main(string[] args)
 {
     foreach (i, w; args)
@@ -43,6 +48,90 @@ void main(string[] args)
         return args.generate_point_sets();
     if (command.length >= 4 && command[0..4] == "filt")
         return args.point_sets_filters();
+    if (command.length >= 3 && command[0..3] == "cbc")
+        return args.component_by_component();
+}
+void component_by_component(string[] args)
+{
+    size_t start_dimensionF2, finish_dimensionF2, dimensionR, precision, initial_count, step_count, total_count;
+    foreach (arg; args)
+    {
+        if (arg.length >= 2)
+        {
+            auto cmd = arg[0..2], val = arg[2..$].to!size_t();
+            if (cmd == "sd") start_dimensionF2 = val;
+            if (cmd == "fd") finish_dimensionF2 = val;
+            if (cmd == "dr") dimensionR = val;
+            if (cmd == "ic") initial_count = val;
+            if (cmd == "sc") step_count = val;
+            if (cmd == "tc") total_count = val;
+        }
+        if (arg.length >= 1 && arg[0] == 'p')
+            precision = arg[1..$].to!size_t();
+    }
+    if (!start_dimensionF2)
+    {
+        stderr.writeln("Start dimension over F is by default 1.  Use sd# to change.");
+        start_dimensionF2 = 1;
+    }
+    if (!finish_dimensionF2)
+        stderr.writeln("Use fd# to specify finish dimension over F.");
+    if (!dimensionR)
+        stderr.writeln("Use dr# to specify dimension over R.");
+    if (!step_count)
+        stderr.writeln("Use sc# to specify the number of generation per step.");
+    if (!total_count)
+    {
+        stderr.writeln("The number of iteration is by default 1.  Use tc# to change.");
+        total_count = 1;
+    }
+    if (!initial_count)
+    {
+        stderr.writeln("The number of initial generation is by default the same as generation per step.  Use ic# to change.");
+        initial_count = step_count;
+    }
+    if (!precision)
+    {
+        stderr.writeln("Precision is by default 32.  To change, use precision# (or prec, p in short).");
+        precision = 32;
+    }
+    if (!(finish_dimensionF2 && dimensionR && step_count))
+        return;
+
+    void generation(T)()
+    {
+        alias ShiftedBasisPoints!T PST;
+        auto P = minimum!
+            (biwafom, nonshiftedRandomBasisPoints!T, PST)
+            (initial_count, precision, dimensionR, start_dimensionF2);
+        void rec(PST Q)
+        {
+            auto R = minimum!
+                (biwafom, (PST S) => S * randomVector!T(S.precision, S.dimensionR), PST)
+                (step_count, Q);
+            R.write_performance();
+            if (R.dimensionF2 < finish_dimensionF2)
+                rec(R);
+        }
+        P.write_performance();
+        rec(P);
+    }
+    foreach (i; 0..total_count)
+    {
+        if (precision <= 16)
+            if (precision <= 8)
+                generation!ubyte();
+            else
+                generation!ushort();
+        else
+            if (precision <= 32)
+                generation!uint();
+            else
+            {
+                assert (precision <= 64);
+                generation!ulong();
+            }
+    }
 }
 void generate_point_sets(string[] args)
 // dimR, dimF, prec=32, count=1,
