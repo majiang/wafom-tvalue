@@ -237,6 +237,12 @@ void RMSNRT(T)(string arg, T pointset)
         arg == "RMSNRT" || arg == "MSNRT" || arg == "rmsnrt" || arg == "msnrt")
         "%.15e".writef(pointset.bimsnrtwafom());
 }
+void tValue(T)(string arg, T pointset)
+{
+    if (
+        arg == "t" || arg == "tvalue" || arg == "tv")
+        "%d".writef(pointset.tvalue());
+}
 void point_set_filters(T)(T pointset, string[] args)
 {
     pointset.toString().write();
@@ -250,6 +256,7 @@ void point_set_filters(T)(T pointset, string[] args)
         arg.DickWEP(pointset);
         arg.NRT(pointset);
         arg.RMSNRT(pointset);
+        arg.tValue(pointset);
     }
     writeln();
 }
@@ -282,8 +289,9 @@ void point_sets_filters(string[] args)
 void display_usage(string arg)
 {
     stderr.writeln("usage:");
-    stderr.writeln(arg ~ " gen: generate point sets");
-    stderr.writeln(arg ~ " filter: compute some function for each point set");
+    stderr.writeln(arg ~ " generate (gen): generate point sets");
+    stderr.writeln(arg ~ " filter (filt): compute some function for each point set");
+    stderr.writeln(arg ~ " cbc: perform component by component construction of digital net");
 }
 }
 else void main()
