@@ -28,7 +28,7 @@ template fromHex(T) if (isUnsigned!T)
 }
 
 
-version = working;
+version = random_search_distribution;
 version (working)
 {
 void write_performance(R)(R P)
@@ -222,6 +222,12 @@ void DickWEP(T)(string arg, T pointset)
 {
     import wafom : dick_weight_enumerator_polynomial;
     if (
+        arg == "DickWEPc" || arg == "dwepc")
+        "%s".writef(pointset.dick_weight_enumerator_polynomial_csv());
+    if (
+        arg == "DickWEPs" || arg == "dweps")
+        "%s".writef(pointset.dick_weight_enumerator_polynomial());
+    if (
         arg == "DickWEP" || arg == "dwep")
         "%s".writef(pointset.dick_weight_enumerator_polynomial());
 }
@@ -290,33 +296,21 @@ void display_usage(string arg)
 {
     stderr.writeln("usage:");
     stderr.writeln(arg ~ " generate (gen): generate point sets");
-    stderr.writeln(arg ~ " filter (filt): compute some function for each point set");
+    stderr.writeln(arg ~ " filter (filt): compute some function for each point set in stdin");
     stderr.writeln(arg ~ " cbc: perform component by component construction of digital net");
 }
 }
 else void main()
 {
-    version (wep)
-    {
-        foreach (line; stdin.byLine())
-        {
-            auto x = line ~ (line.fromString!uint().dick_weight_enumerator_polynomial_csv());
-            x.writeln();
-            stdout.flush();
-            //stderr.writeln(x);
-        }
-    }
     version (random_search_distribution)
     {
         foreach (line; stdin.byLine())
-            line.fromString!uint().write_wafoms(16384);
+            line.fromString!uint().write_wafoms(10);
     }
     version (hamukazu)
     {
-        version (small) int c;
         foreach (line; stdin.byLine())
         {
-            version (small) if (10 <= c++) break;
             line.fromString!uint().write_performance();
         }
     }
@@ -347,55 +341,10 @@ else void main()
             P.write_performance!(Q => bintegral!(default_integrand)(Q))();
         }
     }
-    version (walsh)
-    {
-        stderr.writeln("walsh start.");
-        immutable u = 1024, v = 11;
-        foreach (i; 0..u)
-        {
-            stderr.write(i, ",");
-            foreach (j, l; transpose(i.walsh_function(v)))
-            {
-                if (i && !j) continue;
-                "%15f".writef(i.walsh_coefficient_left());
-                ",%15f".writef(i.walsh_coefficient_right());
-                foreach (x; l)
-                    ",".write(x);
-                writeln();
-            }
-        }
-        stderr.writeln();
-        stderr.writeln("walsh end.");
-        return;
-    }
     version (unittest_only)
     {
         stderr.writeln("unittest passed!");
         return;
-    }
-    version (random_search)
-    {
-        immutable size_t precision = 32, dimensionR = 4, start_dimensionF2 = 8, end_dimensionF2 = 16;
-        alias ShiftedBasisPoints!uint PST;
-
-        foreach (i; 0..10)
-        {
-            stderr.writefln("%d%% complete", i * 10);
-            auto P = minimum!
-                (biwafom, nonshiftedRandomBasisPoints!(PST.ComponentType), PST)
-                (10000, precision, dimensionR, start_dimensionF2);
-            void rec (PST Q)
-            {
-                auto R = minimum!
-                    (biwafom, (PST S) => S * randomVector!(PST.ComponentType)(S.precision, S.dimensionR), PST)
-                    (10000, Q);
-                R.write_performance();
-                if (R.dimensionF2 < end_dimensionF2)
-                    rec(R);
-            }
-            P.write_performance();
-            rec(P);
-        }
     }
     version (large_sobol)
     {
@@ -405,21 +354,6 @@ else void main()
             defaultSobols(4, j, j).write_performance();
             if (j == stoptime)
                 return;
-        }
-    }
-    version (small_wafom)
-    {
-        foreach (i; 0..100)
-        {
-            auto P = nonshiftedRandomBasisPoints!ubyte(6, 2, 6);
-            auto w = P.biwafom();
-            writeln(i, ",", w);
-            auto f = File("small-" ~ i.to!string() ~ "-" ~ (w * 10000).to!int().to!string() ~ ".csv", "w");
-            f.writeln(w);
-            foreach (x; P)
-            {
-                f.writefln("%d,%d", x[0], x[1]);
-            }
         }
     }
     version (test_funx)
@@ -484,33 +418,8 @@ else void main()
         stderr.writeln();
         foreach (i; 1..thresholdw.length)
         {
-            //if (ts[i].length > 100)
-            //{
-            //    ts[i] = ts[i][0..100];
-            //    ws[i] = ws[i][0..100];
-            //}
             manytest!uint("t-ordered", ts[i]);
             manytest!uint("wafom-ordered", ws[i]);
-            //if (i == 2) break;
-        }
-    }
-    version (calc_all)
-    {
-        auto i = 0;
-        "dimF2,dimR,precision,dick,sqrt-mean-square-dick,nrt,sqrt-mean-square-nrt,t-value,basis".writeln();
-        foreach (P; DN!32())
-        {
-            if (i % 100 == 0)
-                stderr.writefln("processing %d-th point set...", i);
-            "%d,%d,%d,%.15e,%.15e,%.15e,%.15e,%d".
-                writef(
-                       P.dimensionF2, P.dimensionR, P.precision,
-                       P.biwafom(), P.bimswafom().sqrt(), P.binrtwafom(), P.bimsnrtwafom().sqrt(),
-                       P.tvalue());
-            foreach (l; P.basis) foreach (x; l) ",".
-                write(x);
-            writeln();
-            i += 1;
         }
     }
 }
@@ -531,12 +440,10 @@ auto DN(size_t precision)()
 }
 void write_wafoms(R)(R P, size_t count)
 {
+    import integration_error : shifts;
     auto w = P.biwafom();
-    foreach (i; 0..count)
-    {
-        auto v = randomVector!(R.ComponentType)(P.precision, P.dimensionR);
+    foreach (v; shifts!R(P.precision, P.dimensionR, count))
         "%.15e,%s".writefln((P + v).biwafom() + w, v.toSSV());
-    }
     writeln();
 }
 
@@ -544,12 +451,6 @@ version (sharase)
 void write_performance(alias f, R)(R P)
 {
     "%s,%.15e,%.15e,%d".writefln(P.toString(), P.biwafom(), P.bintegral!default_integrand(), P.tvalue());
-}
-else version (random_search)
-void write_performance(R)(R P)
-{
-    import std.datetime;
-    "%s,%s,%.15e,%.15e".writefln(P.toString(), Clock.currTime().toSimpleString(), P.biwafom(), P.bimswafom());
 }
 else version (hamukazu)
 void write_performance(R)(R P)
@@ -624,42 +525,8 @@ auto tocsv(T)(T xss) if (isInputRangeOfInputRange!T)
     return ret;
 }
 
-import std.range : ElementType;
 
-/** Calculate integration error of a function by a point set.
-
-Params:
-tf = an alias. the integrand is given as tf.f, with its true integrated value tf.I.
-P = a point set.
-*/
-double integrationError(alias tf, PointSetType)(PointSetType P)
-{
-    return -tf.I + P.bintegral!(tf.f, PointSetType)();
-}
-/** ditto
-Params:
-Ps = point sets.
-*/
-auto integrationErrors(alias tf, PointSetTypeRange)(PointSetTypeRange Ps)
-{
-    return Ps.map!(integrationError!(tf, ElementType!PointSetTypeRange))();
-}
-
-import std.math : sqrt;
-auto squareRootMeanSquare(NumericRange)(NumericRange r)
-{
-    ElementType!NumericRange sum = 0;
-    ulong count;
-    foreach (e; r)
-    {
-        sum += e * e;
-        count += 1;
-    }
-    return (sum / count).sqrt();
-}
-
-
-version (test_funx) 
+version (test_funx)
 {
     import std.typecons : Tuple;
     alias Tuple!(double, "wafom", ulong, "tvalue") InfoType;
@@ -733,33 +600,6 @@ version (test_funx)
     auto srmse(alias tf, PointSetType)(PointSetType P, ulong[][] shifts)
     {
         return P.shifteds(shifts).integrationErrors!tf().squareRootMeanSquare();
-    }
-    /** Shift a point set by each element of shifts.
-
-    Params:
-    P = point set.
-    shifts = shifts
-    */
-    auto shifteds(PointSetType, ShifterRange)(PointSetType P, ShifterRange shifts)
-    {
-        import std.array : empty, front, popFront;
-        struct R
-        {
-            @property bool empty()
-            {
-                return shifts.empty;
-            }
-            @property PointSetType front()
-            {
-                return P.shifted(shifts.front);
-            }
-            void popFront()
-            {
-                shifts.popFront();
-            }
-        }
-        return R();
-        //return shifts.map!(x => P.shifted(x));
     }
     }
     auto lineToDN(T)(string line, size_t precision = size_t.max) if (isUnsigned!T)
