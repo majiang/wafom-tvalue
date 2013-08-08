@@ -28,7 +28,7 @@ template fromHex(T) if (isUnsigned!T)
 }
 
 
-version = random_search_distribution;
+version = working;
 version (working)
 {
 void write_performance(R)(R P)
@@ -209,7 +209,7 @@ void PrecDick(T)(string arg, T pointset)
 {
     if (
         arg == "PrecDick" || arg == "pDick" || arg == "pd" || arg == "Pd" || arg == "pD" || arg == "PD" ||
-        arg == "PrecWAFOM" || arg == "pWAFOM" || arg == "pW" || "Pw")
+        arg == "PrecWAFOM" || arg == "pWAFOM" || arg == "pW" || arg == "Pw")
         "%.15e".writef(pointset.prwafom());
 }
 void RMSDick(T)(string arg, T pointset)
@@ -249,6 +249,21 @@ void tValue(T)(string arg, T pointset)
         arg == "t" || arg == "tvalue" || arg == "tv")
         "%d".writef(pointset.tvalue());
 }
+void write_wafoms(T)(string arg, T pointset)
+{
+    size_t count;
+    if ((arg.length >= 2 && arg[0..2] == "ws"))
+        count = arg[2..$].to!size_t();
+    else if ((arg.length >= 6 && arg[0..6] == "wafoms"))
+        count = arg[6..$].to!size_t();
+    else
+        return;
+    import integration_error : shifts;
+    auto w = pointset.biwafom();
+
+    foreach (v; shifts!T(pointset.precision, pointset.dimensionR, count))
+        ",%s,%.15e".writef(v.toSSV(), 0.5*((pointset + v).biwafom() + w));
+}
 void point_set_filters(T)(T pointset, string[] args)
 {
     pointset.toString().write();
@@ -263,6 +278,7 @@ void point_set_filters(T)(T pointset, string[] args)
         arg.NRT(pointset);
         arg.RMSNRT(pointset);
         arg.tValue(pointset);
+        arg.write_wafoms(pointset);
     }
     writeln();
 }
@@ -302,11 +318,6 @@ void display_usage(string arg)
 }
 else void main()
 {
-    version (random_search_distribution)
-    {
-        foreach (line; stdin.byLine())
-            line.fromString!uint().write_wafoms(10);
-    }
     version (hamukazu)
     {
         foreach (line; stdin.byLine())
@@ -437,14 +448,6 @@ auto DN(size_t precision)()
     }
     return ret;
 }
-}
-void write_wafoms(R)(R P, size_t count)
-{
-    import integration_error : shifts;
-    auto w = P.biwafom();
-    foreach (v; shifts!R(P.precision, P.dimensionR, count))
-        "%.15e,%s".writefln((P + v).biwafom() + w, v.toSSV());
-    writeln();
 }
 
 version (sharase)
