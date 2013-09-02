@@ -122,7 +122,7 @@ template RooArnold3(int s)
     enum I = 1.0;
 }
 
-/// test function proposed by Kimikazu Sato on https://twitter.com/hamukazu/status/331605169722781696
+/// test function proposed by Kimikazu Kato on https://twitter.com/hamukazu/status/331605169722781696
 /// template argument T ... must be array of _int_s, not _double_s.
 template Hamukazu(T ...)
 {
