@@ -27,8 +27,9 @@ template fromHex(T) if (isUnsigned!T)
     }
 }
 
+version = lowdimensional_smallest_search;
 
-version = working;
+//version = working;
 version (working)
 {
 void write_performance(R)(R P)
@@ -433,6 +434,12 @@ else void main()
             manytest!uint("wafom-ordered", ws[i]);
         }
     }
+    version(lowdimensional_smallest_search)
+    {
+        smallest_search(1);
+        smallest_search(2);
+        smallest_search(3);
+    }
 }
 version(none)
 {
@@ -492,6 +499,37 @@ version (none) auto tocsv(T)(T xss) if (isInputRange!T && isInputRange!(ElementT
         }
     }
     return ret;
+}
+
+ubyte[] next_array(ubyte[] arr)
+{
+    import std.exception : enforce;
+    if (arr[$-1] != 255)
+        return arr[0..$-1] ~ cast(ubyte)(arr[$-1]+1);
+    auto tmp = arr[0..$-1].next_array();
+    enforce(tmp[$-1] != 255);
+    return tmp ~ cast(ubyte)(tmp[$-1]+1);
+}
+
+void smallest_search(size_t dimensionF2)
+{
+    alias ubyte U;
+    U[] b = [];
+    foreach (i; 0..dimensionF2)
+    {
+        b ~= cast(ubyte)(i + 1);
+    }
+    try while (true)
+    {
+        U[][] basis;
+        foreach (v; b)
+            basis ~= [v];
+        auto P = ShiftedBasisPoints!U(basis, 8);
+        P.toString().write(",");
+        P.biwafom().writeln();
+        b = b.next_array();
+    }
+    catch{}
 }
 
 auto toSSV(T)(const T[] xs)
