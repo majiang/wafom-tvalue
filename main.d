@@ -436,9 +436,7 @@ else void main()
     }
     version(lowdimensional_smallest_search)
     {
-        smallest_search(1);
-        smallest_search(2);
-        smallest_search(3);
+        readln().strip().to!int().smallest_search();
     }
 }
 version(none)
@@ -501,14 +499,40 @@ version (none) auto tocsv(T)(T xss) if (isInputRange!T && isInputRange!(ElementT
     return ret;
 }
 
-ubyte[] next_array(ubyte[] arr)
+ubyte[] next_array(ubyte[] arr, ubyte max = 255)
 {
     import std.exception : enforce;
-    if (arr[$-1] != 255)
+    if (arr[$-1] != max)
         return arr[0..$-1] ~ cast(ubyte)(arr[$-1]+1);
-    auto tmp = arr[0..$-1].next_array();
-    enforce(tmp[$-1] != 255);
-    return tmp ~ cast(ubyte)(tmp[$-1]+1);
+    auto tmp = arr[0..$-1].next_array(cast(ubyte)(max - 1));
+    return tmp ~ cast(ubyte)(tmp[$-1]+1); // refers tmp[-1] after the last combination and throws error
+}
+
+// assume x > y
+bool has_msb_of(ubyte x, ubyte y)
+{
+    if (y == 1)
+        return x & 1;
+    return (x >> 1).has_msb_of(y >> 1);
+}
+
+ubyte[] next_regular_array(ubyte[] arr)
+{
+outer:
+    while (true)
+    {
+        arr = arr.next_array();
+        foreach (i, c; arr)
+            foreach (j, d; arr)
+            {
+                if (i <= j)
+                    continue;
+                if (c.has_msb_of(d))
+                    continue outer;
+            }
+        return arr;
+    }
+    assert (false);
 }
 
 void smallest_search(size_t dimensionF2)
@@ -516,9 +540,7 @@ void smallest_search(size_t dimensionF2)
     alias ubyte U;
     U[] b = [];
     foreach (i; 0..dimensionF2)
-    {
-        b ~= cast(ubyte)(i + 1);
-    }
+        b ~= cast(ubyte)(1 << i);
     try while (true)
     {
         U[][] basis;
@@ -526,10 +548,10 @@ void smallest_search(size_t dimensionF2)
             basis ~= [v];
         auto P = ShiftedBasisPoints!U(basis, 8);
         P.toString().write(",");
-        P.biwafom().writeln();
-        b = b.next_array();
+        "%.15f".writefln(P.biwafom());
+        b = b.next_regular_array();
     }
-    catch{}
+    catch{} // finish
 }
 
 auto toSSV(T)(const T[] xs)
