@@ -15,6 +15,7 @@ auto defaultSobols(immutable size_t dimension, immutable size_t precision, immut
     return sobols(_direction_numbers);
 }
 
+debug = verbose;
 unittest
 {
     debug (verbose) "default sobol sequence of dimension 3 and precision 4:".writeln();
@@ -65,6 +66,19 @@ unittest
 import std.array : split;
 import std.conv : to;
 
+/// Provide direction numbers from kuo: http://web.maths.unsw.edu.au/~fkuo/sobol/new-joe-kuo-6.21201
+auto defaultDirectionNumbers(immutable size_t dimension)
+{
+    static dn = import("sobol.csv").split();
+    auto buf = dn[dimension].split(",");
+    ulong primitive_polynomial = buf[0].to!ulong();
+    ulong[] initial_terms;
+    foreach (w; buf[1..$])
+        initial_terms ~= w.to!ulong();
+    return DirectionNumbersGenerator(initial_terms, primitive_polynomial);
+}
+
+version (old){
 /// Provide direction numbers from kuo: http://web.maths.unsw.edu.au/~fkuo/sobol/joe-kuo-old.1111
 auto defaultDirectionNumbers(immutable size_t dimension)
 in
@@ -80,7 +94,7 @@ body
     }
     auto primitive_polynomial = "3,7,11,13,19,25,37,59,47,61".split(",")[dimension].to!ulong();
     return DirectionNumbersGenerator(initial_terms, primitive_polynomial);
-}
+}}
 
 
 /// Generate point set for the direction numbers specified.
