@@ -5,7 +5,7 @@ import pointset : transposedBasisPoints;
 
 auto defaultSobols(immutable size_t dimension, immutable size_t precision, immutable size_t lg_length)
 {
-    assert (precision <= lg_length);
+    //assert (precision <= lg_length);// why assert this?
     ulong[][] _direction_numbers;
     auto trailing_zeros = precision - lg_length;
     foreach (i; 0..dimension)
@@ -106,7 +106,7 @@ auto sobols(ulong[][] direction_numbers)
     {
         _direction_numbers[i] = c.shift();
     }
-    return transposedBasisPoints(_direction_numbers, _direction_numbers[0].length);
+    return transposedBasisPoints(_direction_numbers, 32);
 }
 
 
