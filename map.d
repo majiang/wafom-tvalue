@@ -7,8 +7,8 @@ import std.traits : ReturnType;
 
 void main()
 {
-    foreach (digitalnet; getDigitalNets!uint())
+    foreach (digitalnet; getDigitalNets!ubyte())
     {
-        digitalnet.writeWithMany!(ReturnType!(getDigitalNet!uint), biwafom, bimswafom, binrtwafom, bimsnrtwafom)();
+        digitalnet.writeWithMany!(ReturnType!(getDigitalNet!ubyte), biwafom, bimswafom)();
     }
 }
