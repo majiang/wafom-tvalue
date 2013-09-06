@@ -436,7 +436,14 @@ else void main()
     }
     version(lowdimensional_smallest_search)
     {
-        readln().strip().to!int().smallest_search();
+        import smallsearch : ReducedBasis;
+        foreach (precision; 1..7)
+        foreach (basis; precision.ReducedBasis!ubyte(2, 2))
+        {
+            auto P = ShiftedBasisPoints!ubyte(basis, precision);
+            P.toString().write(",");
+            "%.15f".writefln(P.biwafom());
+        }
     }
 }
 version(none)
@@ -499,6 +506,8 @@ version (none) auto tocsv(T)(T xss) if (isInputRange!T && isInputRange!(ElementT
     return ret;
 }
 
+version (old_small_search){
+
 ubyte[] next_array(ubyte[] arr, ubyte max = 255)
 {
     import std.exception : enforce;
@@ -552,6 +561,7 @@ void smallest_search(size_t dimensionF2)
         b = b.next_regular_array();
     }
     catch{} // finish
+}
 }
 
 auto toSSV(T)(const T[] xs)
