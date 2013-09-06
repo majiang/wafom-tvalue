@@ -1,4 +1,4 @@
-module ornsteinuhlenbeck;
+module func.ornsteinuhlenbeck;
 
 alias oup!(0.03, 5, 100, 100) integrandLowShort;
 alias oup!(0.03, 5, 500, 100) integrandHighShort;
@@ -9,8 +9,8 @@ unittest
 {
     import std.stdio;
     "ornstein uhlenbeck:".writeln();
-    import pointset : defaultSobols;
-    import integral : bintegral;
+    import lib.pointset : defaultSobols;
+    import lib.integral : bintegral;
     foreach (m; [8, 10, 12, 14, 16, 18])
     //foreach (m; [4, 6, 8])
         foreach (s; [4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384])

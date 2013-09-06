@@ -1,4 +1,4 @@
-module graycode;
+module lib.graycode;
 debug import std.stdio;
 
 T graycode(T)(T x)

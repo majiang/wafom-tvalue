@@ -1,16 +1,16 @@
-module wafom;
+module lib.wafom;
 
 import std.functional : memoize;
 import std.traits : isUnsigned;
 import std.math;
 import std.conv : to;
 
-import pointset : Bisectable, isPointSet;
+import lib.pointset : Bisectable, isPointSet;
 
 debug import std.stdio;
-debug import pointset : nonshiftedRandomBasisPoints;
+debug import lib.pointset : nonshiftedRandomBasisPoints;
 
-template biwafom(R) /// Bisect Dick WAFOM
+template biwafom(R) if (Bisectable!R) /// Bisect Dick WAFOM
 {
     auto biwafom(R P)
     {
@@ -24,21 +24,21 @@ template prwafom(R) /// Precise Dick WAFOM
         return precise_dick!(1, R)(P);
     }
 }
-template bimswafom(R) /// Bisect root mean square Dick WAFOM
+template bimswafom(R) if (Bisectable!R) /// Bisect root mean square Dick WAFOM
 {
     auto bimswafom(R P)
     {
         return Bisect!(rapid_dick!(2, R))(P).sqrt();
     }
 }
-template binrtwafom(R) /// Bisect NRT WAFOM
+template binrtwafom(R) if (Bisectable!R) /// Bisect NRT WAFOM
 {
     auto binrtwafom(R P)
     {
         return Bisect!(nrt!(1, R))(P);
     }
 }
-template bimsnrtwafom(R) /// Bisect root mean square NRT WAFOM
+template bimsnrtwafom(R) if (Bisectable!R) /// Bisect root mean square NRT WAFOM
 {
     auto bimsnrtwafom(R P)
     {
@@ -87,9 +87,8 @@ R = input type of f. R must be Bisectable (i.e., has property bisectable and met
 
 TODO: generalize to f: R -> T
 */
-template Bisect(alias f, R)
+template Bisect(alias f, R) if (Bisectable!R)
 {
-    static assert (Bisectable!R);
     double Bisect(R P)
     {
         if (!P.bisectable)
@@ -160,7 +159,7 @@ double slow_dick(size_t exponent, R)(R P)
 
 version (verbose) unittest
 {
-    import pointset : randomPoints;
+    import lib.pointset : randomPoints;
     "dimF2,algorithm,dick,dick2,nrt,nrt2".writeln();
     foreach (i; 8..13)
     {

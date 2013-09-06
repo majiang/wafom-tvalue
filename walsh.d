@@ -1,4 +1,4 @@
-module walsh;
+module lib.walsh;
 import std.stdio;
 
 /// Compte product of f and k-th Walsh function.

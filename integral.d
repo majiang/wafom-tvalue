@@ -1,6 +1,8 @@
+module lib.integral;
+
 import std.stdio;
 import std.traits : isUnsigned;
-import pointset : Bisectable;
+import lib.pointset : Bisectable;
 
 private static flist = function (size_t n)
 {

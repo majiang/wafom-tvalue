@@ -1,4 +1,4 @@
-module randomsearch;
+module lib.randomsearch;
 
 import std.stdio;
 
@@ -34,8 +34,8 @@ R minimum(alias score, alias generate, R, Param...)(size_t count, Param params)
 debug (verbose) unittest
 {
     immutable size_t precision = 32, dimensionR = 4, dimensionF2 = 10;
-    import wafom : biwafom;
-    import pointset : ShiftedBasisPoints, nonshiftedRandomBasisPoints, randomVector;
+    import lib.wafom : biwafom;
+    import lib.pointset : ShiftedBasisPoints, nonshiftedRandomBasisPoints, randomVector;
     // count, precision, dimR, dimF2
     alias ShiftedBasisPoints!uint PST;
     PST P = minimum!
@@ -68,8 +68,8 @@ R increment(alias score, alias incrementor, R, Param...)(R P, size_t count, Para
 debug (verbose) unittest
 {
     immutable size_t precision = 32, dimensionR = 4, dimensionF2 = 10;
-    import wafom : biwafom;
-    import pointset : ShiftedBasisPoints, nonshiftedRandomBasisPoints, randomVector;
+    import lib.wafom : biwafom;
+    import lib.pointset : ShiftedBasisPoints, nonshiftedRandomBasisPoints, randomVector;
     auto P = nonshiftedRandomBasisPoints!uint(precision, dimensionR, dimensionF2);
     auto Q = increment!
         (biwafom, randomVector!uint, ShiftedBasisPoints!uint)

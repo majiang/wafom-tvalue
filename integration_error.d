@@ -1,7 +1,7 @@
-module integration_error;
+module module lib.integration_error;
 
-import integral;
-import testfunction;
+import lib.integral;
+//import testfunction;
 
 import std.range : ElementType, hasLength;
 import std.traits : ReturnType;
@@ -50,7 +50,7 @@ auto squareRootMeanSquare(NumericRange)(NumericRange r)
 
 auto shifts(PointSetType)(in size_t precision, in size_t dimensionR, in size_t count)
 {
-    import pointset : randomVectors;
+    import lib.pointset : randomVectors;
     return randomVectors!(PointSetType.ComponentType)(precision, dimensionR, count);
 }
 

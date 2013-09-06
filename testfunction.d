@@ -1,6 +1,5 @@
-module testfunction;
+module func.testfunction;
 import std.stdio;
-//import std;
 import std.math : abs, sin, PI, floor;
 
 template Hellekalek(T ...)
@@ -141,7 +140,6 @@ template Hamukazu(T ...)
     enum I = 1.0;
 }
 
-//debug = hamu;
 debug (hamu) unittest
 {
     foreach (i; 0..100)

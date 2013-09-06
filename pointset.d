@@ -1,4 +1,4 @@
-module pointset;
+module lib.pointset;
 
 debug (working) import std.stdio;
 
@@ -8,8 +8,8 @@ import std.algorithm : min;
 import std.typecons : Flag;
 
 import std.random : uniform;
-public import sobol : defaultSobols;
-import graycode;
+public import lib.sobol : defaultSobols;
+import lib.graycode;
 import std.conv : to, text;
 
 private enum BisectMin = 10;
@@ -264,7 +264,7 @@ ShiftedBasisPoints!T shiftedRandomBasisPoints(T) (in size_t precision, in size_t
 
 unittest
 {
-    import wafom : biwafom;
+    import lib.wafom : biwafom;
     import std.math : approxEqual;
     auto P = nonshiftedRandomBasisPoints!uint(32, 4, 12);
     auto
@@ -310,9 +310,9 @@ ShiftedBasisPoints!T transposedBasisPoints(T)(in T[][] basis, in size_t precisio
     return ShiftedBasisPoints!T(new_basis, precision);
 }
 
-import std.algorithm : max;
 size_t guess_precision(T)(T[][] basis) if (isUnsigned!T)
 {
+    import std.algorithm : max;
     T x = 0;
     foreach (l; basis)
         foreach (c; l)

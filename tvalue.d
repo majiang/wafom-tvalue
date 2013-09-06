@@ -1,4 +1,4 @@
-module tvalue;
+module lib.tvalue;
 
 import std.functional : memoize;
 debug (verbose) debug = working;
@@ -46,9 +46,7 @@ version (2) {alias tvalue2 tvalue;}
 ulong tvalue1(R)(R P)
 {
     if (P.dimensionF2 < P.precision)
-    {
         return P.changePrecision(P.dimensionF2).tvalue1();
-    }
     auto total = new BigInt[P.dimensionF2 + 1] ; // sum
     foreach (x; P)
     {
@@ -57,19 +55,13 @@ ulong tvalue1(R)(R P)
         {
             immutable nu = e.nu_star(P.dimensionF2);
             foreach_reverse (i; nu..current.length)
-            {
                 current[i] -= current[i - nu] << nu;
-            }
         }
         total = total.plus(current);
     }
     foreach (i, x; P.dimensionF2.Q1(P.dimensionR).times(total)) // (b^-m) is unnecessary
-    {
         if (i && x)
-        {
             return P.dimensionF2 + 1 - i;
-        }
-    }
     return 0; // all zero, t = m + 1 - (m+1) according to Algorithm 1.
 }
 
@@ -86,9 +78,7 @@ BigInt[] Q1(in size_t dimensionF2, in size_t dimensionR)
     ret[0] = 1;
     ret[1] = 1;
     foreach (i; 1..dimensionF2)
-    {
         ret[i + 1] = ret[i] << 1;
-    }
     return ret.power(dimensionR);
 }
 
@@ -121,9 +111,7 @@ BigInt[] Q1(in size_t dimensionF2, in size_t dimensionR)
 ulong tvalue2(R)(R P)
 {
     if (P.dimensionF2 < P.precision)
-    {
         return P.changePrecision(P.dimensionF2).tvalue2();
-    }
     auto total = new BigInt[P.dimensionF2 + 1];
     foreach (x; P)
     {
@@ -132,9 +120,7 @@ ulong tvalue2(R)(R P)
         {
             immutable nu = e.nu_star(P.dimensionF2);
             foreach_reverse (i; nu..current.length)
-            {
                 current[i] -= current[i - nu];
-            }
         }
         total = total.plus(current);
     }
@@ -145,11 +131,8 @@ ulong tvalue2(R)(R P)
         if (total[i] << shift != c)
         //if ((c & mask) || total[i] != c >> shift) // と書きたいが、BigInt が cast(bool) や &, |, ^ を持っていないのでできない。まあ大したパフォーマンスダウンにはならないだろう。
         {
-            if (i == 0)
-            {
-                total[i].writeln(" != ", c);
-            }
-            assert (i); return P.dimensionF2 + 1 - i;
+            assert (i);
+            return P.dimensionF2 + 1 - i;
         }
     }
     return 0;
@@ -174,9 +157,7 @@ BigInt[] Q2(in size_t dimensionF2, in size_t dimensionR)
     auto ret = new BigInt[dimensionF2 + 1];
     ret[$ - 1] = -1;
     foreach_reverse (i; 1..dimensionF2)
-    {
         ret[i] = ret[i + 1] << 1;
-    }
     ret[0] = -(ret[1] << 1);
     return ret.power(dimensionR);
 }

@@ -1,4 +1,4 @@
-module smallsearch;
+module lib.smallsearch;
 
 import std.traits : isUnsigned;
 import std.exception : enforce;

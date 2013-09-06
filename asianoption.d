@@ -1,4 +1,4 @@
-module asianoption;
+module func.asianoption;
 
 import std.math;
 import std.typecons : Tuple;
@@ -149,11 +149,11 @@ Double gaussinv_(Double x)// [0..1)^2 -> gauss
     return Double(r * cos(theta), r * sin(theta));
 }
 
-unittest
+version (none) unittest // not appropriate to place here
 {
     import std.stdio;
-    import pointset : randomPoints;
-    import integral : bintegral;
+    import lib.pointset : randomPoints;
+    import lib.integral : bintegral;
     import std.traits : ReturnType;
     auto price = bintegral!(default_integrand, ReturnType!(randomPoints!uint))(randomPoints!uint(4, 20, 20));
     debug "asian option price = ".writeln(price);
