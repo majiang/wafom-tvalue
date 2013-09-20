@@ -83,7 +83,10 @@ auto DimensionalVectorsWithZerosAt(in size_t dimension, in size_t[] zeroPosition
         }
         void popFront(){i += 1;}
     }
-    enforce(dimension > zeroPositions.length);
+    if (dimension <= zeroPositions.length)
+    {
+        return Result([], 0, 0);
+    }
     enforce(dimension - zeroPositions.length < 64);
     return Result(zeroPositions.toBits(dimension), 0, 1UL << (dimension - zeroPositions.length));
 }
