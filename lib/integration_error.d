@@ -1,4 +1,4 @@
-module module lib.integration_error;
+module lib.integration_error;
 
 import lib.integral;
 //import testfunction;
