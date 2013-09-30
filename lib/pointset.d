@@ -103,6 +103,11 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
             return;
         current[] ^= basis[position.bottom_zeros()][];
     }
+    void reset()
+    {
+        position = 0;
+        this.current = this.shift.dup;
+    }
 
     private alias ShiftedBasisPoints!T SBP;
 
@@ -139,9 +144,36 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
     {
         return this.shifted(shift);
     }
-    SBP opBinary(string op)(in T[] vector) if (op == "*")
+    /// new ShiftedBasisPoints extended by a vector.
+    SBP extended(in T[] vector)
+    in
+    {
+        assert (vector.length == this.dimensionR);
+    }
+    body
     {
         return SBP(basis ~ vector, precision);
+    }
+    /// ditto
+    SBP extended(in T[][] vectors)
+    in
+    {
+        foreach (vector; vectors)
+            assert (vector.length == this.dimensionR);
+    }
+    body
+    {
+        return SBP(basis ~ vectors, precision);
+    }
+    /// ditto
+    SBP opBinary(string op)(in T[] vector) if (op == "*")
+    {
+        return this.extended(vector);
+    }
+    /// ditto
+    SBP opBinary(string op)(in T[][] vectors) if (op == "*")
+    {
+        return this.extended(vectors);
     }
     /// ShiftedBasisPoints with its outputs bit-shifted.
     SBP opBinary(string op)(in int amount) //const
