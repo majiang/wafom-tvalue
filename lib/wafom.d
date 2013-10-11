@@ -174,10 +174,10 @@ version (verbose) unittest
 }
 
 
-double rapid_wafom_factor(size_t exponent)(ulong x, ptrdiff_t precision)
+double rapid_wafom_factor(size_t exponent)(ulong x, ptrdiff_t precision, size_t offset = 0)
 {
-    debug auto memo = memoize!(get_memo_factor!exponent)(); // just memoize for debug, to compile faster.
-    else static memo = get_memo_factor!exponent(); // CTFE for release, to execute faster.
+    debug auto memo = memoize!(get_memo_factor!exponent)(offset); // just memoize for debug, to compile faster.
+    else static memo = get_memo_factor!exponent(offset); // CTFE for release, to execute faster.
     double ret = 1;
     while (0 < precision)
     {
@@ -208,7 +208,7 @@ double[256][64] get_memo_factor(size_t exponent)()
     return ret;
 }
 
-double[2][] _factors(size_t precision, size_t exponent = 1)
+double[2][] _factors(size_t precision, size_t exponent = 1, size_t offset = 0)
 {
     assert (precision);
     auto ret = new double[2][precision];
@@ -216,11 +216,12 @@ double[2][] _factors(size_t precision, size_t exponent = 1)
     foreach (i; 0..exponent) recip /= 2;
     foreach (i; 0..2)
     {
-        ret[$-1][i] = recip; // Mr. Yoshiki suggests recip * recip
+        if (offset)
+            ret[$-1][i] = recip * recip; // Mr. Yoshiki suggests recip * recip
+        else
+            ret[$-1][i] = recip;
         foreach_reverse (j; 1..precision)
-        {
             ret[j-1][i] = ret[j][i] * recip;
-        }
     }
     foreach (j; 0..precision)
     {
@@ -467,11 +468,11 @@ double wafom_factor(ulong x, ptrdiff_t precision)
     return ret;
 }
 
-double[256][64] get_memo()
+double[256][64] get_memo(size_t offset = 0)
 {
     import std.algorithm : min, max;
     double[256][64] ret;
-    auto f = _factors(64);
+    auto f = _factors(64, offset);
     foreach (i; 0..64)
         foreach (j; 0..2 << min(i, 7))
         {
