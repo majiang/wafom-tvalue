@@ -17,6 +17,13 @@ template biwafom(R) if (Bisectable!R) /// Bisect Dick WAFOM
         return Bisect!(rapid_dick!(1, R))(P);
     }
 }
+template bipwafom(R) if (Bisectable!R)
+{
+    auto bipwafom(R P)
+    {
+        return Bisect!(rapid_proper_dick!(1, R))(P);
+    }
+}
 template prwafom(R) /// Precise Dick WAFOM
 {
     auto prwafom(R P)
@@ -136,6 +143,18 @@ double rapid_dick(size_t exponent, R)(R P)
         double cur = 1;
         foreach (l; B)
             cur *= l.rapid_wafom_factor!exponent(P.precision);
+        ret += cur;//reduce!((cur, l) => cur * (l.rapid_wafom_factor!exponent(P.precision)))(1.0, B);
+    }
+    mixin (scale_and_return);
+}
+double rapid_proper_dick(size_t exponent, R)(R P)
+{
+    double ret = 0;
+    foreach (B; P)
+    {
+        double cur = 1;
+        foreach (l; B)
+            cur *= l.rapid_wafom_factor!exponent(P.precision, 1);
         ret += cur;//reduce!((cur, l) => cur * (l.rapid_wafom_factor!exponent(P.precision)))(1.0, B);
     }
     mixin (scale_and_return);
