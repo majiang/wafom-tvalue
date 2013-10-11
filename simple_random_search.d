@@ -11,12 +11,13 @@ module main;
 import std.stdio, std.array, std.string, std.conv;
 import std.container : heapify;
 import lib.pointset : randomVectors, ShiftedBasisPoints;
-import lib.wafom : biwafom, bimswafom;
+import lib.wafom : bipwafom, biwafom, bimswafom;
 import std.algorithm : min;
 import ui.output : writePoints;
 alias uint U;
 alias ShiftedBasisPoints!U BP;
 import std.typecons : Tuple;
+import std.math : lg = log2;
 alias Tuple!(double, U[][]) DN;
 
 void main()
@@ -33,11 +34,11 @@ void main()
     foreach (i; 0..count)
     {
         auto B = randomVectors!uint(precision, dimensionR, dimensionF2);
-        H.conditionalInsert(DN(BP(B, precision).biwafom(), B));
+        H.conditionalInsert(DN(BP(B, precision).bipwafom(), B));
     }
     foreach (dn; H.release())
     {
         auto P = BP(dn[1], precision);
-        "%s,%.15f,%.15f".writefln(P.toString(), dn[0], P.bimswafom());
+        "%s,%.15f,%.15f,%.15f".writefln(P.toString(), dn[0].lg(), P.biwafom().lg(), P.bimswafom().lg());
     }
 }
