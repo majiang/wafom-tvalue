@@ -30,15 +30,27 @@ void main()
     immutable count = buf[3].to!size_t();
     immutable best = buf[4].to!size_t();
 
-    auto H = (new DN[best]).heapify(0);
-    foreach (i; 0..count)
+/*
+    if (best)
     {
-        auto B = randomVectors!uint(precision, dimensionR, dimensionF2);
-        H.conditionalInsert(DN(BP(B, precision).bipwafom(), B));
+        auto H = (new DN[best]).heapify(0);
+        foreach (i; 0..count)
+        {
+            auto B = randomVectors!uint(precision, dimensionR, dimensionF2);
+            H.conditionalInsert(DN(BP(B, precision).bipwafom(), B));
+        }
+        foreach (dn; H.release())
+        {
+            auto P = BP(dn[1], precision);
+            "%s\t%.15f\t%.15f\t%.15f".writefln(P.toString(), dn[0].lg(), P.biwafom().lg(), P.bimswafom().lg());
+        }
     }
-    foreach (dn; H.release())
+    else// */
     {
-        auto P = BP(dn[1], precision);
-        "%s,%.15f,%.15f,%.15f".writefln(P.toString(), dn[0].lg(), P.biwafom().lg(), P.bimswafom().lg());
+        foreach (i; 0..count)
+        {
+            auto P = BP(randomVectors!uint(precision, dimensionR, dimensionF2), precision);
+            "%s\t%.15f\t%.15f\t%.15f".writefln(P.toString(), P.bipwafom().lg(), P.biwafom().lg(), P.bimswafom().lg());
+        }
     }
 }
