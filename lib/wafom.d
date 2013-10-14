@@ -24,6 +24,13 @@ template bipwafom(R) if (Bisectable!R)
         return Bisect!(rapid_proper_dick!(1, R))(P);
     }
 }
+template bipmswafom(R) if (Bisectable!R)
+{
+    auto bipmswafom(R P)
+    {
+        return Bisect!(rapid_proper_dick!(2, R))(P).sqrt();
+    }
+}
 template prwafom(R) /// Precise Dick WAFOM
 {
     auto prwafom(R P)

@@ -21,6 +21,23 @@ template exponential(size_t s)
     enum I = (E - 1) ^^ s;
 }
 
+template negexp(size_t s)
+{
+    double f(double[] x)
+    in
+    {
+        assert (x.length == s);
+    }
+    body
+    {
+        auto e = 0.0;
+        foreach (c; x)
+            e += c;
+        return exp(s - e);
+    }
+    enum I = (E - 1) ^^ s;
+}
+
 
 version (none)
 {
