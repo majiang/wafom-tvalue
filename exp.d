@@ -57,7 +57,7 @@ body
     return ret;
 }
 
-void main()
+version (none) void main()
 {
     import std.stdio;
 debug

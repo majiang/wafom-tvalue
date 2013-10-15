@@ -21,7 +21,7 @@ void main()
             first = false;
             shift = shifts!(typeof(P))(P.precision, P.dimensionR, numShift);
         }
-        "%s,%.15f".writefln(P.toString, P.shifteds!(typeof(P))(shift).integrationErrors!(exponential!4).squareRootMeanSquare().log2);
+        "%s,%.15f".writefln(P.toString, P.shifteds!(typeof(P))(shift).integrationErrors!(exponential!4).squareRootMeanSquare().log2());
     }
     catch
     {
