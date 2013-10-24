@@ -315,6 +315,11 @@ private double toDouble(BigInt x)
 private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
 {
     BigInt[] coef = [BigInt(1)];
+    size_t max_length = 2147483647;
+    this (size_t max_length)
+    {
+        this.max_length = max_length;
+    }
     invariant()
     {
         assert (1 <= this.coef.length);
@@ -322,9 +327,9 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
     }
     Polynomial opOpAssign(string op)(Polynomial other) if (op == "+")
     {
-        this.coef.length = this.coef.length.max(other.coef.length);
+        this.coef.length = this.coef.length.max(other.coef.length).min(max_length);
         foreach (i, c; other.coef)
-            if (i)
+            if (0 < i && i < max_length)
                 this.coef[i] += c;
         return this;
     }
@@ -352,8 +357,9 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
     {
         immutable bool negative = rhs < 0;
         immutable size_t position = negative ? -rhs : rhs;
-        immutable old_length = this.coef.length;
-        this.coef.length += position;
+        auto old_length = this.coef.length;
+        this.coef.length = (this.coef.length + position).min(max_length);
+        old_length = old_length.min(max_length - position);
         if (negative)
             foreach_reverse (i; 0..old_length)
                 this.coef[i + position] -= this.coef[i];
