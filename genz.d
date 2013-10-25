@@ -45,7 +45,7 @@ template oscillatoryC(alias u, alias a)
     {
         return g.f(x, u, a);
     }
-    double I = g.I(u, a);
+    enum I = g.I(u, a);
 }
 
 template oscillatory()
@@ -85,6 +85,16 @@ version (none) unittest
         pp.I([0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], a).writeln();
 }
 
+template prodpeakC(alias u, alias a)
+{
+    alias prodpeak!() g;
+    double f(double[] x)
+    {
+        return g.f(x, u, a);
+    }
+    enum I = g.I(u, a);
+}
+
 template prodpeak()
 {
     double f(double[] x, double[] u, double[] a)
@@ -114,6 +124,16 @@ unittest
         [0.7, 1.0, 1.3, 1.6, 1.9, 2.2]
     ])
         cp.I(a).writeln();
+}
+
+template cornpeakC(alias a)
+{
+    alias cornpeak!() g;
+    double f(double[] x)
+    {
+        return g.f(x, a);
+    }
+    enum I = g.I(a);
 }
 
 template cornpeak()
@@ -152,6 +172,17 @@ template cornpeak()
     }
 }
 
+template gaussianC(alias a, alias u)
+{
+    alias gaussian!() g;
+    double f(double[] x)
+    {
+        return g.f(x, a, u);
+    }
+    enum I = g.I(a, u);
+}
+
+
 template gaussian()
 {
     double f(double[] x, double[] a, double[] u)
@@ -171,6 +202,16 @@ template gaussian()
     }
 }
 
+template continuousC(alias a, alias u)
+{
+    alias continuous!() g;
+    double f(double[] x)
+    {
+        return g.f(x, a, u);
+    }
+    enum I = g.I(a, u);
+}
+
 template continuous()
 {
     double f(double[] x, double[] a, double[] u)
@@ -187,6 +228,16 @@ template continuous()
             ret *= -(expm1(-c * u[i]) +expm1(c * (u[i] - 1))) / c;
         return ret;
     }
+}
+
+template discontiC(alias a, alias u)
+{
+    alias g = disconti!();
+    double f(double[] x)
+    {
+        return g.f(x, a, u);
+    }
+    enum I = g.I(a, u);
 }
 
 template disconti()
@@ -210,6 +261,7 @@ template disconti()
     }
 }
 
+version (none):
 import lib.pointset : ShiftedBasisPoints;
 alias ShiftedBasisPoints!uint PS;
 auto save(PS P)
@@ -298,3 +350,4 @@ auto scaling(uint[] xs)
         ret ~= x * scaling + centering;
     return ret;
 }
+
