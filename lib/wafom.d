@@ -316,6 +316,10 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
 {
     BigInt[] coef = [BigInt(1)];
     size_t max_length = 2147483647;
+    this (BigInt[] coef)
+    {
+        this.coef = coef;
+    }
     this (size_t max_length)
     {
         this.max_length = max_length;
