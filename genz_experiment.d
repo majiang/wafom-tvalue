@@ -22,6 +22,7 @@ string integrationErrors(R)(R P)
     0.9,  // u; random
     [0.6, 0.8, 1.0, 1.2] // a; sum = 0.9 * dimR
     ))());
+    // 10-dimensional: a.sum = 9.0, 7.25, 1.85, 7.03, 2.04, 4.30 for each function
     ret ~= writer.data;
     writer = appender!string();
     writer.formattedWrite("%.20e", P.bipwafom());
