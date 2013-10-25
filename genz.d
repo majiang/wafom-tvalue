@@ -45,7 +45,13 @@ template oscillatoryC(alias u, alias a)
     {
         return g.f(x, u, a);
     }
-    enum I = g.I(u, a);
+    double memoI;
+    @property double I()
+    {
+        if (memoI.isNaN)
+            return memoI = g.I(u, a);
+        return memoI;
+    }
 }
 
 template oscillatory()
@@ -92,7 +98,13 @@ template prodpeakC(alias u, alias a)
     {
         return g.f(x, u, a);
     }
-    enum I = g.I(u, a);
+    double memoI;
+    @property double I()
+    {
+        if (memoI.isNaN)
+            return memoI = g.I(u, a);
+        return memoI;
+    }
 }
 
 template prodpeak()
@@ -133,7 +145,13 @@ template cornpeakC(alias a)
     {
         return g.f(x, a);
     }
-    enum I = g.I(a);
+    double memoI;
+    @property double I()
+    {
+        if (memoI.isNaN)
+            return memoI = g.I(a);
+        return memoI;
+    }
 }
 
 template cornpeak()
@@ -179,7 +197,13 @@ template gaussianC(alias a, alias u)
     {
         return g.f(x, a, u);
     }
-    enum I = g.I(a, u);
+    double memoI;
+    @property double I()
+    {
+        if (memoI.isNaN)
+            return memoI = g.I(a, u);
+        return memoI;
+    }
 }
 
 
@@ -209,7 +233,13 @@ template continuousC(alias a, alias u)
     {
         return g.f(x, a, u);
     }
-    enum I = g.I(a, u);
+    double memoI;
+    @property double I()
+    {
+        if (memoI.isNaN)
+            return memoI = g.I(a, u);
+        return memoI;
+    }
 }
 
 template continuous()
@@ -237,7 +267,13 @@ template discontiC(alias a, alias u)
     {
         return g.f(x, a, u);
     }
-    enum I = g.I(a, u);
+    double memoI;
+    @property double I()
+    {
+        if (memoI.isNaN)
+            return memoI = g.I(a, u);
+        return memoI;
+    }
 }
 
 template disconti()
