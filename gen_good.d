@@ -50,7 +50,7 @@ auto generation(U, alias criterion)
             import std.stdio;
             import std.datetime : Clock;
             foreach (m; milestone)
-                if (length - 1 < initLength * m && initLength * m < length)
+                if (length - 1 < initLength * m && initLength * m <= length)
                     stderr.writefln("%.2f left at %s", m, Clock.currTime());
         }}
         @property bool empty() {return !length;}
@@ -83,6 +83,6 @@ auto preparation(U, alias criterion)
     auto pq = (new double[rate]).heapify(0);
     foreach (i; 0..prep)
         pq.conditionalInsert(criterion(nonshiftedRandomBasisPoints!U(prec, dimR, dimF)));
-    stderr.writefln("returning %.20e = %.17a", pq.front);
+    stderr.writefln("returning %.20e = %.17a", pq.front, pq.front);
     return pq.front;
 }
