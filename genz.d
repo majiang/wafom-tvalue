@@ -78,7 +78,7 @@ template oscillatory()
                     t += c;
                 else
                     dir *= -1;
-            ret += t.cos() * dir    ;
+            ret += t.cos() * dir;
         }
         return ret / a.reduce!((p, q) => p * q);
     }

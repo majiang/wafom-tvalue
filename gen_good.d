@@ -6,11 +6,12 @@ void main()
     import std.string : strip;
     import std.array : split;
     import std.conv : to;
+    import std.math : isNaN;
 
     import lib.wafom : criterion = bipwafom;
     alias uint U;
 
-    stderr.writeln("prec dimR dimF prep rate count");
+    stderr.writeln("prec dimR dimF prep rate count [abs]");
     auto buf = readln().strip().split();
     immutable
         prec = buf[0].to!size_t(),
@@ -19,8 +20,13 @@ void main()
         prep = buf[3].to!size_t(),
         rate = buf[4].to!size_t(),
         count = buf[5].to!size_t();
+    double abs;
+    if (6 < buf.length)
+        abs = buf[6].to!double();
 
-    foreach (P; generation!(U, criterion)(prec, dimR, dimF, preparation!(U, criterion)(prec, dimR, dimF, prep, rate), count))
+    foreach (P; generation!(U, criterion)(prec, dimR, dimF, isNaN(abs) ? 
+    preparation!(U, criterion)(prec, dimR, dimF, prep, rate) : abs
+    , count))
         P.toString().writeln();
 }
 

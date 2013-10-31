@@ -60,7 +60,7 @@ Params:
 P = point set.
 shifts = shifts
 */
-auto shifteds(PointSetType)(PointSetType P, ReturnType!(shifts!PointSetType) shifts)
+auto shifteds(PointSetType, ShiftsType)(PointSetType P, ShiftsType shifts)
 {
     return shifts.map!(x => P.shifted(x));
 }
