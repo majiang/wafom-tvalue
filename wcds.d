@@ -10,13 +10,14 @@ alias uint U;
 void WRITEERRORS(R, F...)(R P)
 {
     import std.stdio;
-    P.toString().write();
+    "%s,%.15f,%.15f".writef(P.toString(), P.bipwafom(), P.bipmswafom());
     foreach (f; F)
         writef(",%.15f", P
             .shifteds(precision.shifts!(typeof (P))(4, 10000))
             .integrationErrors!f()
             .squareRootMeanSquare()
             );
+    writeln();
 }
 
 void main()
@@ -33,7 +34,5 @@ void main()
         sppp1o2, sppp1o3, sppp1o4, sppp1o5, sppp1o6,
         pp025, pp050, pp100, pp200, pp400
     );
-    import std.stdio;
-    writeln();
     }
 }

@@ -1,17 +1,19 @@
 module main;
 
-void main()
+import std.stdio;
+import std.string : strip;
+import std.array : split;
+import std.conv : to;
+
+alias uint U;
+
+import lib.pointset : nonshiftedRandomBasisPoints;
+import lib.wafom : bipwafom, bipmswafom;
+
+
+version (prep) void main()
 {
-    import std.stdio;
-    import std.string : strip;
-    import std.array : split;
-    import std.conv : to;
-    import std.math : isNaN;
-
-    import lib.wafom : bipwafom, bipmswafom;
-    alias uint U;
-
-    stderr.writeln("prec dimR dimF prep rate count [AND]");
+    stderr.writeln("prec dimR dimF prep rate count(unread here)");
     auto buf = readln().strip().split();
     immutable
         prec = buf[0].to!size_t(),
@@ -20,21 +22,29 @@ void main()
         prep = buf[3].to!size_t(),
         rate = buf[4].to!size_t(),
         count = buf[5].to!size_t();
-    bool AND;
+    auto threshold = preparation!(U, bipwafom, bipmswafom)(prec, dimR, dimF, prep, rate);
+    "%d %d %d %d %.20f %.20f".writefln(prec, dimR, dimF, count, threshold[0], threshold[1]);
+}
+version (exec) void main()
+{
+    stderr.writeln("prec dimR dimF count WAFOM RMSW [AND]");
+    auto buf = readln().strip().split();
+    immutable
+        prec = buf[0].to!size_t(),
+        dimR = buf[1].to!size_t(),
+        dimF = buf[2].to!size_t(),
+        count = buf[3].to!size_t(),
+        threshold = Tuple!(double, double)(buf[4].to!double(), buf[5].to!double());
     if (6 < buf.length)
-        AND = true;
-
-    if (AND)
-        foreach (P; generation!(U, bipwafom, true, bipmswafom)(prec, dimR, dimF, preparation!(U, bipwafom, bipmswafom)(prec, dimR, dimF, prep, rate), count))
+        foreach (P; generation!(U, bipwafom, true, bipmswafom)(prec, dimR, dimF, threshold, count))
             P.toString().writeln();
     else
-        foreach (P; generation!(U, bipwafom, false, bipmswafom)(prec, dimR, dimF, preparation!(U, bipwafom, bipmswafom)(prec, dimR, dimF, prep, rate), count))
+        foreach (P; generation!(U, bipwafom, false, bipmswafom)(prec, dimR, dimF, threshold, count))
             P.toString().writeln();
 }
 
-import lib.pointset : nonshiftedRandomBasisPoints;
+version = silent;
 
-version = verbose;
 version (verbose)
     auto milestone = [0.00, 0.01, 0.02, 0.05, 0.10, 0.20, 0.50, 0.80, 0.90, 0.95, 0.98, 0.99, 1.00];
 version (medium)
