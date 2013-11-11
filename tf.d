@@ -116,7 +116,7 @@ template gaussian(double a, size_t s)
     }
     body
     {
-        return xs.map!(x => -x * x).sumation().exp();
+        return (xs.map!(x => -x * x).sumation() * a).exp();
     }
     auto I()@property{return (a.sqrt().erf() / (a.sqrt() * M_2_SQRTPI)) ^^ s;}
 }
