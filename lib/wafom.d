@@ -450,7 +450,7 @@ version (verbose) unittest
         }
     }
 }
-
+version(none):
 deprecated:
 
 debug = speedup;
