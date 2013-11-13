@@ -1,35 +1,62 @@
+import std.algorithm : map, reduce;
+
 import std.exception : enforce;
 import std.traits : isUnsigned, ReturnType;
 import std.bigint;
 
 /** given a function f and range of ranges P,
-return sum[X in P] prod[x in X] f(x). */
+return sum[X in P] prod[x in X] f(x).
+
+Does not work with multiplicand_memoized, which is important for Dick-type WAFOMs.
+Use for NRT-type WAFOMs.
+*/
 auto mapprodsum(alias f, R)(R P)
 {
-import std.algorithm : map, reduce;
-
     return P.map!(
         X => X.map!f().reduce!((a, b) => a * b)()
     )().reduce!((a, b) => a + b)();
 }
 
-auto standardDickYoshikiWafom(R)(R P, size_t power)
+string MixinMPS(string variableName, string multiplicand, string Identity, string additionalArguments)
 {
-import std.algorithm : map, reduce;
-//    auto ret = P.mapprodsum!(
-//        X => X.multiplicand_memoized!(
-//            standardDickYoshikiWeight, BigFloat!0(BigInt(1))
-//        )(
-//            power, P.precision))();
-    auto ret = P.map!(
-        X => X.map!(
-            x => x.multiplicand_memoized!(
-                standardDickYoshikiWeight, BigFloat(BigInt(1))
-            )(
-                power, P.precision))
-        .reduce!((a, b) => a * b)())().reduce!((a, b) => a + b)();
+    return "auto " ~ variableName ~ " = P.map!(X => X.map!(x => x.multiplicand_memoized!" ~
+        "(" ~ multiplicand ~ ", " ~ Identity ~ ")(" ~ additionalArguments ~ ")"
+    ~ ").reduce!((a, b) => a * b)())().reduce!((a, b) => a + b)();";
+}
+
+// the name P cannot be changed without modification in MixinMPS.
+auto preciseDickYoshikiWafom(R)(R P, ptrdiff_t power)
+{
+    mixin ("ret".MixinMPS(
+        "preciseDickYoshikiWeight", "BigFloat(BigInt(1))", "power, P.precision"));
     ret >>= P.dimensionF2;
-    return ret - BigFloat(BigInt(1) << ret.exponent, ret.exponent);
+    ret -= BigFloat(BigInt(1) << ret.exponent, ret.exponent);
+    if (power == -2)
+        return ret.sqrt();
+    else
+        return ret;
+}
+
+auto standardDickYoshikiWafom(R)(R P, ptrdiff_t power)
+{
+import std.math : sqrt;
+    mixin ("ret".MixinMPS(
+        "standardDickYoshikiWeight", "1.0", "power, P.precision"));
+    ret  = ret * (0.5 ^^ P.dimensionF2) - 1;
+    if (power == -2)
+        return ret.sqrt();
+    else
+        return ret;
+}
+
+version (stub)
+auto standardNRTWafom(R)(R P, ptrdiff_t power)
+{
+    auto ret = P.mapprodsum!(/*
+        proper
+    */)(/*
+        implementation
+    */);
 }
 
 debug void main()
@@ -45,17 +72,22 @@ import std.stdio;
         wo2 = P.bipmswafom();
     "normal algorithm finished.".writeln();
     auto
-        wn1 = P.standardDickYoshikiWafom(-1),
-        wn2 = P.standardDickYoshikiWafom(-2);
-    "%.15e ?= %s".writefln(wo1, wn1);
-    "%.15e ?= %s".writefln(wo2, wn2);
+        ws1 = P.standardDickYoshikiWafom(-1),
+        ws2 = P.standardDickYoshikiWafom(-2);
+    "generalized algorithm finished.".writeln();
+    auto
+        wp1 = P.preciseDickYoshikiWafom(-1),
+        wp2 = P.preciseDickYoshikiWafom(-2);
+    "%.15e ?= %.15e ?= %s".writefln(wo1, ws1, wp1);
+    "%.15e ?= %.15e ?= %s".writefln(wo2, ws2, wp2);
 }
 
-/// 1 + (-1)^bit 2^(power*(position+1)).
-///
-/// for WAFOM set power = -1
-/// for RMS-WAFOM set power = -2
-auto standardDickYoshikiWeight(size_t position, bool bit, ptrdiff_t power)
+/** Dick weight proposed by Yoshiki: 1 + (-1)^bit 2^(power*(position+1)).
+
+for WAFOM set power = -1,
+for RMS-WAFOM set power = -2.
+*/
+auto preciseDickYoshikiWeight(size_t position, bool bit, ptrdiff_t power)
 {
     immutable positive = 0 < power;
     immutable apow = positive ? power : -power;
@@ -67,7 +99,13 @@ auto standardDickYoshikiWeight(size_t position, bool bit, ptrdiff_t power)
     return BigFloat(ret, positive ? 0 : position * apow);
 }
 
+/// ditto
+auto standardDickYoshikiWeight(size_t position, bool bit, ptrdiff_t power)
+{
+    return 1.0 + (bit ? -1.0 : 1.0) * (2.0 ^^ (power * (1.0 + position)));
+}
 
+enum stride = 8; /// The stride of memoizing.
 /** given a weight f: (position, bit, power) => G[x],
 a sequence of bits U, integer power and precision,
 return prod[position] f(position, bit[position], power)(2)
@@ -79,8 +117,7 @@ G is an abelian group.
 auto multiplicand_memoized(alias weight, alias identity, U)(U x, ptrdiff_t power=1, size_t precision=32)
     if (isUnsigned!U)
 {
-    immutable stride = 8;
-    immutable mask = (1 << stride) - 1;
+    enum mask = (1 << stride) - 1;
 
     auto memo = multiplicand_memoizer!(weight, identity, stride)(power, precision);
     auto ret = identity;
@@ -93,6 +130,7 @@ auto multiplicand_memoized(alias weight, alias identity, U)(U x, ptrdiff_t power
     return ret;
 }
 
+/// helper function for multiplicand_memoized.
 auto multiplicand_memoizer(alias weight, alias identity, size_t stride)(ptrdiff_t power=1, size_t precision=32)
 {
 import std.traits : ReturnType;
@@ -123,19 +161,20 @@ import std.typecons : Tuple, tuple;
 }
 
 
-struct BigFloat//(size_t maxexponent)
+/// Artitrary precision arithmetic; division is not implemented.
+struct BigFloat
 {
     BigInt significand;
     ptrdiff_t exponent;
 
-    BigFloat opBinary(string op)(BigFloat other)///
-        if (op == "+" || op == "-" || op == "*" || op == "/")
+    BigFloat opBinary(string op)(BigFloat other)
+        if (op == "+" || op == "-" || op == "*")
     {
         auto ret = this;
         mixin ("ret "~op~"= other;");
         return ret;
     }
-    BigFloat opBinary(string op)(size_t rhs)///
+    BigFloat opBinary(string op)(size_t rhs)
         if (op == ">>" || op == "<<")
     {
         auto ret = this;
@@ -180,6 +219,12 @@ struct BigFloat//(size_t maxexponent)
         return this;
     }
 
+    BigFloat opUnary(string op)()
+        if (op == "+" || op == "-")
+    {
+        mixin ("return BigFloat(" ~ op ~ "this.significand, this.exponent);");
+    }
+
 import std.format : FormatSpec;
     void toString(scope void delegate(const(char)[]) sink, string formatString) const
     {
@@ -191,6 +236,22 @@ import std.format : FormatSpec;
             sink((-this.exponent).to!string());
             sink("}");
         }
+    }
+
+    BigFloat sqrt()
+    {
+        if (this.significand < 0)
+            return -((-this).sqrt());
+        auto sqr = this.significand << this.exponent;
+        auto ret = BigInt(1) << ((sqr.uintLength) << 4); // initial value
+        while (true)
+        {
+            auto oret = ret;
+            ret = (sqr + oret * oret) / (2 * oret);
+            if (ret == oret)
+                return BigFloat(ret, this.exponent);
+        }
+        assert (false);
     }
 
 private:
