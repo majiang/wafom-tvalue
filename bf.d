@@ -1,5 +1,5 @@
+debug import std.stdio;
 import std.algorithm : map, reduce;
-
 import std.exception : enforce;
 import std.traits : isUnsigned, ReturnType;
 import std.bigint;
@@ -17,6 +17,7 @@ auto mapprodsum(alias f, R)(R P)
     )().reduce!((a, b) => a + b)();
 }
 
+/// alternative for mapprodsum to inject mixin
 string MixinMPS(string variableName, string multiplicand, string Identity, string additionalArguments)
 {
     return "auto " ~ variableName ~ " = P.map!(X => X.map!(x => x.multiplicand_memoized!" ~
@@ -31,10 +32,22 @@ auto preciseDickYoshikiWafom(R)(R P, ptrdiff_t power)
         "preciseDickYoshikiWeight", "BigFloat(BigInt(1))", "power, P.precision"));
     ret >>= P.dimensionF2;
     ret -= BigFloat(BigInt(1) << ret.exponent, ret.exponent);
+    if (power == -4)
+        return ret.qrrt();
+    if (power == -3)
+        return ret.cbrt();
     if (power == -2)
         return ret.sqrt();
-    else
-        return ret;
+    return ret;
+}
+
+auto polynomialDickYoshikiWafom(R)(R P, size_t maxdeg=size_t.max)
+{
+import std.algorithm : joiner;
+    return P.map!(X => Polynomial!BigInt(maxdeg).reduce!(
+    (a, b) => a * b)
+    (X.map!(x => x.polynomialDickYoshikiWeight(P.precision))().joiner())).reduce!(
+    (a, b) => a + b)() >> P.dimensionF2;
 }
 
 auto standardDickYoshikiWafom(R)(R P, ptrdiff_t power)
@@ -43,20 +56,38 @@ import std.math : sqrt;
     mixin ("ret".MixinMPS(
         "standardDickYoshikiWeight", "1.0", "power, P.precision"));
     ret  = ret * (0.5 ^^ P.dimensionF2) - 1;
-    if (power == -2)
-        return ret.sqrt();
-    else
-        return ret;
+    if (power < -1)
+        return ret ^^ (-1.0 / power);
+    return ret;
 }
 
-version (stub)
-auto standardNRTWafom(R)(R P, ptrdiff_t power)
+auto preciseNRTWafom(R)(R P, ptrdif_t power)
 {
-    auto ret = P.mapprodsum!(/*
-        proper
-    */)(/*
-        implementation
-    */);
+}
+
+auto standardNRTWafom(R)(R P, immutable ptrdiff_t power)
+{
+import std.math : sqrt;
+
+    immutable precision = P.precision;
+    auto ret = P.mapprodsum!(x => x.standardNRTMultiplicand(power, precision));
+    ret = ret * (0.5 ^^ P.dimensionF2) - 1;
+    if (power < -1)
+        return ret ^^ (-1.0 / power);
+    return ret;
+}
+
+import std.datetime : SysTime;
+string toMyString(SysTime t)
+{
+    auto buf = t.toISOString();
+    return
+        buf[0..4] ~ '-' ~
+        buf[4..6] ~ '-' ~
+        buf[6..8] ~ ' ' ~
+        buf[9..11] ~ ':' ~
+        buf[11..13] ~ ':' ~
+        buf[13..18];
 }
 
 debug void main()
@@ -64,22 +95,85 @@ debug void main()
 import lib.pointset : nonshiftedRandomBasisPoints;
 import lib.wafom;
 import std.stdio;
+import std.datetime : Clock;
 
-    auto P = nonshiftedRandomBasisPoints!uint(16, 4, 8);
+import std.string : strip;
+import std.array : split;
+import std.conv : to;
+
+    stderr.writeln("dimR, dimF");
+    auto buf = readln().strip().split();
+    immutable dimR = buf[0].to!size_t();
+    immutable dimF = buf[1].to!size_t();
+
+foreach (i; 0..10){
+
+    auto P = nonshiftedRandomBasisPoints!uint(32, dimR, dimF);
     "running main...".writeln();
+
+    Clock.currTime().toMyString().writeln();
     auto
         wo1 = P.bipwafom(),
         wo2 = P.bipmswafom();
+    Clock.currTime().toMyString().writeln();
     "normal algorithm finished.".writeln();
-    auto
-        ws1 = P.standardDickYoshikiWafom(-1),
-        ws2 = P.standardDickYoshikiWafom(-2);
+    "W^1(P) = %e, W^2(P) = %e.".writefln(wo1, wo2);
+    Clock.currTime().toMyString().writeln();
+    foreach (power; [-1, -2, -3, -4])
+        "W^%d(P) = %e".writefln(-power, P.standardDickYoshikiWafom(power));
+    Clock.currTime().toMyString().writeln();
     "generalized algorithm finished.".writeln();
-    auto
-        wp1 = P.preciseDickYoshikiWafom(-1),
-        wp2 = P.preciseDickYoshikiWafom(-2);
-    "%.15e ?= %.15e ?= %s".writefln(wo1, ws1, wp1);
-    "%.15e ?= %.15e ?= %s".writefln(wo2, ws2, wp2);
+    Clock.currTime().toMyString().writeln();
+    //foreach (power; [-1, -2, -3, -4])
+    //    "W^%d(P) = %e".writefln(-power, P.preciseDickYoshikiWafom(power).toDouble());
+    //Clock.currTime().toMyString().writeln();
+    //"precise algorithm finished.".writeln();
+    Clock.currTime().toMyString().writeln();
+    "WEP(P) = %s".writefln(P.polynomialDickYoshikiWafom(20));
+    Clock.currTime().toMyString().writeln();
+}
+}
+
+size_t mu_star(U)(U x, size_t precision)
+{
+    size_t ret = x ? precision + 1 : 0;
+    while (x)
+    {
+        ret -= 1;
+        x >>= 1;
+    }
+}
+
+auto preciseNRTMultiplicand(U)(in U x, in ptrdiff_t power, in size_t precision)
+{
+}
+
+auto standardNRTMultiplicand(U)(in U x, in ptrdiff_t power, in size_t precision)
+{
+    immutable weight = x.mu_star(precision);
+    if (power == -1)
+    {
+        if (weight == 0)
+            return 1 + 0.5 * precision;
+        return weight * 0.5;
+    }
+    immutable b = 2.0 ^^ (power + 1.0);
+    if (weight == 0)
+        return 1 + b * 0.5 * (1 - b ^^ precision) / (1 - b);
+    return 1 + 0.5 * ((b - b ^^ weight) / (1 - b) - b ^^ precision);
+}
+
+
+auto polynomialDickYoshikiWeight(U)(U x, size_t precision)
+{
+    immutable mask = 1 << (precision - 1);
+    ptrdiff_t[] ret;
+    foreach (i; 2..precision+2)
+    {
+        ret ~= (x & mask) ? -i : +i;
+        x <<= 1;
+    }
+    return ret;
 }
 
 /** Dick weight proposed by Yoshiki: 1 + (-1)^bit 2^(power*(position+1)).
@@ -160,8 +254,140 @@ import std.typecons : Tuple, tuple;
     return ret;
 }
 
+private struct Polynomial(T) // WAFOM-specified polynomial. NOT FOR GENERAL USE.
+{
+    T[] coef = [BigInt(1)];
+    size_t max_length = size_t.max;
+    this (T[] coef)
+    {
+        this.coef = coef;
+    }
+    this (size_t max_length)
+    {
+        this.max_length = max_length;
+    }
+    this (this)
+    {
+        coef = coef.dup;
+    }
+    invariant()
+    {
+        assert (1 <= this.coef.length);
+        assert (this.coef[0] == 1);
+    }
+    Polynomial opBinary(string op)(Polynomial other) if (op == "+")
+    {
+        auto ret = this;
+        ret += other;
+        return ret;
+    }
+    Polynomial opOpAssign(string op)(Polynomial other) if (op == "+")
+    {
+    import std.algorithm : min, max;
+        this.coef.length = this.coef.length.max(other.coef.length).min(max_length);
+        foreach (i; 1..this.coef.length.min(other.coef.length))
+            this.coef[i] += other.coef[i];
+        return this;
+    }
+    Polynomial opBinary(string op)(size_t rhs)
+        if (op == ">>")
+    {
+        Polynomial tmp = this;;
+        tmp >>= rhs;
+        return tmp;
+    }
+    Polynomial opOpAssign(string op)(size_t rhs)
+        if (op == ">>")
+    {
+        foreach (ref c; coef[1..$])
+        {
+            assert (c == (c >> rhs) << rhs);
+            c >>= rhs;
+        }
+        return this;
+    }
+    Polynomial opBinary(string op)(ptrdiff_t rhs)
+        if (op == "*")
+    {
+        auto ret = this;
+        ret *= rhs;
+        return ret;
+    }
+    Polynomial opOpAssign(string op)(ptrdiff_t rhs) /// product with ptrdiff_t rhs, which represents (1 + (sgn rhs) x ^ |rhs|).
+        if (op == "*")
+        in { assert (rhs); } body
+    {
+    import std.algorithm : min;
+        immutable bool negative = rhs < 0;
+        immutable size_t position = negative ? -rhs : rhs;
+        if (max_length < position)
+            return this;
+        auto old_length = this.coef.length;
+        this.coef.length = (this.coef.length + position).min(max_length);
+        old_length = old_length.min(max_length - position);
+        if (negative)
+            foreach_reverse (i; 0..old_length)
+                this.coef[i + position] -= this.coef[i];
+        else
+            foreach_reverse (i; 0..old_length)
+                this.coef[i + position] += this.coef[i];
+        return this;
+    }
+    string toString()
+    {
+    import std.conv : to;
+        auto ret = "1";
+        foreach (i, c; this.coef)
+            if (i && c)
+                ret ~= " + " ~ c.to!string() ~ "x^" ~ i.to!string();
+        if (max_length != size_t.max)
+            ret ~= " + ...";
+        return ret;
+    }
+    string toCSV()
+    {
+    import std.conv : to;
+        string ret;
+        foreach (c; this.coef)
+            ret ~= "," ~ c.to!string();
+        return ret;
+    }
+    /// substitute the inverse of x.
+    double substinv(size_t x)()
+    {
+        BigInt invsubst = 0;
+        foreach (i, c; this.coef)
+        {
+            if (i == 0) continue;
+            invsubst += c;
+            invsubst *= x;
+        }
+        assert (0 < invsubst);
+        double ret = invsubst.toDouble();
+        foreach (i; 0..this.coef.length)
+            ret /= x;
+        return ret;
+    }
+    /// substitute x and scale.
+    version (none) double subst(double x, size_t scale)
+    {
+        double ret = 0;// = x;
+        foreach_reverse (i, c; coef)
+        {
+            if (i == 0) break;
+            ret += c.toDouble();
+            ret *= x;
+        }
+        foreach (i; 0..scale)
+        {
+            ret *= 0.5;
+        }
+        return ret;
+    }
+}
 
-/// Artitrary precision arithmetic; division is not implemented.
+
+/// Arbitrary precision arithmetic; division is not implemented.
 struct BigFloat
 {
     BigInt significand;
@@ -238,20 +464,71 @@ import std.format : FormatSpec;
         }
     }
 
+    double toDouble()
+    {
+        auto exponent = this.exponent;
+        auto significand = this.significand;
+        auto sign = significand < 0;
+        if (sign)
+            significand = -significand;
+        while (significand > BigInt(1) << 63)
+        {
+            significand >>= 1;
+            exponent -= 1;
+        }
+        return (sign ? -1 : +1) * significand.toLong() * (0.5 ^^ exponent);
+    }
+
     BigFloat sqrt()
     {
         if (this.significand < 0)
             return -((-this).sqrt());
-        auto sqr = this.significand << this.exponent;
-        auto ret = BigInt(1) << ((sqr.uintLength) << 4); // initial value
+        auto sqr = this.significand;
+        auto exponent = this.significand.uintLength << 5;
+        sqr <<= exponent;
+        exponent += this.exponent;
+        if (exponent & 1)
+        {
+            exponent += 1;
+            sqr <<= 1;
+        }
+        auto ret = BigInt(1) << (sqr.uintLength << 4); // initial value
         while (true)
         {
             auto oret = ret;
             ret = (sqr + oret * oret) / (2 * oret);
             if (ret == oret)
-                return BigFloat(ret, this.exponent);
+                return BigFloat(ret, exponent / 2);
         }
         assert (false);
+    }
+
+    BigFloat cbrt()
+    {
+        if (this.significand < 0)
+            return -((-this).cbrt());
+        auto cub = this.significand;
+        auto exponent = this.significand.uintLength << 6; // triple the precision
+        cub <<= exponent;
+        exponent += this.exponent;
+        while (exponent % 3)
+        {
+            exponent += 1;
+            cub <<= 1;
+        }
+        auto ret = BigInt(1) << (cub.uintLength * 8 / 3); // initial value
+        while (true)
+        {
+            auto oret = ret;
+            ret = (2 * ret + cub / (ret * ret)) / 3;
+            if (ret == oret)
+                return BigFloat(ret, exponent / 3);
+        }
+        assert (false);
+    }
+    BigFloat qrrt()
+    {
+        return this.sqrt().sqrt();
     }
 
 private:
