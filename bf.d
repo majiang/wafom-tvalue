@@ -4,6 +4,17 @@ import std.exception : enforce;
 import std.traits : isUnsigned, ReturnType;
 import std.bigint;
 
+/// the upper bound of minimum Dick-Yoshiki weight.
+auto DickYoshikiMaxMinWeight(R)(R P)
+{
+    immutable
+        q = P.dimensionF2 / P.dimensionR,
+        r = P.dimensionF2 % P.dimensionR;
+
+    return (r + 1) * (q + 2) + P.dimensionR * q * (q + 3) / 2;
+}
+
+
 /** given a function f and range of ranges P,
 return sum[X in P] prod[x in X] f(x).
 
@@ -41,6 +52,11 @@ auto preciseDickYoshikiWafom(R)(R P, ptrdiff_t power)
     return ret;
 }
 
+auto lowerOnlyDickYoshikiWEP(R)(R P)
+{
+    return P.polynomialDickYoshikiWafom(P.DickYoshikiMaxMinWeight());
+}
+
 auto polynomialDickYoshikiWafom(R)(R P, size_t maxdeg=size_t.max)
 {
 import std.algorithm : joiner;
@@ -65,7 +81,7 @@ auto preciseNRTWafom(R)(R P, ptrdif_t power)
 {
 }
 
-auto standardNRTWafom(R)(R P, immutable ptrdiff_t power)
+auto standardNRTWafom(R)(R P, in ptrdiff_t power)
 {
 import std.math : sqrt;
 
@@ -77,7 +93,8 @@ import std.math : sqrt;
     return ret;
 }
 
-import std.datetime : SysTime;
+import std.datetime : Duration, Clock, SysTime;
+
 string toMyString(SysTime t)
 {
     auto buf = t.toISOString();
@@ -90,12 +107,49 @@ string toMyString(SysTime t)
         buf[13..18];
 }
 
-debug void main()
+
+auto timeit(alias before, alias f, bParams, T...)(bParams bparams, Duration minTime, size_t minCount, T additionalParams)
 {
-import lib.pointset : nonshiftedRandomBasisPoints;
+
+import std.typecons : tuple;
+    auto param = before(bparams.expand);
+    auto start = Clock.currTime();
+    foreach (i; 0..minCount)
+        f(param, additionalParams);
+    auto consumed = Clock.currTime() - start;
+    if (minTime <= consumed)
+        return tuple(consumed, minCount);
+    return bparams.timeit!(before, f)(minTime, minCount * 2, additionalParams);
+}
+
+
+void main()
+{
+import ui.input : getDigitalNets;
+import lib.wafom : bipwafom, bipmswafom;
+import std.math : lg = log2;
+import std.stdio : writefln;
+
+    foreach (P; getDigitalNets!uint())
+    {
+        auto w1 = P.bipwafom().lg();
+        auto w2 = P.bipmswafom().lg();
+        auto wep = P.lowerOnlyDickYoshikiWEP();
+        "%s,%.20f,%.20f,%s".writefln(P, w1, w2, wep);
+    }
+}
+
+version (none) void main()
+{
+import lib.pointset : nonshiftedRandomBasisPoints, ShiftedBasisPoints;
+alias ShiftedBasisPoints!uint PS;
+alias nonshiftedRandomBasisPoints!uint generate;
 import lib.wafom;
 import std.stdio;
-import std.datetime : Clock;
+import std.datetime : Clock, dur;
+
+import std.typecons : tuple;
+alias tuple!(size_t, size_t, size_t) pscond;
 
 import std.string : strip;
 import std.array : split;
@@ -106,32 +160,19 @@ import std.conv : to;
     immutable dimR = buf[0].to!size_t();
     immutable dimF = buf[1].to!size_t();
 
-foreach (i; 0..10){
-
-    auto P = nonshiftedRandomBasisPoints!uint(32, dimR, dimF);
-    "running main...".writeln();
-
-    Clock.currTime().toMyString().writeln();
-    auto
-        wo1 = P.bipwafom(),
-        wo2 = P.bipmswafom();
-    Clock.currTime().toMyString().writeln();
-    "normal algorithm finished.".writeln();
-    "W^1(P) = %e, W^2(P) = %e.".writefln(wo1, wo2);
-    Clock.currTime().toMyString().writeln();
-    foreach (power; [-1, -2, -3, -4])
-        "W^%d(P) = %e".writefln(-power, P.standardDickYoshikiWafom(power));
-    Clock.currTime().toMyString().writeln();
-    "generalized algorithm finished.".writeln();
-    Clock.currTime().toMyString().writeln();
-    //foreach (power; [-1, -2, -3, -4])
-    //    "W^%d(P) = %e".writefln(-power, P.preciseDickYoshikiWafom(power).toDouble());
-    //Clock.currTime().toMyString().writeln();
-    //"precise algorithm finished.".writeln();
-    Clock.currTime().toMyString().writeln();
-    "WEP(P) = %s".writefln(P.polynomialDickYoshikiWafom(20));
-    Clock.currTime().toMyString().writeln();
-}
+    auto cond = pscond(32, dimR, dimF);
+    auto minTime = 1.dur!"seconds"();
+    "W1: ".writeln(cond.timeit!(generate, bipwafom!PS)(minTime, 1));
+    "W2: ".writeln(cond.timeit!(generate, bipmswafom!PS)(minTime, 1));
+    "G1: ".writeln(cond.timeit!(generate, standardDickYoshikiWafom!PS)(minTime, 1, -1));
+    "G2: ".writeln(cond.timeit!(generate, standardDickYoshikiWafom!PS)(minTime, 1, -2));
+    "G3: ".writeln(cond.timeit!(generate, standardDickYoshikiWafom!PS)(minTime, 1, -3));
+    "G4: ".writeln(cond.timeit!(generate, standardDickYoshikiWafom!PS)(minTime, 1, -4));
+    "P1: ".writeln(cond.timeit!(generate, preciseDickYoshikiWafom!PS)(minTime, 1, -1));
+    "P2: ".writeln(cond.timeit!(generate, preciseDickYoshikiWafom!PS)(minTime, 1, -2));
+    "P3: ".writeln(cond.timeit!(generate, preciseDickYoshikiWafom!PS)(minTime, 1, -3));
+    "P4: ".writeln(cond.timeit!(generate, preciseDickYoshikiWafom!PS)(minTime, 1, -4));
+    "WP: ".writeln(cond.timeit!(generate, lowerOnlyDickYoshikiWEP!PS)(minTime, 1));
 }
 
 size_t mu_star(U)(U x, size_t precision)
@@ -550,4 +591,320 @@ import std.stdio;
     "%s * %s = %s".writefln(x, y, x * y);
 //    "%s / %s = %s".writefln(x, y, x / y);
     readln();
+}
+
+
+template ulonger(size_t n)
+{
+    static if (1 < n)
+        struct ulonger
+{
+    alias ulonger!n ul;
+    alias ulonger!(n - 1) ui;
+    alias ulonger!(n - 2) us;
+    enum mbits = 32 << n;
+    enum hbits = mbits >> 1;
+    enum qbits = mbits >> 2;
+    private ui[2] w;
+    this (ui[2] w) { this.w = w; }
+    this (ui x, ui y) { this.w = [x, y]; }
+    this (ui x) { this.w[0] = x; }
+    static if (2 < n)
+        this (ulong x) { this.w[0] = ui(x); }
+    this (ui[4] ww)
+    {
+        this.w = [ww[0], ww[2] + (ww[3] << qbits)];
+        this += ul(ww[1]) << qbits;
+    }
+    ui[4] half()
+    {
+        static if (2 < n)
+            return [ui(w[0].w[0]), ui(w[0].w[1]), ui(w[1].w[0]), ui(w[1].w[1])];
+        else
+            return [w[0] & 0xFFFF_FFFFUL, w[0] >> 32, w[1] & 0xFFFF_FFFFUL, w[1] >> 32];
+    }
+    ul opUnary(string op)()
+        if (op == "+" || op == "~")
+    {
+        mixin ("return ul("~op~"w[0], "~op~"w[1]);");
+    }
+    ul opUnary(string op)()
+        if (op == "-")
+    {
+        return ++(~this);
+    }
+    ref ul opUnary(string op)()
+        if (op == "++" || op == "--")
+    {
+        mixin (op ~ "w[0];");
+        if (op == "++" && w[0].isZero())
+            ++w[1];
+        if (op == "--" && (w[0] + 1).isZero())
+            --w[1];
+        return this;
+    }
+    ptrdiff_t opCmp(ul other)
+    {
+        auto ret = this.w[1].opCmp(other.w[1]);
+        return ret ? ret : this.w[0].opCmp(other.w[0]);
+    }
+    ref ul opOpAssign(string op)(ptrdiff_t amount)
+        if (op == "<<" || op == ">>")
+    {
+        static if (op == "<<") enum from = 0, to = 1, opop = ">>";
+        static if (op == ">>") enum from = 1, to = 0, opop = "<<";
+        if (amount < 0)
+            mixin ("this "~opop~"= -amount;");
+        if (mbits <= amount)
+        {
+            this = 0;
+            return this;
+        }
+        if (hbits <= amount)
+        {
+            this.w[to] = this.w[from];
+            this.w[from] = 0;
+            amount -= hbits;
+        }
+        if (amount == 0)
+            return this;
+        mixin ("this.w[to] "~op~"= amount;");
+        mixin ("this.w[to] |= this.w[from]" ~ opop ~ "(hbits - amount);");
+        mixin ("this.w[from] "~op~"= amount;");
+        return this;
+    }
+    ref ul opOpAssign(string op)(ul other)
+        if (op == "+")
+    {
+        if (w[0] + other.w[0] < w[0])
+            ++w[1];
+        w[0] += other.w[0];
+        w[1] += other.w[1];
+        return this;
+    }
+    ref ul opOpAssign(string op)(ul other)
+        if (op == "-")
+    {
+        this += -other;
+        return this;
+    }
+    ref ul opAssign(ulong x)
+    {
+        w[0] = x;
+        w[1] = 0;
+        return this;
+    }
+    ref ul opOpAssign(string op)(ul other)
+        if (op == "*")
+    {
+        auto tw = this.half(), ow = other.half();
+        this = 0;
+        foreach (i, c; tw)
+            foreach (j, d; ow)
+            {
+                auto pos = i + j;
+                if (pos < 4){
+                    this += ul(c * d) << (pos * qbits);
+                }
+            }
+        return this;
+    }
+    ref ul opOpAssign(string op)(ul other)
+        if (op == "|" || op == "&" || op == "^")
+    {
+        foreach (i; 0..2)
+            mixin ("w[i] "~op~"= other.w[i];");
+        return this;
+    }
+    ul opBinary(string op)(ul other)
+        if (op == "+" || op == "-" || op == "*" || op == "|" || op == "&" || op == "^")
+    {
+        auto ret = this;
+        mixin ("ret "~op~"= other;");
+        return ret;
+    }
+    ul opBinary(string op)(ptrdiff_t other)
+        if (op == "<<" || op == ">>")
+    {
+        auto ret = this;
+        mixin ("ret "~op~"= other;");
+        return ret;
+    }
+    bool isZero()
+    {
+        return w[0].isZero() && w[1].isZero();
+    }
+    ref ul opOpAssign(string op)(ulong rhs)
+        if (op == "-")
+    {
+        auto before = w[0];
+        w[0] -= rhs;
+        if (before < w[0])
+            --w[1];
+        return this;
+    }
+    ref ul opOpAssign(string op)(ulong rhs)
+        if (op == "+")
+    {
+        auto before = w[0];
+        w[0] += rhs;
+        if (w[0] < before)
+            ++w[1];
+        return this;
+    }
+    ul opBinary(string op)(ulong rhs)
+        if (op == "+" || op == "-")
+    {
+        auto ret = this;
+        mixin ("ret "~op~"= rhs;");
+        return ret;
+    }
+    ubyte lastDigit()
+    {
+        ubyte ret = (w[0].lastDigit() + w[1].lastDigit() * 6) % 10;
+        return ret;
+    }
+    auto div10()
+    {
+        auto h = this.half();
+        static if (n == -3){
+        writeln(this.toNondecimalString(), " - half -> ");
+        write("[");
+        foreach (i; 0..4)
+        {
+            write(h[i].toNondecimalString(), ", ");
+        }
+        writeln("] ->");}
+        foreach_reverse (i; 0..4)
+        {
+            if (h[i].isZero())
+                continue;
+            auto r = h[i].lastDigit();
+            h[i] = h[i].div10();
+            if (i)
+            {
+                static if (n == 2)
+                    h[i - 1] += cast(ulong)r << qbits;
+                else
+                    h[i - 1] += ui(r) << qbits;
+            }
+        }
+        static if (n == -3){
+        write("[");
+        foreach (i; 0..4)
+        {
+            write(h[i].toNondecimalString(), ", ");
+        }
+        writeln("]");}
+        return ul(h);
+    }
+    string toString()
+    {
+        if (this.isZero)
+            return "0";
+        string ret = "";
+        auto x = this;
+        while (!x.isZero)
+        {
+            auto d = x.lastDigit();
+            ret = cast(char)('0' + d) ~ ret;
+            x = (x - d).div10();
+        }
+        return ret;
+    }
+    string toNondecimalString()
+    {
+    import std.conv : text;
+        static if (n == 2)
+            return text(w);
+        else
+            return text("[", w[0].toNondecimalString(), ", ", w[1].toNondecimalString(), "]");
+    }
+}
+else
+{
+    static if (n == 0)
+        alias uint ulonger;
+    static if (n == 1)
+        alias ulong ulonger;
+}
+}
+
+
+auto random(size_t n)()
+{
+    static if (1 < n)
+    {
+        return ulonger!n(random!(n-1)(), random!(n-1)());
+    }
+    else
+    {
+        import std.random : uniform;
+        static if (n == 0) return 0.uniform!"[]"(uint.max);
+        static if (n == 1) return 0.uniform!"[]"(ulong.max);
+    }
+}
+
+ptrdiff_t opCmp(ulong x, ulong y)
+{
+    if (x > y) return +1;
+    if (x < y) return -1;
+    return 0;
+}
+
+string toNondecimalString(ulong x)
+{
+import std.conv : text;
+    return text(x);
+}
+
+bool isZero(ulong x)
+{
+    return x == 0;
+}
+
+ubyte lastDigit(ulong x)
+{
+    return x % 10;
+}
+
+ulong div10(ulong x)
+{
+    return x / 10;
+}
+
+debug (byPython) unittest
+{
+    auto x = random!3();
+    auto y = random!3();
+    auto z = random!3();
+    "print (%s + %s - %s) & ((1L << 256) - 1)".writefln(x, y, x + y);
+    "print (%s + %s - %s) & ((1L << 256) - 1)".writefln(y, z, y + z);
+    "print (%s + %s - %s) & ((1L << 256) - 1)".writefln(z, x, z + x);
+    "print (%s - %s - %s) & ((1L << 256) - 1)".writefln(x, y, x - y);
+    "print (%s - %s - %s) & ((1L << 256) - 1)".writefln(y, z, y - z);
+    "print (%s - %s - %s) & ((1L << 256) - 1)".writefln(z, x, z - x);
+    "print (%s * %s - %s) & ((1L << 256) - 1)".writefln(x, y, x * y);
+    "print (%s * %s - %s) & ((1L << 256) - 1)".writefln(y, z, y * z);
+    "print (%s * %s - %s) & ((1L << 256) - 1)".writefln(z, x, z * x);
+}
+
+version (none)
+void main()
+{
+    auto z = ulonger!2(2, 1); //z.writeln();
+    auto zz = ulonger!3(z, ulonger!2(1, 2)); zz.writeln();
+    auto zzz = ulonger!4(zz, ulonger!3(ulonger!2(1, 2), z)); //zzz.writeln();
+    writeln();
+    auto x = ulonger!2(0x4000_8000_3000_6000, 0xFFFF_FFFF_FFFF_FFFF);
+    "%s + %s = %s".writefln(x, z, x + z);
+    "%s * %s = %s".writefln(x, z, x * z);
+    writeln();
+    auto y = ulonger!2(0x0000_0000_0001_0001, 0x0000_0000_0000_0000);
+    "%s * %s = ".writef(y, y);
+    y *= y; y.writeln();
+    "%s * %s = ".writef(y, y);
+    y *= y; y.writeln();
+    "%s * %s = ".writef(y, y);
+    y *= y; y.writeln();
 }
