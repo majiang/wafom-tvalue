@@ -66,9 +66,73 @@ import std.algorithm : joiner;
     (a, b) => a + b)() >> P.dimensionF2;
 }
 
+string to_string(double from)
+{
+    if (from == 0)
+        return "0";
+    if (from < 0)
+        return "-" ~ (-from).to_string();
+    auto pow = 0;
+    while (from < 1)
+    {
+        pow -= 1;
+        from *= 10;
+    }
+    while (10 <= from)
+    {
+        pow += 1;
+        from /= 10;
+    }
+    return from.normalized_to_string() ~ "e" ~ (pow < 0 ? "-" : "+") ~ (pow < 0 ? -pow : pow).int_to_string();
+}
+
+string int_to_string(int from)
+in
+{
+    assert (0 <= from);
+}
+body
+{
+    if (from < 10)
+        return [cast(immutable char)(from + '0')];
+    return (from / 10).int_to_string() ~ (from % 10 + '0');
+}
+
+string normalized_to_string(double from)
+in
+{
+    assert (1 <= from && from < 10);
+}
+body
+{
+    string ret;
+    foreach (i; 0..20)
+    {
+        foreach_reverse (j; 0..10)
+        {
+            if (from < j)
+                continue;
+            ret ~= cast(char)('0' + j);
+            from -= j;
+            from *= 10;
+            break;
+        }
+    }
+    return ret[0..1] ~ "." ~ ret[1..$];
+}
+
+auto extendedDickYoshikiWafom(double lg_scale, R)(R P, ptrdiff_t power)
+{
+    mixin ("ret".MixinMPS(
+        "extendedDickYoshikiWeight!(" ~ lg_scale.to_string() ~ ")", "1.0", "power, P.precision"));
+    ret = ret * (0.5 ^^ (P.dimensionF2)) - 1;
+    if (power < -1)
+        return ret ^^ (-1.0 / power);
+    return ret;
+}
+
 auto standardDickYoshikiWafom(R)(R P, ptrdiff_t power)
 {
-import std.math : sqrt;
     mixin ("ret".MixinMPS(
         "standardDickYoshikiWeight", "1.0", "power, P.precision"));
     ret  = ret * (0.5 ^^ P.dimensionF2) - 1;
@@ -122,8 +186,83 @@ import std.typecons : tuple;
     return bparams.timeit!(before, f)(minTime, minCount * 2, additionalParams);
 }
 
+auto timeit(alias f, R)(R P, Duration minTime, size_t minCount)
+{
+import std.typecons : tuple;
+    auto start = Clock.currTime();
+    foreach (i; 0..minCount)
+        f(P);
+    auto consumed = Clock.currTime() - start;
+    if (minTime <= consumed)
+        return tuple(consumed, minCount);
+    return P.timeit!f(minTime, minCount * 2);
+}
+
 
 void main()
+{
+    import ui.input : getDigitalNets;
+    import lib.wafom : bipwafom, bipmswafom, biwafom, bimswafom;
+    import std.stdio : stderr, stdout, writef, writefln, write, writeln, stdin, File;
+    import std.datetime : seconds, minutes;
+    import std.conv : to;
+    import std.array : split;
+    import std.string : strip, format;
+    import std.algorithm : map;
+
+    import lib.pointset : nonshiftedRandomBasisPoints;
+    alias nonshiftedRandomBasisPoints!uint generate;
+
+    immutable precision = 32;
+    foreach (line; stdin.byLine())
+    {
+        auto input = line.strip().split().map!(to!size_t);
+        immutable dimR = input[0];
+        immutable dimF2 = input[1];
+        immutable count = input[2];
+        auto output = File("comparison-s%02d-m%02d-%dps.csv".format(dimR, dimF2, count), "w");
+        foreach (i; 0..count)
+        {
+            auto P = generate(precision, dimR, dimF2);
+            output.writefln(
+                "%s,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,",
+                P,
+                P.extendedDickYoshikiWafom!(-1.0)(-1),
+                P.extendedDickYoshikiWafom!(-1.0)(-2),
+                P.extendedDickYoshikiWafom!(-0.5)(-1),
+                P.extendedDickYoshikiWafom!(-0.5)(-2),
+                P.extendedDickYoshikiWafom!(0.0)(-1),
+                P.extendedDickYoshikiWafom!(0.0)(-2),
+                P.extendedDickYoshikiWafom!(0.5)(-1),
+                P.extendedDickYoshikiWafom!(0.5)(-2),
+                P.extendedDickYoshikiWafom!(1.0)(-1),
+                P.extendedDickYoshikiWafom!(1.0)(-2),
+                P.extendedDickYoshikiWafom!(2.0)(-1),
+                P.extendedDickYoshikiWafom!(2.0)(-2)
+            );
+        }
+    }
+
+    version (none) foreach (P; getDigitalNets!uint())
+    {
+        "(m,s)=(%d,%d): ".writef(P.dimensionF2, P.dimensionR);
+        {
+            auto b1 = P.timeit!bipwafom(1.seconds(), 1);
+            "W1=%e, ".writef(cast(double) b1[0].total!"msecs" / b1[1]);
+        }
+        {
+            auto b2 = P.timeit!bipmswafom(1.seconds(), 1);
+            "W2=%e, ".writef(cast(double) b2[0].total!"msecs" / b2[1]);
+        }
+        stdout.flush();
+        {
+            auto bx = P.timeit!lowerOnlyDickYoshikiWEP(1.minutes(), 2);
+            "WEP=%e. [ms]".writefln(cast(double) bx[0].total!"msecs" / bx[1]);
+        }
+        stdout.flush();
+    }
+}
+void transform()
 {
 import ui.input : getDigitalNets;
 import lib.wafom : bipwafom, bipmswafom;
@@ -235,9 +374,11 @@ auto preciseDickYoshikiWeight(size_t position, bool bit, ptrdiff_t power)
 }
 
 /// ditto
-auto standardDickYoshikiWeight(size_t position, bool bit, ptrdiff_t power)
+alias extendedDickYoshikiWeight!0.0 standardDickYoshikiWeight;
+
+auto extendedDickYoshikiWeight(double lg_scale)(size_t position, bool bit, ptrdiff_t power)
 {
-    return 1.0 + (bit ? -1.0 : 1.0) * (2.0 ^^ (power * (1.0 + position)));
+    return 1.0 + (bit ? -1.0 : 1.0) * (2.0 ^^ (power * (1.0 + position - lg_scale)));
 }
 
 enum stride = 8; /// The stride of memoizing.
