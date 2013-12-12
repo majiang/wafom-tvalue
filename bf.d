@@ -221,6 +221,7 @@ void main()
         immutable dimF2 = input[1];
         immutable count = input[2];
         auto output = File("comparison-s%02d-m%02d-%dps.csv".format(dimR, dimF2, count), "w");
+        stderr.writefln("s%02d-m%02d-count%06d", dimR, dimF2, count);
         foreach (i; 0..count)
         {
             auto P = generate(precision, dimR, dimF2);
@@ -411,7 +412,7 @@ auto multiplicand_memoizer(alias weight, alias identity, size_t stride)(ptrdiff_
 {
 import std.traits : ReturnType;
 import std.typecons : Tuple, tuple;
-    static ReturnType!weight[][][Tuple!(typeof (power), typeof (precision))] mm;
+    static ReturnType!weight[][][typeof (tuple(power, precision))] mm;
     if (auto p = tuple(power, precision) in mm)
         return *p;
 
@@ -433,7 +434,7 @@ import std.typecons : Tuple, tuple;
             foreach (k; 0..r)
                 ret[q][j] *= weight(precision - (stride * q + k), j >> k & 1, power);
         }
-    return ret;
+    return mm[tuple(power, precision)] = ret;
 }
 
 private struct Polynomial(T) // WAFOM-specified polynomial. NOT FOR GENERAL USE.
