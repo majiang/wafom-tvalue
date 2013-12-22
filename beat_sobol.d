@@ -40,7 +40,7 @@ void main(string[] args)
 		dimensionF2max = args[2].to!size_t(),
 		dimensionRs = args[3..$].map!(to!size_t)();
 	foreach (dimensionR; dimensionRs)
-		foreach (dimensionF2; dimensionF2min..dimensionF2max)
+		foreach (dimensionF2; dimensionF2min..dimensionF2max+1)
 		{
 			auto result = dimensionR.do_anneal(dimensionF2);
 			"%s,%.15e".writefln(result[0], result[1]);
