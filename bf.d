@@ -199,7 +199,7 @@ import std.typecons : tuple;
 }
 
 
-void main()
+version (none) void main()
 {
     import ui.input : getDigitalNets;
     import lib.wafom : bipwafom, bipmswafom, biwafom, bimswafom;
@@ -228,18 +228,20 @@ void main()
             output.writefln(
                 "%s,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,",
                 P,
-                P.extendedDickYoshikiWafom!(-1.0)(-1),
-                P.extendedDickYoshikiWafom!(-1.0)(-2),
-                P.extendedDickYoshikiWafom!(-0.5)(-1),
-                P.extendedDickYoshikiWafom!(-0.5)(-2),
+//                P.extendedDickYoshikiWafom!(-1.0)(-1),
+//                P.extendedDickYoshikiWafom!(-1.0)(-2),
+//                P.extendedDickYoshikiWafom!(-0.5)(-1),
+//                P.extendedDickYoshikiWafom!(-0.5)(-2),
                 P.extendedDickYoshikiWafom!(0.0)(-1),
                 P.extendedDickYoshikiWafom!(0.0)(-2),
-                P.extendedDickYoshikiWafom!(0.5)(-1),
-                P.extendedDickYoshikiWafom!(0.5)(-2),
-                P.extendedDickYoshikiWafom!(1.0)(-1),
-                P.extendedDickYoshikiWafom!(1.0)(-2),
-                P.extendedDickYoshikiWafom!(2.0)(-1),
-                P.extendedDickYoshikiWafom!(2.0)(-2)
+                P.standardDickYoshikiWafom(-1),
+                P.standardDickYoshikiWafom(-2),
+//                P.extendedDickYoshikiWafom!(0.5)(-1),
+//                P.extendedDickYoshikiWafom!(0.5)(-2),
+//                P.extendedDickYoshikiWafom!(1.0)(-1),
+//                P.extendedDickYoshikiWafom!(1.0)(-2),
+//                P.extendedDickYoshikiWafom!(2.0)(-1),
+//                P.extendedDickYoshikiWafom!(2.0)(-2)
             );
         }
     }
@@ -374,13 +376,13 @@ auto preciseDickYoshikiWeight(size_t position, bool bit, ptrdiff_t power)
     return BigFloat(ret, positive ? 0 : position * apow);
 }
 
-/// ditto
-alias extendedDickYoshikiWeight!0.0 standardDickYoshikiWeight;
-
 auto extendedDickYoshikiWeight(double lg_scale)(size_t position, bool bit, ptrdiff_t power)
 {
     return 1.0 + (bit ? -1.0 : 1.0) * (2.0 ^^ (power * (1.0 + position - lg_scale)));
 }
+
+/// ditto
+alias extendedDickYoshikiWeight!0.0 standardDickYoshikiWeight;
 
 enum stride = 8; /// The stride of memoizing.
 /** given a weight f: (position, bit, power) => G[x],

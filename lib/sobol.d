@@ -9,7 +9,7 @@ auto defaultSobols(U)(immutable size_t dimension, immutable size_t precision, im
     U[][] _direction_numbers;
     auto trailing_zeros = precision - lg_length;
     foreach (i; 0..dimension)
-        _direction_numbers ~= i.defaultDirectionNumbers!U.generate!U(lg_length).all_left_shift!U(trailing_zeros);
+        _direction_numbers ~= i.defaultDirectionNumbers!U.generate(lg_length).all_left_shift!U(trailing_zeros);
     return sobols!U(_direction_numbers);
 }
 
@@ -62,7 +62,7 @@ auto defaultDirectionNumbers(U)(immutable size_t dimension) if (isUnsigned!U)
 {
     import std.array : split;
     import std.conv : to;
-    static dn = import("sobol.csv").split();
+    auto dn = import("sobol.csv").split();
     auto buf = dn[dimension].split(",");
     ulong primitive_polynomial = buf[0].to!ulong();
     U[] initial_terms;
