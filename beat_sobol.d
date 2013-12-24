@@ -17,6 +17,7 @@ alias nonshiftedRandomBasisPoints!U randomDigitalNet;
 
 import std.stdio : stderr;
 import std.typecons : Tuple, tuple;
+import std.functional : pipe;
 
 enum precision = 32;
 enum default_start_temperature = 1.0;
@@ -67,10 +68,14 @@ auto do_anneal(in size_t dimensionR, in size_t dimensionF2)
 	Tuple!(PointSet, double)[] results;
 	while (iteration <= max_iteration)
 	{
-		auto start = randomDigitalNet(precision, dimensionR, dimensionF2);
-		results ~= start.anneal!
-			(bipmswafom, neighborPointSet!1, KirkpatrickAcceptance)
-			(start.bipmswafom(), iteration, default_start_temperature, default_end_temperature);
+		results ~= iteration.anneal!
+			(bipmswafom,
+			(() => iteration.simple_rs!
+				(bipmswafom,
+					(() => randomDigitalNet(precision, dimensionR, dimensionF2)))[0]
+				),
+			neighborPointSet!1, KirkpatrickAcceptance)
+			(default_start_temperature, default_end_temperature);
 		iteration <<= 1;
 	}
 	return results.reduce!((P, Q) => P[1] < Q[1] ? P : Q)();
@@ -102,6 +107,50 @@ auto anneal(
 	}
 	return state[0];
 }
+
+double get_cooling(size_t iteration, double ratio)
+{
+	import std.math;
+	return ratio ^^ (1.0 ^^ (iteration - 1));
+}
+
+auto simple_rs(alias criterion, alias generate)(size_t iteration)
+{
+	auto state = [generate().S!(tuple, criterion)];
+	foreach (i; 1..iteration)
+	{
+		state ~= generate().S!(tuple, criterion);
+		if (state[$-1][1] < state[$-2][1])
+			state = state[$-1 .. $];
+		else
+			state = state[0 .. $-1];
+	}
+	return state[0];
+}
+
+auto anneal(
+	alias criterion, alias initial, alias neighbor, alias acceptance)(
+	size_t iteration, double start_temperature, double end_temperature)
+{
+	auto temperature = start_temperature;
+	immutable cooling = iteration.get_cooling(end_temperature / start_temperature);
+
+	auto state = [initial().S!(tuple, criterion)];
+	foreach (i; 0..iteration)
+	{
+		state ~= neighbor(state[$-1][0]).S!(tuple, criterion);
+		if (acceptance(temperature, state[$-2][1], state[$-1][1])) // accept
+			if (state[$-1][1] <= state[0][1]) // best
+				state = state[$-1 .. $];
+			else
+				state = state[0 .. 1] ~ state[$-1 .. $];
+		else
+			state = state[0 .. $-1];
+		temperature *= cooling;
+	}
+	return state[0];
+}
+
 
 auto neighborPointSet(size_t distance)(PointSet P)
 {
@@ -138,4 +187,3 @@ T[][] ddup(T)(in T[][] arr)
         ret ~= line.dup;
     return ret;
 }
-
