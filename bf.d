@@ -6,6 +6,184 @@ import std.bigint;
 
 import lib.pointset : Bisectable;
 import std.range : isInputRange;
+
+
+/* WAFOM */
+
+// the name P cannot be changed without modification in MixinMPS.
+///
+auto preciseDickYoshikiWafom(R)(R P, ptrdiff_t power)
+{
+    mixin ("ret".MixinMPS(
+        "preciseDickYoshikiWeight", "BigFloat(BigInt(1))", "power, P.precision"));
+    ret >>= P.dimensionF2;
+    ret -= BigFloat(BigInt(1) << ret.exponent, ret.exponent);
+    if (power == -4)
+        return ret.qrrt();
+    if (power == -3)
+        return ret.cbrt();
+    if (power == -2)
+        return ret.sqrt();
+    return ret;
+}
+
+///
+auto extendedDickYoshikiWafom(double lg_scale, R)(R P, ptrdiff_t power)
+{
+    mixin ("ret".MixinMPS(
+        "extendedDickYoshikiWeight!(" ~ lg_scale.to_string() ~ ")", "1.0", "power, P.precision"));
+    ret = ret * (0.5 ^^ (P.dimensionF2)) - 1;
+    if (power < -1)
+        return ret ^^ (-1.0 / power);
+    return ret;
+}
+
+///
+version (use_extended)
+template standardDickYoshikiWafom(R)
+{
+    auto standardDickYoshikiWafom(R P, ptrdiff_t power)
+    {
+        return P.extendedDickYoshikiWafom!(0.0, R)(power);
+    }
+}
+else
+auto standardDickYoshikiWafom(R)(R P, ptrdiff_t power)
+{
+    mixin ("ret".MixinMPS(
+        "standardDickYoshikiWeight", "1.0", "power, P.precision"));
+/*    auto ret = P.mapprodsum!
+    (x => x.
+        multiplicand_memoized!
+        (standardDickYoshikiWeight, 1.0L)
+        (power, P.precision)
+    )();//*/
+    ret  = ret * (0.5 ^^ P.dimensionF2) - 1;
+    if (power < -1)
+        return ret ^^ (-1.0 / power);
+    return ret;
+}
+
+///
+auto preciseNRTWafom(R)(R P, ptrdif_t power)
+{
+    immutable precision = P.precision;
+    auto ret = P.mapprodsum!(x => x.preciseNRTMultiplicand(power, precision));
+    ret >>= P.dimensionF2;
+    ret -= BigFloat(BigInt(1) << ret.exponent, ret.exponent);
+    if (power == -4)
+        return ret.qrrt();
+    if (power == -3)
+        return ret.cbrt();
+    if (power == -2)
+        return ret.sqrt();
+    return ret;
+}
+
+///
+auto standardNRTWafom(R)(R P, in ptrdiff_t power)
+{
+import std.math : sqrt;
+
+    immutable precision = P.precision;
+    auto ret = P.mapprodsum!(x => x.standardNRTMultiplicand(power, precision));
+    ret = ret * (0.5 ^^ P.dimensionF2) - 1;
+    if (power < -1)
+        return ret ^^ (-1.0 / power);
+    return ret;
+}
+
+
+/* Weight enumerator polynomial */
+
+///
+auto lowerOnlyDickYoshikiWEP(R)(R P)
+{
+    return P.DickYoshikiWEPtoDegree(P.DickYoshikiMaxMinWeight());
+}
+
+///
+auto DickYoshikiWEPtoDegree(R)(R P, size_t maxdeg=size_t.max)
+{
+import std.algorithm : joiner;
+    return P.map!(X => Polynomial!BigInt(maxdeg).reduce!(
+    (a, b) => a * b)
+    (X.map!(x => x.polynomialDickYoshikiWeight(P.precision))().joiner())).reduce!(
+    (a, b) => a + b)() >> P.dimensionF2;
+}
+
+
+/* Multiplicand */
+
+///
+auto preciseNRTMultiplicand(U)(in U x, in ptrdiff_t power, in size_t precision)
+{
+}
+///
+auto standardNRTMultiplicand(U)(in U x, in ptrdiff_t power, in size_t precision)
+{
+    immutable weight = x.mu_star(precision);
+    if (power == -1)
+    {
+        if (weight == 0)
+            return 1 + 0.5 * precision;
+        return weight * 0.5;
+    }
+    immutable b = 2.0 ^^ (power + 1.0);
+    if (weight == 0)
+        return 1 + b * 0.5 * (1 - b ^^ precision) / (1 - b);
+    return 1 + 0.5 * ((b - b ^^ weight) / (1 - b) - b ^^ precision);
+}
+
+
+/* Weight */
+
+///
+auto polynomialDickYoshikiWeight(U)(in U x, size_t precision)
+{
+    U mask = 1 << (precision - 1);
+    ptrdiff_t[] ret;
+    foreach (i; 2..precision+2)
+    {
+        ret ~= (x & mask) ? -i : +i;
+        mask >>= 1;
+    }
+    return ret;
+}
+
+/** Dick weight proposed by Yoshiki: 1 + (-1)^bit 2^(power*(position+1-lg_scale)).
+
+for WAFOM set power = -1,
+for RMS-WAFOM set power = -2.
+for extended version
+*/
+auto preciseDickYoshikiWeight(bool positivePower)(size_t position, bool bit, ptrdiff_t power)
+    if (!positivePower)
+{
+    immutable positive = 0 < power;
+    immutable apow = positive ? power : -power;
+    position += 1;
+
+    BigInt ret = 1;
+    ret <<= position * apow;
+    ret += bit ? -1 : 1;
+    return BigFloat(ret, positive ? 0 : position * apow);
+}
+/// ditto
+auto extendedDickYoshikiWeight(double lg_scale, bool positivePower)(size_t position, bool bit, ptrdiff_t power)
+    if (!positivePower)
+{
+    return 1.0 + (bit ? -1.0 : 1.0) * (2.0L ^^ (power * (1.0 + position - lg_scale)));
+}
+
+/// ditto
+alias standardDickYoshikiWeight = extendedDickYoshikiWeight!(0.0, false);
+
+
+
+
+
+
 ///
 enum isBisectableInputRange(R) =
     isInputRange!R &&
@@ -94,37 +272,7 @@ string MixinMPS(string variableName, string multiplicand, string Identity, strin
     ~ ").reduce!((a, b) => a * b)())().reduce!((a, b) => a + b)();";
 }
 
-// the name P cannot be changed without modification in MixinMPS.
-///
-auto preciseDickYoshikiWafom(R)(R P, ptrdiff_t power)
-{
-    mixin ("ret".MixinMPS(
-        "preciseDickYoshikiWeight", "BigFloat(BigInt(1))", "power, P.precision"));
-    ret >>= P.dimensionF2;
-    ret -= BigFloat(BigInt(1) << ret.exponent, ret.exponent);
-    if (power == -4)
-        return ret.qrrt();
-    if (power == -3)
-        return ret.cbrt();
-    if (power == -2)
-        return ret.sqrt();
-    return ret;
-}
 
-///
-auto lowerOnlyDickYoshikiWEP(R)(R P)
-{
-    return P.polynomialDickYoshikiWafom(P.DickYoshikiMaxMinWeight());
-}
-///
-auto polynomialDickYoshikiWafom(R)(R P, size_t maxdeg=size_t.max)
-{
-import std.algorithm : joiner;
-    return P.map!(X => Polynomial!BigInt(maxdeg).reduce!(
-    (a, b) => a * b)
-    (X.map!(x => x.polynomialDickYoshikiWeight(P.precision))().joiner())).reduce!(
-    (a, b) => a + b)() >> P.dimensionF2;
-}
 ///
 string to_string(double from)
 {
@@ -180,17 +328,6 @@ body
     }
     return ret[0..1] ~ "." ~ ret[1..$];
 }
-///
-version (none)
-auto extendedDickYoshikiWafom(double lg_scale, R)(R P, ptrdiff_t power)
-{
-    mixin ("ret".MixinMPS(
-        "extendedDickYoshikiWeight!(" ~ lg_scale.to_string() ~ ")", "1.0", "power, P.precision"));
-    ret = ret * (0.5 ^^ (P.dimensionF2)) - 1;
-    if (power < -1)
-        return ret ^^ (-1.0 / power);
-    return ret;
-}
 
 void main()
 {
@@ -199,38 +336,6 @@ void main()
     auto P = generate(32, 4, 12);
     import std.stdio;
     P.standardDickYoshikiWafom(-1).writeln();
-}
-///
-auto standardDickYoshikiWafom(R)(R P, ptrdiff_t power)
-{
-    mixin ("ret".MixinMPS(
-        "standardDickYoshikiWeight", "1.0", "power, P.precision"));
-/*    auto ret = P.mapprodsum!
-    (x => x.
-        multiplicand_memoized!
-        (standardDickYoshikiWeight, 1.0L)
-        (power, P.precision)
-    )();//*/
-    ret  = ret * (0.5 ^^ P.dimensionF2) - 1;
-    if (power < -1)
-        return ret ^^ (-1.0 / power);
-    return ret;
-}
-///
-auto preciseNRTWafom(R)(R P, ptrdif_t power)
-{
-}
-///
-auto standardNRTWafom(R)(R P, in ptrdiff_t power)
-{
-import std.math : sqrt;
-
-    immutable precision = P.precision;
-    auto ret = P.mapprodsum!(x => x.standardNRTMultiplicand(power, precision));
-    ret = ret * (0.5 ^^ P.dimensionF2) - 1;
-    if (power < -1)
-        return ret ^^ (-1.0 / power);
-    return ret;
 }
 
 import std.datetime : Duration, Clock, SysTime;
@@ -403,63 +508,7 @@ size_t mu_star(U)(U x, size_t precision)
         x >>= 1;
     }
 }
-///
-auto preciseNRTMultiplicand(U)(in U x, in ptrdiff_t power, in size_t precision)
-{
-}
-///
-auto standardNRTMultiplicand(U)(in U x, in ptrdiff_t power, in size_t precision)
-{
-    immutable weight = x.mu_star(precision);
-    if (power == -1)
-    {
-        if (weight == 0)
-            return 1 + 0.5 * precision;
-        return weight * 0.5;
-    }
-    immutable b = 2.0 ^^ (power + 1.0);
-    if (weight == 0)
-        return 1 + b * 0.5 * (1 - b ^^ precision) / (1 - b);
-    return 1 + 0.5 * ((b - b ^^ weight) / (1 - b) - b ^^ precision);
-}
 
-///
-auto polynomialDickYoshikiWeight(U)(U x, size_t precision)
-{
-    immutable mask = 1 << (precision - 1);
-    ptrdiff_t[] ret;
-    foreach (i; 2..precision+2)
-    {
-        ret ~= (x & mask) ? -i : +i;
-        x <<= 1;
-    }
-    return ret;
-}
-
-/** Dick weight proposed by Yoshiki: 1 + (-1)^bit 2^(power*(position+1)).
-
-for WAFOM set power = -1,
-for RMS-WAFOM set power = -2.
-*/
-auto preciseDickYoshikiWeight(size_t position, bool bit, ptrdiff_t power)
-{
-    immutable positive = 0 < power;
-    immutable apow = positive ? power : -power;
-    position += 1;
-
-    BigInt ret = 1;
-    ret <<= position * apow;
-    ret += bit ? -1 : 1;
-    return BigFloat(ret, positive ? 0 : position * apow);
-}
-///
-auto extendedDickYoshikiWeight(double lg_scale)(size_t position, bool bit, ptrdiff_t power)
-{
-    return 1.0 + (bit ? -1.0 : 1.0) * (2.0 ^^ (power * (1.0 + position - lg_scale)));
-}
-
-/// ditto
-alias extendedDickYoshikiWeight!0.0 standardDickYoshikiWeight;
 
 enum stride = 8; /// The stride of memoizing.
 
