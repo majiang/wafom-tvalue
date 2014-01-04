@@ -4,6 +4,64 @@ import std.exception : enforce;
 import std.traits : isUnsigned, ReturnType;
 import std.bigint;
 
+import lib.pointset : Bisectable;
+import std.range : isInputRange;
+///
+enum isBisectableInputRange(R) =
+    isInputRange!R &&
+    Bisectable!R && is (typeof ((R r)
+    {
+        R[2] fh = r.bisect();
+    }));
+
+///
+string binaryOp(string op)
+{
+    return "((a, b) => a "~op~" b)";
+}
+
+///
+auto bisectMap(alias f, R)(R P)
+    if (R.Bisectable)
+{
+    struct Ret
+    {
+        @property bool bisectable() const
+        {
+            return P.bisectable;
+        }
+        Ret[2] bisect() const
+        {
+            auto bisectedP = P.bisect();
+            return [bisectMap!f(bisectedP[0]), bisectMap!f(bisectedP[1])];
+        }
+        @property bool empty() const
+        {
+            return P.empty;
+        }
+        @property auto front() const
+        {
+            return P.front;
+        }
+        void popFront()
+        {
+            P.popFront();
+        }
+    }
+    return Ret();
+}
+
+///
+auto bisectReduce(alias f, R)(R P)
+    if (R.Bisectable)
+{
+    if (!P.bisectable)
+        return P.reduce!f();
+    R[2] bP = P.bisect();
+    return f(bisectReduce!f(bP[0]), bisectReduce!f(bP[1]));
+}
+
+
 /// the upper bound of minimum Dick-Yoshiki weight.
 auto DickYoshikiMaxMinWeight(R)(R P)
 {
@@ -37,6 +95,7 @@ string MixinMPS(string variableName, string multiplicand, string Identity, strin
 }
 
 // the name P cannot be changed without modification in MixinMPS.
+///
 auto preciseDickYoshikiWafom(R)(R P, ptrdiff_t power)
 {
     mixin ("ret".MixinMPS(
@@ -52,11 +111,12 @@ auto preciseDickYoshikiWafom(R)(R P, ptrdiff_t power)
     return ret;
 }
 
+///
 auto lowerOnlyDickYoshikiWEP(R)(R P)
 {
     return P.polynomialDickYoshikiWafom(P.DickYoshikiMaxMinWeight());
 }
-
+///
 auto polynomialDickYoshikiWafom(R)(R P, size_t maxdeg=size_t.max)
 {
 import std.algorithm : joiner;
@@ -65,7 +125,7 @@ import std.algorithm : joiner;
     (X.map!(x => x.polynomialDickYoshikiWeight(P.precision))().joiner())).reduce!(
     (a, b) => a + b)() >> P.dimensionF2;
 }
-
+///
 string to_string(double from)
 {
     if (from == 0)
@@ -85,7 +145,7 @@ string to_string(double from)
     }
     return from.normalized_to_string() ~ "e" ~ (pow < 0 ? "-" : "+") ~ (pow < 0 ? -pow : pow).int_to_string();
 }
-
+///
 string int_to_string(int from)
 in
 {
@@ -97,7 +157,7 @@ body
         return [cast(immutable char)(from + '0')];
     return (from / 10).int_to_string() ~ (from % 10 + '0');
 }
-
+///
 string normalized_to_string(double from)
 in
 {
@@ -120,7 +180,8 @@ body
     }
     return ret[0..1] ~ "." ~ ret[1..$];
 }
-
+///
+version (none)
 auto extendedDickYoshikiWafom(double lg_scale, R)(R P, ptrdiff_t power)
 {
     mixin ("ret".MixinMPS(
@@ -131,20 +192,35 @@ auto extendedDickYoshikiWafom(double lg_scale, R)(R P, ptrdiff_t power)
     return ret;
 }
 
+void main()
+{
+    import lib.pointset : nonshiftedRandomBasisPoints;
+    alias generate = nonshiftedRandomBasisPoints!uint;
+    auto P = generate(32, 4, 12);
+    import std.stdio;
+    P.standardDickYoshikiWafom(-1).writeln();
+}
+///
 auto standardDickYoshikiWafom(R)(R P, ptrdiff_t power)
 {
     mixin ("ret".MixinMPS(
         "standardDickYoshikiWeight", "1.0", "power, P.precision"));
+/*    auto ret = P.mapprodsum!
+    (x => x.
+        multiplicand_memoized!
+        (standardDickYoshikiWeight, 1.0L)
+        (power, P.precision)
+    )();//*/
     ret  = ret * (0.5 ^^ P.dimensionF2) - 1;
     if (power < -1)
         return ret ^^ (-1.0 / power);
     return ret;
 }
-
+///
 auto preciseNRTWafom(R)(R P, ptrdif_t power)
 {
 }
-
+///
 auto standardNRTWafom(R)(R P, in ptrdiff_t power)
 {
 import std.math : sqrt;
@@ -158,7 +234,7 @@ import std.math : sqrt;
 }
 
 import std.datetime : Duration, Clock, SysTime;
-
+///
 string toMyString(SysTime t)
 {
     auto buf = t.toISOString();
@@ -171,7 +247,7 @@ string toMyString(SysTime t)
         buf[13..18];
 }
 
-
+///
 auto timeit(alias before, alias f, bParams, T...)(bParams bparams, Duration minTime, size_t minCount, T additionalParams)
 {
 
@@ -185,7 +261,7 @@ import std.typecons : tuple;
         return tuple(consumed, minCount);
     return bparams.timeit!(before, f)(minTime, minCount * 2, additionalParams);
 }
-
+///
 auto timeit(alias f, R)(R P, Duration minTime, size_t minCount)
 {
 import std.typecons : tuple;
@@ -265,6 +341,7 @@ version (none) void main()
         stdout.flush();
     }
 }
+/// read digital net from each line and write (bipwafom, bipmswafom, loweronlydickyoshikiwep).
 void transform()
 {
 import ui.input : getDigitalNets;
@@ -316,7 +393,7 @@ import std.conv : to;
     "P4: ".writeln(cond.timeit!(generate, preciseDickYoshikiWafom!PS)(minTime, 1, -4));
     "WP: ".writeln(cond.timeit!(generate, lowerOnlyDickYoshikiWEP!PS)(minTime, 1));
 }
-
+///
 size_t mu_star(U)(U x, size_t precision)
 {
     size_t ret = x ? precision + 1 : 0;
@@ -326,11 +403,11 @@ size_t mu_star(U)(U x, size_t precision)
         x >>= 1;
     }
 }
-
+///
 auto preciseNRTMultiplicand(U)(in U x, in ptrdiff_t power, in size_t precision)
 {
 }
-
+///
 auto standardNRTMultiplicand(U)(in U x, in ptrdiff_t power, in size_t precision)
 {
     immutable weight = x.mu_star(precision);
@@ -346,7 +423,7 @@ auto standardNRTMultiplicand(U)(in U x, in ptrdiff_t power, in size_t precision)
     return 1 + 0.5 * ((b - b ^^ weight) / (1 - b) - b ^^ precision);
 }
 
-
+///
 auto polynomialDickYoshikiWeight(U)(U x, size_t precision)
 {
     immutable mask = 1 << (precision - 1);
@@ -375,7 +452,7 @@ auto preciseDickYoshikiWeight(size_t position, bool bit, ptrdiff_t power)
     ret += bit ? -1 : 1;
     return BigFloat(ret, positive ? 0 : position * apow);
 }
-
+///
 auto extendedDickYoshikiWeight(double lg_scale)(size_t position, bool bit, ptrdiff_t power)
 {
     return 1.0 + (bit ? -1.0 : 1.0) * (2.0 ^^ (power * (1.0 + position - lg_scale)));
@@ -385,6 +462,7 @@ auto extendedDickYoshikiWeight(double lg_scale)(size_t position, bool bit, ptrdi
 alias extendedDickYoshikiWeight!0.0 standardDickYoshikiWeight;
 
 enum stride = 8; /// The stride of memoizing.
+
 /** given a weight f: (position, bit, power) => G[x],
 a sequence of bits U, integer power and precision,
 return prod[position] f(position, bit[position], power)(2)

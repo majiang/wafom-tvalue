@@ -5,7 +5,7 @@ import std.range : iota;
 alias reduce!((a, b) => a + b) sumation;
 alias reduce!((a, b) => a * b) product;
 
-enum size_t S = 4;
+enum size_t S = 12;
 
 alias monomial!(1, S) x1; alias monomial!(2, S) x2; alias monomial!(3, S) x3; alias monomial!(4, S) x4;
 alias monomial!(5, S) x5; alias monomial!(6, S) x6; alias monomial!(7, S) x7; alias monomial!(8, S) x8;
