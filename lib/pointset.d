@@ -36,12 +36,12 @@ Bugs:
 If 64 <= dimensionF2, position and length being ulong, foreach (x; P) gives wrong output for p.  Always bisect in such cases, though it's rare in practice.
 Examples:
 -----
-// create non-shifted digital net
+// create non-shifted random digital net
 auto P = ShiftedBasisPoints(randomVectors!uint(precision, dimensionR, dimensionF2), precision);
 assert (P.dimensionF2 == dimensionF2);
 assert (P.dimensionR == dimensionR);
 assert (P.precision == precision);
-foreach (j; P.popFront) assert (j == 0);
+foreach (j; P.front) assert (j == 0);
 foreach (x; P) assert (x.length == dimensionR);
 -----
 */
@@ -240,6 +240,24 @@ struct ShiftedBasisPoints(T) if (isUnsigned!T)
             foreach (x; l)
                 ret ~= text(" ", x);
         return ret;
+    }
+    SBP shrinkBy(size_t n) const
+    in
+    {
+        assert (n < basis.length);
+    }
+    body
+    {
+        return SBP(basis[0..$-n], precision, shift);
+    }
+    SBP shrinkTo(size_t n) const
+    in
+    {
+        assert (0 < n && n <= basis.length);
+    }
+    body
+    {
+        return SBP(basis[0..n], precision, shift);
     }
 }
 unittest ///
