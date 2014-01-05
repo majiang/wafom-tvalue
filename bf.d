@@ -1,4 +1,4 @@
-debug import std.stdio;
+import std.stdio;
 import std.algorithm : map, reduce;
 import std.exception : enforce;
 import std.traits : isUnsigned, ReturnType;
@@ -6,6 +6,11 @@ import std.bigint;
 
 import lib.pointset : Bisectable;
 import std.range : isInputRange;
+
+void main(string[] args)
+{
+    WAFOMseqs(args);
+}
 
 
 /* WAFOM */
@@ -31,7 +36,7 @@ auto preciseDickYoshikiWafom(R)(R P, ptrdiff_t power)
 auto extendedDickYoshikiWafom(double lg_scale, R)(R P, ptrdiff_t power)
 {
     mixin ("ret".MixinMPS(
-        "extendedDickYoshikiWeight!(" ~ lg_scale.to_string() ~ ")", "1.0", "power, P.precision"));
+        "extendedDickYoshikiWeight!(" ~ lg_scale.to_string() ~ ", false)", "1.0", "power, P.precision"));
     ret = ret * (0.5 ^^ (P.dimensionF2)) - 1;
     if (power < -1)
         return ret ^^ (-1.0 / power);
@@ -329,7 +334,7 @@ body
     return ret[0..1] ~ "." ~ ret[1..$];
 }
 
-void main()
+void test_WAFOM()
 {
     import lib.pointset : nonshiftedRandomBasisPoints;
     alias generate = nonshiftedRandomBasisPoints!uint;
@@ -380,12 +385,11 @@ import std.typecons : tuple;
 }
 
 
-version (none) void main()
+void compare()
 {
     import ui.input : getDigitalNets;
     import lib.wafom : bipwafom, bipmswafom, biwafom, bimswafom;
-    import std.stdio : stderr, stdout, writef, writefln, write, writeln, stdin, File;
-    import std.datetime : seconds, minutes;
+    
     import std.conv : to;
     import std.array : split;
     import std.string : strip, format;
@@ -407,45 +411,64 @@ version (none) void main()
         {
             auto P = generate(precision, dimR, dimF2);
             output.writefln(
-                "%s,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,%.15e,",
+                "%s,%.15e,%.15e,%.15e,%.15e,",
                 P,
-//                P.extendedDickYoshikiWafom!(-1.0)(-1),
-//                P.extendedDickYoshikiWafom!(-1.0)(-2),
-//                P.extendedDickYoshikiWafom!(-0.5)(-1),
-//                P.extendedDickYoshikiWafom!(-0.5)(-2),
                 P.extendedDickYoshikiWafom!(0.0)(-1),
                 P.extendedDickYoshikiWafom!(0.0)(-2),
                 P.standardDickYoshikiWafom(-1),
                 P.standardDickYoshikiWafom(-2),
-//                P.extendedDickYoshikiWafom!(0.5)(-1),
-//                P.extendedDickYoshikiWafom!(0.5)(-2),
-//                P.extendedDickYoshikiWafom!(1.0)(-1),
-//                P.extendedDickYoshikiWafom!(1.0)(-2),
-//                P.extendedDickYoshikiWafom!(2.0)(-1),
-//                P.extendedDickYoshikiWafom!(2.0)(-2)
             );
         }
     }
+}
 
-    version (none) foreach (P; getDigitalNets!uint())
+void timeByLine()
+{
+import ui.input : getDigitalNets;
+import lib.wafom : bipwafom, bipmswafom;
+import std.datetime : seconds, minutes;
+
+    foreach (P; getDigitalNets!uint())
     {
         "(m,s)=(%d,%d): ".writef(P.dimensionF2, P.dimensionR);
-        {
-            auto b1 = P.timeit!bipwafom(1.seconds(), 1);
-            "W1=%e, ".writef(cast(double) b1[0].total!"msecs" / b1[1]);
-        }
-        {
-            auto b2 = P.timeit!bipmswafom(1.seconds(), 1);
-            "W2=%e, ".writef(cast(double) b2[0].total!"msecs" / b2[1]);
-        }
-        stdout.flush();
-        {
-            auto bx = P.timeit!lowerOnlyDickYoshikiWEP(1.minutes(), 2);
-            "WEP=%e. [ms]".writefln(cast(double) bx[0].total!"msecs" / bx[1]);
-        }
+        auto b1 = P.timeit!bipwafom(1.seconds(), 1);
+        "W1=%e, ".writef(cast(double) b1[0].total!"msecs" / b1[1]);
+        auto b2 = P.timeit!bipmswafom(1.seconds(), 1);
+        "W2=%e, ".writef(cast(double) b2[0].total!"msecs" / b2[1]);
+        auto bx = P.timeit!lowerOnlyDickYoshikiWEP(1.minutes(), 2);
+        "WEP=%e. [ms]".writefln(cast(double) bx[0].total!"msecs" / bx[1]);
         stdout.flush();
     }
 }
+
+auto WAFOMseq(alias w, R)(R P, size_t dimBmin, size_t dimBmax)
+{
+    real[] ret;
+    foreach (i; dimBmin .. dimBmax+1)
+        ret ~= w(P.shrinkTo(i));
+    return ret;
+}
+
+void WAFOMseqs(string[] args)
+{
+import ui.input : getDigitalNets;
+import lib.wafom : bipwafom, bipmswafom;
+import std.stdio;
+import std.conv : to;
+immutable dimBmin = args[1].to!size_t();
+immutable dimBmax = args[2].to!size_t();
+
+    foreach (P; getDigitalNets!uint())
+    {
+        auto w1s = P.WAFOMseq!(bipwafom)(dimBmin, dimBmax);
+        auto w2s = P.WAFOMseq!(bipmswafom)(dimBmin, dimBmax);
+        P.writeln();
+        "%(%.15e,%)".writefln(w1s);
+        "%(%.15e,%)".writefln(w2s);
+        writeln();
+    }
+}
+
 /// read digital net from each line and write (bipwafom, bipmswafom, loweronlydickyoshikiwep).
 void transform()
 {
