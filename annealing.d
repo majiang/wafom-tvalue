@@ -31,7 +31,7 @@ import std.stdio;
 
 	if (args.length < 4)
 	{
-		"usage: beat_sobol m_min m_max s...".writeln();
+		"usage: annealing m_min m_max s...".writeln();
 		return;
 	}
 	auto
