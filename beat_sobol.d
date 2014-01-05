@@ -1,23 +1,15 @@
-import bf;
-
-auto bipmswafom(PointSet P)
-{
-	return P.standardDickYoshikiWafom(-2);
-}
-
-import lib.pointset : ShiftedBasisPoints, randomVectors, randomVector, randomBits, defaultSobols, nonshiftedRandomBasisPoints;
-
-// lib.pointset : defaultSobols(U)(dimR, precision, dimF);
-
+import std.stdio : stderr;
 import std.exception : enforce;
+import std.typecons : Tuple, tuple;
+import std.functional : pipe;
+
+import lib.wafom : bipmswafom;
+import lib.pointset : ShiftedBasisPoints, randomVectors, randomVector, randomBits, nonshiftedRandomBasisPoints;
 
 alias uint U;
 alias ShiftedBasisPoints!U PointSet;
 alias nonshiftedRandomBasisPoints!U randomDigitalNet;
 
-import std.stdio : stderr;
-import std.typecons : Tuple, tuple;
-import std.functional : pipe;
 
 enum precision = 32;
 enum default_start_temperature = 1.0;
@@ -25,11 +17,17 @@ enum default_end_temperature = 0.01;
 enum min_iteration = 0x10;
 enum max_iteration = 0x1000;
 
+/** Generate good point sets.
+
+Read the range of dimB, the set of dimR from arguments.
+Do simulated annealing for each (dimB, dimR) and yield the best one.
+Precision and temperature condition are hard-coded.
+*/
 void main(string[] args)
 {
-	import std.conv : to;
-	import std.algorithm : map;
-	import std.stdio;
+import std.conv : to;
+import std.algorithm : map;
+import std.stdio;
 
 	if (args.length < 4)
 	{
@@ -42,19 +40,21 @@ void main(string[] args)
 		dimensionRs = args[3..$].map!(to!size_t)();
 	foreach (dimensionR; dimensionRs)
 		foreach (dimensionF2; dimensionF2min..dimensionF2max+1)
-		{
-			auto result = dimensionR.do_anneal(dimensionF2);
-			"%s,%.15e".writefln(result[0], result[1]);
-		}
+			"%s,%.15e".writefln(dimensionR.do_anneal(dimensionF2).expand);
 }
 
-import std.array : empty;
+/** bisect recursive version of std.algorithm.reduce.
 
+Only accept one alias for reducing function and a nonempty slicable (typically an array).
+The purpose of rewriting is to reduce an array whose element is a struct with immutable member.
+*/
 template reduce(alias f)
 {
+import std.array : empty;
+
 	auto reduce(T)(T arg)
 	{
-		import std.exception : enforce;
+	import std.exception : enforce;
 		enforce(!arg.empty, "Cannot reduce an empty range");
 		if (arg.length == 1)
 			return arg[0];
@@ -62,6 +62,14 @@ template reduce(alias f)
 	}
 }
 
+/** Repeat simulated annealing, varying the number of iteration.
+
+The temperature condition is "default_start_temperature -> default_end_temperature".
+Vary the number of iteration from min_iteration to max_iteration.
+
+Returns:
+The best state found in any of the iteration.
+*/
 auto do_anneal(in size_t dimensionR, in size_t dimensionF2)
 {
 	auto iteration = min_iteration;
@@ -81,14 +89,14 @@ auto do_anneal(in size_t dimensionR, in size_t dimensionF2)
 	return results.reduce!((P, Q) => P[1] < Q[1] ? P : Q)();
 }
 
-
+version (none)
 auto anneal(
 	alias criterion, alias neighbor, alias acceptance, T)(
 	T start_state, double start_energy,
 	size_t iteration,
 	double start_temperature, double end_temperature)
 {
-	import std.math;
+import std.math;
 
 	auto temperature = start_temperature;
 	immutable cooling = (end_temperature / start_temperature) ^^ (1.0 / iteration);
@@ -110,10 +118,20 @@ auto anneal(
 
 double get_cooling(size_t iteration, double ratio)
 {
-	import std.math;
+import std.math;
 	return ratio ^^ (1.0 ^^ (iteration - 1));
 }
 
+/** Simple random search.
+
+Params:
+criterion = criterion for random search (smaller is better).
+generate = uniform random choice function in the search space.
+iteration = the number of iteration (call of generate and criterion)
+
+Returns:
+the two-element tuple of best object and its quality.
+*/
 auto simple_rs(alias criterion, alias generate)(size_t iteration)
 {
 	auto state = [generate().S!(tuple, criterion)];
@@ -128,6 +146,24 @@ auto simple_rs(alias criterion, alias generate)(size_t iteration)
 	return state[0];
 }
 
+/** Simulated annealing.
+
+Params:
+criterion = criterion (smaller is better).
+initial = initial state (only an object in search space) generator.
+neighbor = neighborhood generator.
+acceptance = acceptance probability.
+iteration = the number of basic iterations in the process.
+start_temperature = the temperature at the beginning of the process.
+end_temperature = the temperature at the end of the process.
+
+Returns:
+the two-element tupleof best object and its quality.
+
+Algorithm:
+Cooling schedule is exponential, i.e., the cooling rate c is calculated from the arguments so that after each basic iteration the temperature is multiplied by c and at the end of the process it holds that temperature = end_temperature.
+Strictly speaking this algorithm is not the pure SA, but remembers the best state.
+*/
 auto anneal(
 	alias criterion, alias initial, alias neighbor, alias acceptance)(
 	size_t iteration, double start_temperature, double end_temperature)
@@ -151,7 +187,7 @@ auto anneal(
 	return state[0];
 }
 
-
+///
 auto neighborPointSet(size_t distance)(PointSet P)
 {
 	auto vectors = P.precision.randomVectors!U(P.dimensionR, distance);
@@ -165,11 +201,13 @@ auto neighborPointSet(size_t distance)(PointSet P)
 	return PointSet(basis, P.precision);
 }
 
+///
 bool KirkpatrickAcceptance(double temperature, double current, double next)
 {
 	//if (next < current)
 	//	return true;
-	import std.random : uniform;
+import std.random : uniform;
+import std.math;
 	return uniform(0.0, 1.0) < (current / next) ^^ (1 / temperature);
 }
 
@@ -180,6 +218,7 @@ auto S(alias x, alias y, T)(T z)
 	return x(z, y(z));
 }
 
+///
 T[][] ddup(T)(in T[][] arr)
 {
     T[][] ret;
