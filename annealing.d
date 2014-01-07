@@ -11,7 +11,7 @@ alias ShiftedBasisPoints!U PointSet;
 alias nonshiftedRandomBasisPoints!U randomDigitalNet;
 
 
-enum precision = 32;
+enum precision = 30;
 enum default_start_temperature = 1.0;
 enum default_end_temperature = 0.01;
 enum min_iteration = 0x10;
@@ -201,13 +201,13 @@ auto neighborPointSet(size_t distance)(PointSet P)
 	return PointSet(basis, P.precision);
 }
 
+import std.math;
 ///
 bool KirkpatrickAcceptance(double temperature, double current, double next)
 {
 	//if (next < current)
 	//	return true;
 import std.random : uniform;
-import std.math;
 	return uniform(0.0, 1.0) < (current / next) ^^ (1 / temperature);
 }
 
