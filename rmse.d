@@ -4,7 +4,6 @@ import lib.integration_error : shifts, shifteds, integrationErrors, squareRootMe
 import ui.input : getDigitalNets;
 import tf;
 
-enum precision = 32;
 alias uint U;
 
 void WRITEERRORS(R, F...)(R P)
@@ -13,7 +12,7 @@ void WRITEERRORS(R, F...)(R P)
     "%s,%.15e".writef(P, P.bipmswafom()); // unnecessary recalculate
     foreach (f; F)
         writef(",%.15e", P
-            .shifteds(precision.shifts!(typeof (P))(4, 10000))
+            .shifteds(P.precision.shifts!(typeof (P))(P.dimensionR, 10000))
             .integrationErrors!f()
             .squareRootMeanSquare()
             );
