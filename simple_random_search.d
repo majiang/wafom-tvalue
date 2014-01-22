@@ -11,9 +11,8 @@ module main;
 import std.stdio, std.array, std.string, std.conv;
 import std.container : heapify;
 import lib.pointset : randomVectors, ShiftedBasisPoints;
-import lib.wafom : bipwafom, biwafom, bimswafom;
+import lib.wafom : criterion = bipmswafom;
 import std.algorithm : min;
-import ui.output : writePoints;
 alias uint U;
 alias ShiftedBasisPoints!U BP;
 import std.typecons : Tuple;
@@ -30,23 +29,24 @@ void main()
     immutable count = buf[3].to!size_t();
     immutable best = buf[4].to!size_t();
 
-/*
+
     if (best)
     {
         auto H = (new DN[best]).heapify(0);
         foreach (i; 0..count)
         {
             auto B = randomVectors!uint(precision, dimensionR, dimensionF2);
-            H.conditionalInsert(DN(BP(B, precision).bipwafom(), B));
+            H.conditionalInsert(DN(BP(B, precision).criterion(), B));
         }
         foreach (dn; H.release())
         {
             auto P = BP(dn[1], precision);
-            "%s\t%.15f\t%.15f\t%.15f".writefln(P.toString(), dn[0].lg(), P.biwafom().lg(), P.bimswafom().lg());
+            "%s\t%.15f".writefln(P.toString(), dn[0].lg());
         }
     }
     else// */
     {
+        import lib.wafom : bipwafom, biwafom, bimswafom, bipmswafom;
         foreach (i; 0..count)
         {
             auto P = BP(randomVectors!uint(precision, dimensionR, dimensionF2), precision);
