@@ -75,7 +75,7 @@ size_t mu_star(T)(T x, in size_t precision) if (isUnsigned!T)
     return ret;
 }
 
-private double[] _ff_(size_t exponent)(in size_t precision)
+private real[] _ff_(size_t exponent)(in size_t precision)
 {
     static assert (exponent == 1 || exponent == 2);
     static if (exponent == 0)
@@ -93,17 +93,17 @@ private double[] _ff_(size_t exponent)(in size_t precision)
 }
 
 
-/** Apply bisect algorithm for function f: R -> double.
+/** Apply bisect algorithm for function f: R -> real.
 
 Params:
-f = A function R -> double. f must satisfy the invariant f(P.bisect()[0]) + f(P.bisect()[1]) == f(P) * 2 whenever P is bisectable.
+f = A function R -> real. f must satisfy the invariant f(P.bisect()[0]) + f(P.bisect()[1]) == f(P) * 2 whenever P is bisectable.
 R = input type of f. R must be Bisectable (i.e., has property bisectable and method bisect).
 
 TODO: generalize to f: R -> T
 */
 template Bisect(alias f, R) if (Bisectable!R)
 {
-    double Bisect(R P)
+    real Bisect(R P)
     {
         if (!P.bisectable)
             return f(P);
@@ -120,11 +120,11 @@ static immutable string scale_and_return = q{
 };
 
 /** Compute NRT WAFOM of a digital net. */
-double nrt(size_t exponent, R)(R P)
+real nrt(size_t exponent, R)(R P)
 {
     import std.algorithm : reduce;
     auto f =P.precision._ff_!exponent();
-    double ret = reduce!((ret, B) => ret + reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B))(0.0, P);
+    real ret = reduce!((ret, B) => ret + reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B))(0.0, P);
     mixin (scale_and_return);
 }
 
@@ -140,26 +140,26 @@ double nrt(size_t exponent, R)(R P)
 * P = an array-of-integral-type range which has attributes precision and dimensionF2. If v is an output vector, v*2<sup>-precision</sup> is an element of [0..2<sup>m</sup>)<sup>s</sup>.
 
 Remarks:
-Using double, precision > 54 is no better than precision = 54.
+Using real, precision > 54 is no better than precision = 54.
 */
-double rapid_dick(size_t exponent, R)(R P)
+real rapid_dick(size_t exponent, R)(R P)
 {
-    double ret = 0;
+    real ret = 0;
     foreach (B; P)
     {
-        double cur = 1;
+        real cur = 1;
         foreach (l; B)
             cur *= l.rapid_wafom_factor!exponent(P.precision);
         ret += cur;//reduce!((cur, l) => cur * (l.rapid_wafom_factor!exponent(P.precision)))(1.0, B);
     }
     mixin (scale_and_return);
 }
-double rapid_proper_dick(size_t exponent, R)(R P)
+real rapid_proper_dick(size_t exponent, R)(R P)
 {
-    double ret = 0;
+    real ret = 0;
     foreach (B; P)
     {
-        double cur = 1;
+        real cur = 1;
         foreach (l; B)
             cur *= l.rapid_wafom_factor!(exponent, 1)(P.precision);
         ret += cur;//reduce!((cur, l) => cur * (l.rapid_wafom_factor!exponent(P.precision)))(1.0, B);
@@ -168,13 +168,13 @@ double rapid_proper_dick(size_t exponent, R)(R P)
 }
 
 /// ditto
-double slow_dick(size_t exponent, R)(R P)
+real slow_dick(size_t exponent, R)(R P)
 {
-    double ret = 0;
+    real ret = 0;
     auto f = factors(P.precision, exponent);
     foreach (B; P)
     {
-        double cur = 1;
+        real cur = 1;
         foreach (l; B)
             foreach (j, c; f)
                 cur *= c[(l >> j) & 1];
@@ -200,11 +200,11 @@ version (verbose) unittest
 }
 
 
-double rapid_wafom_factor(size_t exponent, size_t offset = 0)(ulong x, ptrdiff_t precision)
+real rapid_wafom_factor(size_t exponent, size_t offset = 0)(ulong x, ptrdiff_t precision)
 {
     debug auto memo = memoize!(get_memo_factor!exponent)(offset); // just memoize for debug, to compile faster.
     else static memo = get_memo_factor!exponent(offset); // CTFE for release, to execute faster.
-    double ret = 1;
+    real ret = 1;
     while (0 < precision)
     {
         ret *= memo[precision - 1][x & 255];
@@ -215,10 +215,10 @@ double rapid_wafom_factor(size_t exponent, size_t offset = 0)(ulong x, ptrdiff_t
 }
 
 
-double[256][64] get_memo_factor(size_t exponent)(size_t offset)
+real[256][64] get_memo_factor(size_t exponent)(size_t offset)
 {
     import std.algorithm : min, max;
-    double[256][64] ret;
+    real[256][64] ret;
     auto f = _factors(64, exponent, offset);
     foreach (i; 0..64)
     {
@@ -234,11 +234,11 @@ double[256][64] get_memo_factor(size_t exponent)(size_t offset)
     return ret;
 }
 
-double[2][] _factors(size_t precision, size_t exponent = 1, size_t offset = 0)
+real[2][] _factors(size_t precision, size_t exponent = 1, size_t offset = 0)
 {
     assert (precision);
-    auto ret = new double[2][precision];
-    double recip = 1.0;
+    auto ret = new real[2][precision];
+    real recip = 1.0;
     foreach (i; 0..exponent) recip /= 2;
     foreach (i; 0..2)
     {
@@ -283,7 +283,7 @@ private auto dick_wep(R)(R P)
 }
 
 /// WAFOM computed from dick weight enumerator polynomial.
-double precise_dick(size_t exponent, R)(R P)
+real precise_dick(size_t exponent, R)(R P)
 {
     return P.dick_wep().substinv!(1 << exponent)();
 }
@@ -301,7 +301,7 @@ string dick_weight_enumerator_polynomial(R)(R P)
 
 import std.bigint;
 import std.algorithm : max;
-private double toDouble(BigInt x)
+private real toDouble(BigInt x)
 {
     double f = 1;
     while (long.max < x)
@@ -402,21 +402,6 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
             ret /= x;
         return ret;
     }
-    deprecated double subst(double x, size_t scale)
-    {
-        double ret = 0;// = x;
-        foreach_reverse (i, c; coef)
-        {
-            if (i == 0) break;
-            ret += c.toDouble();
-            ret *= x;
-        }
-        foreach (i; 0..scale)
-        {
-            ret *= 0.5;
-        }
-        return ret;
-    }
 }
 
 Polynomial fromCSV(string line)
@@ -449,72 +434,4 @@ version (verbose) unittest
             "%.15f,%.15f,%.15f".writefln(P.wafom(), P.biwafom(), P.nrtwafom());
         }
     }
-}
-version(none):
-deprecated:
-
-debug = speedup;
-double wafom(R)(R P)
-{
-    import std.conv : text;
-    assert (P.precision);
-    double ret = 0;
-    debug (speedup) auto f = factors(P.precision, 1);
-    foreach (B; P)
-    {
-        double cur = 1;
-        debug (speedup) double cur_backup = 1;
-        foreach (l; B)
-        {
-            cur *= l.wafom_factor(P.precision);
-            debug (speedup) foreach (j, c; f) cur_backup *= c[(l >> j) & 1];
-        }
-        debug (speedup) auto diff = cur - cur_backup;
-        debug (speedup) {assert (diff * diff < 1e-10, text("diff = ", diff));}
-        ret += cur;
-    }
-    foreach (i; 0..P.dimensionF2)
-        ret *= 0.5;
-    return ret - 1;
-}
-
-version (verbose) unittest
-{
-    import pointset : randomPoints;
-    foreach (i; 0..10)
-    {
-        auto P = randomPoints!uint(4, 32, 10);
-        auto w = P.wafom();
-        auto m = P.mswafom();
-        debug (verbose) "wafom = %.15f; mswfm = %.15f".writefln(w, m);
-    }
-}
-
-double wafom_factor(ulong x, ptrdiff_t precision)
-{
-    debug auto memo = memoize!get_memo(); 
-    else static memo = get_memo(); 
-    double ret = 1;
-    while (0 < precision)
-    {
-        ret *= memo[precision - 1][x & 255];
-        precision -= 8;
-        x >>= 8;
-    }
-    return ret;
-}
-
-double[256][64] get_memo(size_t offset = 0)
-{
-    import std.algorithm : min, max;
-    double[256][64] ret;
-    auto f = _factors(64, offset);
-    foreach (i; 0..64)
-        foreach (j; 0..2 << min(i, 7))
-        {
-            ret[i][j] = 1;
-            foreach (k, c; f[$-(i+1)..$-max(0, i-7)])
-                ret[i][j] *= c[(j >> k) & 1];
-        }
-    return ret;
 }
