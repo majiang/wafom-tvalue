@@ -24,8 +24,9 @@ void main()
     foreach (P; getDigitalNets!U())
     {
         P.WRITEERRORS!(typeof (P),
-            x3, x4, x5, x6, x7,
-            exp100, cosp100, coss100, gauss100, pp100
+            //x3, x4, x5, x6, x7,
+            //exp100, cosp100, coss100, gauss100, pp100
+            exp050, exp200
             );
     }
 }
