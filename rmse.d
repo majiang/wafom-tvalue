@@ -12,7 +12,7 @@ void WRITEERRORS(R, F...)(R P)
     "%s,%.15e".writef(P, P.bipmswafom()); // unnecessary recalculate
     foreach (f; F)
         writef(",%.15e", P
-            .shifteds(P.precision.shifts!(typeof (P))(P.dimensionR, 10000))
+            .shifteds(P.precision.shifts!(typeof (P))(P.dimensionR, 1024))
             .integrationErrors!f()
             .squareRootMeanSquare()
             );
