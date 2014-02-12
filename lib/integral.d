@@ -13,7 +13,7 @@ private static flist = function (size_t n)
         ret ~= cur;
         cur *= 0.5;
     }
-    real ret ~ cur;
+    return ret ~ cur;
 }(65);
 
 /** Perform numerical integration of a function f: [0..1)<sup>s</sup> -> R by the point set P.

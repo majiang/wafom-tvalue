@@ -13,7 +13,7 @@ Params:
 tf = an alias. the integrand is given as tf.f, with its true integrated value tf.I.
 P = a point set.
 */
-double integrationError(alias tf, PointSetType)(PointSetType P)
+real integrationError(alias tf, PointSetType)(PointSetType P)
 {
     return -tf.I + P.bintegral!(tf.f, PointSetType)();
 }
@@ -34,7 +34,7 @@ auto squareRootMeanSquare(NumericRange)(NumericRange r)
     else static if (is (ElementType!NumericRange == real))
         real sum = 0;
     else
-        double sum = 0;
+        real sum = 0;
     static if (hasLength!NumericRange)
         ulong count = r.length;
     else
