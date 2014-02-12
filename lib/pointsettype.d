@@ -3,7 +3,10 @@ module lib.pointsettype;
 import exception = std.exception;
 import conv = std.conv;
 import random = std.random;
+import std.range : ElementType;
 import std.traits : isUnsigned;
+import std.array : array, empty, front, popFront;
+import std.typecons : tuple;
 debug import std.stdio;
 
 /// Safe types for point set property.
@@ -122,6 +125,11 @@ struct ShiftedBasisPoints(U, Size = size_t)
 	{
 		return this.shiftBy(shift);
 	}
+	typeof (this) opBinary(string op, T)(T scramble)
+		if (op == "*" && is (ElementType!T == bool))
+	{
+		return this.scrambleBy(scramble);
+	}
 	typeof (this) opBinary(string op)(in U[] vector)
 		if (op == "*")
 	{
@@ -163,17 +171,52 @@ ShiftedBasisPoints!U shiftBy(U)(in ShiftedBasisPoints!U P, in U[] shift)
 	return ShiftedBasisPoints!U(P.basis, P.precision, new_shift);
 }
 
-/// Extend P by a vector.
-ShiftedBasisPoints!U extendBy(U)(in ShiftedBasisPoints!U P, in U[] vector)
+/// Scramble P by a range of bits.
+auto scrambleBy(U, S)(ShiftedBasisPoints!U P, S scramble)
+	if (is (ElementType!S == bool))
+{
+	auto basis = new U[][](P.dimensionF2.m, P.dimensionR.s);
+	foreach (i; 0..P.dimensionF2.m)
+		basis[i][] = P.basis[i][];
+	foreach (i; 0..P.dimensionR.s)
+		foreach (j; 1..P.precision.n)
+			foreach (k; 0..j)
+			{
+				if (scramble.front)
+					foreach (l; 0..P.dimensionF2.m)
+						if (basis[l][i] >> j & 1)
+							basis[l][i] ^= (1 << k);
+				scramble.popFront();
+			}
+	return ShiftedBasisPoints!U(basis, P.precision);
+}
+
+/** Scramble P by uniformly and randomly selected nonsingular lower triangular matrix.
+
+complexity:
+O(n<sup>2</sup>sm) time and O(n(n+m)s) space.
+
+notes:
+Though scramble is returned tupled with P scrambled, recovering P is a complexed operation.
+*/
+auto scrambleRandomly(U)(ShiftedBasisPoints!U P)
+{
+	auto scramble = randomScrambleFor(P).array(); // freeze the scramble.
+	return tuple(P.scrambleBy(scramble), scramble);
+}
+
+/// Extend P by a vector or vectors.
+ShiftedBasisPoints!U extendBy(U, T)(in ShiftedBasisPoints!U P, in T vector)
+	if (is (T == U[]) || is (T == U[][]))
 {
 	return ShiftedBasisPoints!U(P.basis ~ vector, P.precision, P.shift);
 }
 
-/// Extend P by vectors.
-ShiftedBasisPoints!U extendBy(U)(in ShiftedBasisPoints!U P, in U[][] vectors)
-{
-	return ShiftedBasisPoints!U(P.basis ~ vectors, P.precision, P.shift);
-}
+// / Extend P by vectors.
+//ShiftedBasisPoints!U extendBy(U)(in ShiftedBasisPoints!U P, in U[][] vectors)
+//{
+//	return ShiftedBasisPoints!U(P.basis ~ vectors, P.precision, P.shift);
+//}
 
 /// Change precision of P.
 ShiftedBasisPoints!U changedTo(U)(in ShiftedBasisPoints!U P, Precision precision)
@@ -280,6 +323,7 @@ auto randomPointSet(U)(in Precision precision, in DimensionR dimensionR, in Dime
 	return ShiftedBasisPoints!U(uniform_vectors!U(precision, dimensionR, dimensionF2), precision);
 }
 
+
 /// Generate a vector to shift P.
 auto randomShiftFor(U)(ShiftedBasisPoints!U P)
 {
@@ -299,23 +343,22 @@ auto shiftRandomly(U)(ShiftedBasisPoints!U P)
 	return P + randomShiftFor(P);
 }
 
-/// Scramble P by uniformly and randomly selected nonsingular lower triangular matrix.
-/// Time complexity is O(n<sup>2</sup>sm).
-/// Currently one cannot retain the scrambling matrix from the result; to fix.
-auto scrambleRandomly(U)(ShiftedBasisPoints!U P)
+
+/// Generate a matrix to scramble P.
+auto randomScrambleFor(U)(ShiftedBasisPoints!U P)
 {
-	auto basis = new U[][](P.dimensionF2.m, P.dimensionR.s);
-	foreach (i; 0..P.dimensionF2.m)
-		basis[i][] = P.basis[i][];
-	foreach (i; 0..P.dimensionR.s)
-		foreach (j; 1..P.precision.n)
-			foreach (k; 0..j)
-				if (coin())
-					foreach (l; 0..P.dimensionF2.m)
-						if (basis[l][i] >> j & 1)
-							basis[l][i] ^= (1 << k);
-	return ShiftedBasisPoints!U(basis, P.precision);
+	return (P.dimensionR.s * (P.precision.n * (P.precision.n - 1) / 2)).coins();
 }
+
+/// Generate matrices to scramble P.
+auto randomScrambleFor(U)(ShiftedBasisPoints!U P, size_t numScramble)
+{
+	bool[][] ret;
+	foreach (i; 0..numScramble)
+		ret ~= (P.dimensionR.s * (P.precision.n * (P.precision.n - 1) / 2)).coins().array();
+	return ret;
+}
+
 
 /// Guess precision of a point set from its basis.
 auto guessPrecision(U)(U[][] basis)
@@ -360,36 +403,6 @@ auto fromString(U)(const(char)[] line)
 	return ShiftedBasisPoints!U(basis, Precision(n), shift);
 }
 
-
-version (stand_alone)
-void main()
-{
-	import std.array;
-	import std.stdio;
-
-	auto P = randomPointSet!(ubyte)
-		(Precision(8), DimensionR(1), DimensionF2(4));
-	auto Q = P.toString().fromString!ubyte();
-	foreach (x; P)
-	{
-		auto y = Q.front;
-		if (!Q.empty)
-			Q.popFront();
-		"%s %s %s".writefln(x, x == y ? "==" : "!=", y);
-	}
-	auto R = P.shiftRandomly();
-	auto S = P.extendBy(R.shift);
-	"%((%(%s %))%| %)".writefln(R.array());writeln();
-	"%((%(%s %))%| %)".writefln(S.array());
-	auto T = ShiftedBasisPoints!ubyte(P.basis, P.precision).scrambleRandomly();
-	foreach (x; ShiftedBasisPoints!ubyte(P.basis, P.precision))
-	{
-		"%(%08b %) -> %(%08b %)".writefln(x, T.front);
-		if (!T.empty)
-			T.popFront();
-	}
-}
-
 private auto bottom_zeros(Size)(Size x)
 {
 	assert (x);
@@ -402,7 +415,90 @@ private auto bottom_zeros(Size)(Size x)
 	return ret;
 }
 
-private auto coin()
+private auto coins(size_t count = 0)
 {
-	return random.uniform(0, 2) == 1;
+	static struct R
+	{
+	private:
+		immutable size_t count;
+		size_t position;
+		size_t rest;
+		size_t content;
+		bool _empty;
+		auto refresh()
+		{
+			content = random.uniform!("[]", size_t, size_t)(0, size_t.max);
+			rest = size_t.sizeof << 3;
+		}
+		this (size_t count)
+		{
+			this.count = count;
+			refresh();
+		}
+	public:
+		void popFront()
+		{
+			exception.enforce(!empty);
+			position += 1;
+			_empty = position == count;
+			if (_empty)
+				return;
+			rest -= 1;
+			content >>= 1;
+			if (!rest)
+				refresh;
+		}
+		@property bool empty()
+		{
+			return _empty;
+		}
+		@property bool front()
+		{
+			exception.enforce(!empty);
+			return content & 1;
+		}
+	}
+	return R(count);
+}
+
+version (stand_alone_pointset):
+
+import std.stdio;
+
+void writePoints(R)(R P)
+{
+	if (P.dimensionR.s == 1)
+		foreach (x; P)
+			conv.text("%0", P.precision.n, "b ").writef(x[0]);
+	else
+		foreach (x; P)
+			conv.text("%(%0", P.precision.n, "b %)").writefln(x);
+	writeln();
+}
+
+void writeReals(R)(R P)
+{
+	if (P.dimensionR.s == 1)
+		foreach (x; P.toReals())
+			"%.5f".writef(x[0]);
+	else
+		foreach (x; P.toReals())
+			"%(%.5f %)".writefln(x);
+}
+
+void main()
+{
+	foreach (m; [1, 2])
+	{
+		auto P = randomPointSet!ubyte
+			(Precision(8), DimensionR(m), DimensionF2(4));
+		P.writePoints();
+		P.toString().fromString!ubyte().writePoints();
+		auto Q = P.shiftRandomly();
+		Q.writePoints();
+		Q.toString().fromString!ubyte().writePoints();
+		auto R = P.scrambleRandomly()[0];
+		R.writePoints();
+		R.toString().fromString!ubyte().writePoints();
+	}
 }
