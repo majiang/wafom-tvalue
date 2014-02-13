@@ -5,7 +5,7 @@ import std.traits : isUnsigned;
 import std.math;
 import std.conv : to;
 
-import lib.pointset : Bisectable, isPointSet;
+import lib.pointsettype : Bisectable, isPointSet;
 
 debug import std.stdio;
 debug import lib.pointset : nonshiftedRandomBasisPoints;

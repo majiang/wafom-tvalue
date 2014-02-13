@@ -1,4 +1,4 @@
-module lib.sobol;
+module lib.newsobol;
 
 import lib.pointsettype;
 
@@ -17,7 +17,7 @@ auto sobolBasis(U)(in Precision precision, in DimensionR dimensionR, in Dimensio
 {
 	return
 		dimensionR.s.initialDirectionNumbers()
-		.map!(x => x.split(",").generateDirectionNumbers!U(dimensionF2.m).shift!U(precision.n)())()
+		.map!(x => x.split(",").generateDirectionNumbers!U(dimensionF2.m).shift!U(precision.n))()
 		.array().transpose();
 }
 

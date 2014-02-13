@@ -43,12 +43,22 @@ enum Bisectable(T) = is (typeof ({
 /// Check the point set property.
 enum isPointSet(T) = is (typeof ({
 	T P;
-	DimensionF2 dimensionF2 = P.dimensionF2;
-	DimensionR dimensionR = P.dimensionR;
-	Precision precision = P.precision;
+	size_t
+		dimensionF2 = P.dimensionF2,
+		dimensionR = P.dimensionR,
+		precision = P.precision;
 	foreach (x; P)
 	{}
 }));
+
+static assert (isPointSet!(ShiftedBasisPoints!ubyte));
+static assert (isPointSet!(ShiftedBasisPoints!ushort));
+static assert (isPointSet!(ShiftedBasisPoints!uint));
+static assert (isPointSet!(ShiftedBasisPoints!ulong));
+static assert (Bisectable!(ShiftedBasisPoints!ubyte));
+static assert (Bisectable!(ShiftedBasisPoints!ushort));
+static assert (Bisectable!(ShiftedBasisPoints!uint));
+static assert (Bisectable!(ShiftedBasisPoints!ulong));
 
 
 /// Standard point set type.
@@ -56,9 +66,9 @@ struct ShiftedBasisPoints(U, Size = size_t)
 	if (isUnsigned!U)
 {
 	alias U ComponentType;
-	DimensionF2 dimensionF2;///
-	DimensionR dimensionR;///
-	Precision precision;///
+	immutable size_t dimensionF2;///
+	immutable size_t dimensionR;///
+	immutable size_t precision;///
 	immutable Size length;
 	private
 	{
@@ -77,13 +87,13 @@ struct ShiftedBasisPoints(U, Size = size_t)
 	}
 	body
 	{
-		this.dimensionF2 = DimensionF2(basis.length);
-		this.dimensionR = DimensionR(shift.length);
-		this.precision = precision;
-		this.length = (cast(typeof (this.length)) 1) << (this.dimensionF2.m);
+		this.dimensionF2 = basis.length;
+		this.dimensionR = shift.length;
+		this.precision = precision.n;
+		this.length = (cast(typeof (this.length)) 1) << (this.dimensionF2);
 		this.position = 0;
 		foreach (b; basis)
-			assert (this.dimensionR.s == b.length);
+			assert (this.dimensionR == b.length);
 		this.basis = basis;
 		this.shift = shift;
 		this.current = this.shift.dup;
@@ -112,7 +122,7 @@ struct ShiftedBasisPoints(U, Size = size_t)
 	}
 	string toString()/// Serialize into ASCII. The inverse of fromString!U.
 	{
-		string ret = conv.text(precision.n, " ", dimensionF2.m, " ", dimensionR.s);
+		string ret = conv.text(precision, " ", dimensionF2, " ", dimensionR);
 		foreach (l; basis)
 			foreach (x; l)
 				ret ~= conv.text(" ", x);
@@ -145,16 +155,29 @@ struct ShiftedBasisPoints(U, Size = size_t)
 	{
 		return this.changedTo(Precision(precision.n + (op == "<<" ? 1 : -1) * amount));
 	}
+	@property bool bisectable()
+	{
+		if (this.dimensionR == 1)
+			return 1 < this.basis.length;
+		return 10 < this.basis.length;
+	}
+	typeof (this)[2] bisect()
+	{
+		exception.enforce(this.bisectable);
+		auto former = typeof (this)(this.basis[1..$], Precision(this.precision), this.shift);
+		return [former, former + basis[0]];
+	}
 }
-
+version (none)
 /// Check if P is bisectable.
 @property bool bisectable(U)(in ShiftedBasisPoints!U P)
 {
-	if (P.dimensionR.s == 1)
+	if (P.dimensionR == 1)
 		return 1 < P.basis.length;
 	return 10 < P.basis.length;
 }
 
+version (none)
 /// Bisect P if possible; otherwise throw exception.
 ShiftedBasisPoints!U[2] bisect(U)(in ShiftedBasisPoints!U P)
 {
@@ -168,27 +191,27 @@ ShiftedBasisPoints!U shiftBy(U)(in ShiftedBasisPoints!U P, in U[] shift)
 {
 	auto new_shift = P.shift.dup;
 	new_shift[] ^= shift[];
-	return ShiftedBasisPoints!U(P.basis, P.precision, new_shift);
+	return ShiftedBasisPoints!U(P.basis, Precision(P.precision), new_shift);
 }
 
 /// Scramble P by a range of bits.
 auto scrambleBy(U, S)(ShiftedBasisPoints!U P, S scramble)
 	if (is (ElementType!S == bool))
 {
-	auto basis = new U[][](P.dimensionF2.m, P.dimensionR.s);
-	foreach (i; 0..P.dimensionF2.m)
+	auto basis = new U[][](P.dimensionF2, P.dimensionR);
+	foreach (i; 0..P.dimensionF2)
 		basis[i][] = P.basis[i][];
-	foreach (i; 0..P.dimensionR.s)
-		foreach (j; 1..P.precision.n)
+	foreach (i; 0..P.dimensionR)
+		foreach (j; 1..P.precision)
 			foreach (k; 0..j)
 			{
 				if (scramble.front)
-					foreach (l; 0..P.dimensionF2.m)
+					foreach (l; 0..P.dimensionF2)
 						if (basis[l][i] >> j & 1)
 							basis[l][i] ^= (1 << k);
 				scramble.popFront();
 			}
-	return ShiftedBasisPoints!U(basis, P.precision);
+	return ShiftedBasisPoints!U(basis, Precision(P.precision));
 }
 
 /** Scramble P by uniformly and randomly selected nonsingular lower triangular matrix.
@@ -221,15 +244,15 @@ ShiftedBasisPoints!U extendBy(U, T)(in ShiftedBasisPoints!U P, in T vector)
 /// Change precision of P.
 ShiftedBasisPoints!U changedTo(U)(in ShiftedBasisPoints!U P, Precision precision)
 {
-	if (P.precision.n == precision.n)
+	if (P.precision == precision.n)
 		return P;
 	U[][] basis;
 	foreach (base; P.basis)
 		basis ~= base.dup;
 	U[] shift = P.shift.dup;
-	if (P.precision.n < precision.n)
+	if (P.precision < precision.n)
 	{
-		immutable precisionIncrement = precision.n - P.precision.n;
+		immutable precisionIncrement = precision.n - P.precision;
 		foreach (base; basis)
 			foreach (ref b; base)
 				b <<= precisionIncrement;
@@ -238,7 +261,7 @@ ShiftedBasisPoints!U changedTo(U)(in ShiftedBasisPoints!U P, Precision precision
 	}
 	else
 	{
-		immutable precisionDecrement = P.precision.n - precision.n;
+		immutable precisionDecrement = P.precision - precision.n;
 		foreach (base; basis)
 			foreach (ref b; base)
 				b >>= precisionDecrement;
@@ -251,13 +274,13 @@ ShiftedBasisPoints!U changedTo(U)(in ShiftedBasisPoints!U P, Precision precision
 /// Change dimensionF2 of P.
 ShiftedBasisPoints!U changedTo(U)(in ShiftedBasisPoints!U P, DimensionF2 dimensionF2)
 {
-	return ShiftedBasisPoints!U(basis[0..dimensionF2.m], P.precision, P.shift);
+	return ShiftedBasisPoints!U(basis[0..dimensionF2], P.precision, P.shift);
 }
 
 /// ditto
 ShiftedBasisPoints!U dimensionF2ShrinkBy(U)(in ShiftedBasisPoints!U P, size_t decrement)
 {
-	return P.changedTo!(DimensionF2(P.dimensionF2.m - decrement));
+	return P.changedTo!(DimensionF2(P.dimensionF2 - decrement));
 }
 
 import std.math;
@@ -272,7 +295,7 @@ auto toReals(F, U)(ShiftedBasisPoints!U P)
 		this (ShiftedBasisPoints!U P)
 		{
 			this.P = P;
-			this.factor = 0.5 ^^ (cast(F)(P.precision.n));
+			this.factor = 0.5 ^^ (cast(F)(P.precision));
 			this.shift = this.factor * 0.5;
 			foreach (x; P.front)
 				current ~= x * factor + shift;
@@ -347,15 +370,15 @@ auto shiftRandomly(U)(ShiftedBasisPoints!U P)
 /// Generate a matrix to scramble P.
 auto randomScrambleFor(U)(ShiftedBasisPoints!U P)
 {
-	return (P.dimensionR.s * (P.precision.n * (P.precision.n - 1) / 2)).coins();
+	return (P.dimensionR * (P.precision * (P.precision - 1) / 2)).coins();
 }
 
 /// Generate matrices to scramble P.
-auto randomScrambleFor(U)(ShiftedBasisPoints!U P, size_t numScramble)
+auto randomScramblesFor(U)(ShiftedBasisPoints!U P, size_t numScramble)
 {
 	bool[][] ret;
 	foreach (i; 0..numScramble)
-		ret ~= (P.dimensionR.s * (P.precision.n * (P.precision.n - 1) / 2)).coins().array();
+		ret ~= (P.dimensionR * (P.precision * (P.precision - 1) / 2)).coins().array();
 	return ret;
 }
 
@@ -467,18 +490,18 @@ import std.stdio;
 
 void writePoints(R)(R P)
 {
-	if (P.dimensionR.s == 1)
+	if (P.dimensionR == 1)
 		foreach (x; P)
-			conv.text("%0", P.precision.n, "b ").writef(x[0]);
+			conv.text("%0", P.precision, "b ").writef(x[0]);
 	else
 		foreach (x; P)
-			conv.text("%(%0", P.precision.n, "b %)").writefln(x);
+			conv.text("%(%0", P.precision, "b %)").writefln(x);
 	writeln();
 }
 
 void writeReals(R)(R P)
 {
-	if (P.dimensionR.s == 1)
+	if (P.dimensionR == 1)
 		foreach (x; P.toReals())
 			"%.5f".writef(x[0]);
 	else
