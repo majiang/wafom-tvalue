@@ -5,7 +5,7 @@ import lib.integral;
 
 import std.range : ElementType, hasLength;
 import std.traits : ReturnType;
-import std.algorithm : map;
+import std.algorithm : map, reduce;
 
 /** Calculate integration error of a function by a point set.
 
@@ -24,6 +24,18 @@ Ps = point sets.
 auto integrationErrors(alias tf, PointSetTypeRange)(PointSetTypeRange Ps)
 {
     return Ps.map!(integrationError!(tf, ElementType!PointSetTypeRange))();
+}
+auto integrationStdev(alias f, PointSetTypeRange)(PointSetTypeRange Ps)
+{
+    auto I = Ps.map!(bintegral!(f, ElementType!PointSetTypeRange))();
+    auto sum = I.reduce!((a, b) => a + b)();
+    static if (hasLength!(typeof (I)))
+        immutable ulong count = I.length;
+    else
+        immutable ulong count = I.walkLength();
+    immutable average = sum / count;
+    sum = (cast(ElementType!I)0).reduce((a, b) => a + (b - average) * (b - average)();
+     return (sum / (count - 1)).sqrt();
 }
 
 auto squareRootMeanSquare(NumericRange)(NumericRange r)

@@ -73,7 +73,7 @@ The best state found in any of the iteration.
 auto do_anneal(in size_t dimensionR, in size_t dimensionF2)
 {
 	auto iteration = min_iteration;
-	Tuple!(PointSet, double)[] results;
+	Tuple!(PointSet, real)[] results;
 	while (iteration <= max_iteration)
 	{
 		results ~= iteration.anneal!
@@ -82,7 +82,7 @@ auto do_anneal(in size_t dimensionR, in size_t dimensionF2)
 				(bipmswafom,
 					(() => randomDigitalNet(precision, dimensionR, dimensionF2)))[0]
 				),
-			neighborPointSet!1, KirkpatrickAcceptance)
+			neighborPointSet!(1, EuclideanRandomVectors), KirkpatrickAcceptance)
 			(default_start_temperature, default_end_temperature);
 		iteration <<= 1;
 	}
@@ -188,9 +188,9 @@ auto anneal(
 }
 
 ///
-auto neighborPointSet(size_t distance)(PointSet P)
+auto neighborPointSet(size_t distance, alias rvectors = randomVectors)(PointSet P)
 {
-	auto vectors = P.precision.randomVectors!U(P.dimensionR, distance);
+	auto vectors = rvectors!U(P.precision, P.dimensionR, distance);
 	auto xor_at = P.dimensionF2.randomVector!U(distance);
 	auto basis = P.basis.ddup();
 	foreach (i, vector; vectors)
@@ -199,6 +199,23 @@ auto neighborPointSet(size_t distance)(PointSet P)
 				foreach (k, v; vector)
 					b[k] ^= v;
 	return PointSet(basis, P.precision);
+}
+
+auto EuclideanRandomVectors(U)(size_t precision, size_t dimensionR, size_t distance)
+{
+import std.random : uniform;
+	U[][] ret;
+	foreach (i; 0..distance)
+	{
+		ret ~= new U[dimensionR];
+		U b = 1;
+		foreach (j; 0..precision)
+		{
+			ret[$-1][0.uniform(dimensionR)] |= j;
+			j <<= 1;
+		}
+	}
+	return ret;
 }
 
 import std.math;

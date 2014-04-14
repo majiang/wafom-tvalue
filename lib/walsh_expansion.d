@@ -11,7 +11,7 @@ void main(string[] args)
 	import std.conv : to;
 	import std.string : strip;
 	foreach (line; args[1..$])
-		"%(%.15f,%)".writefln(line.strip().to!size_t().walsh!mb().bitrev());
+		"%(%.15f,%)".writefln(line.strip().to!size_t().walsh!exphi().bitrev());
 		//line.strip().to!size_t().walsh!trivial().bitrev().writeln();
 		//line.strip().to!size_t().walsh!pxe().bitrev().writeln();
 }
@@ -19,6 +19,12 @@ void main(string[] args)
 auto trivial(real x)
 {
 	return x < 0.25 ? 1 : 0;
+}
+
+auto exphi(real x)
+{
+	import std.mathspecial : normalDistributionInverse;
+	return x.normalDistributionInverse().exp();
 }
 
 auto mb(real x)
