@@ -1,6 +1,7 @@
-import lib.sobol;
+import lib.newsobol;
 import lib.pointsettype;
 import lib.wafom;
+import std.math : lg  = log2;
 
 void main(string[] args)
 {
@@ -10,11 +11,12 @@ void main(string[] args)
     args.popFront();
     foreach (dimensionF2; args[1].to!size_t() .. args[2].to!size_t())
     {
-        auto P = defaultSobols(DimensionR(args[0].to!size_t()), Precision(32), DimensionF2(dimensionF2));
+        auto P = sobolPointSet!uint(Precision(32), DimensionR(args[0].to!size_t()), DimensionF2(dimensionF2));
         foreach (i; 0..args[3].to!size_t())
         {
-            auto Q = P.scrambleRandomly();
-            "%s,%.15f,%.15f".writefln(Q, Q.bimswafom().lg(), Q.bimsnrtwafom().lg());
+            auto sP = P.scrambleRandomly();
+            auto Q = sP[0], s = sP[1];
+            "%s,%(%b%),%.15f,%.15f".writefln(Q, s, Q.bimswafom().lg(), Q.bimsnrtwafom().lg());
         }
     }
 }

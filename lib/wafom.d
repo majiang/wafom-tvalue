@@ -79,9 +79,9 @@ private real[] _ff_(size_t exponent)(in size_t precision)
 {
     static assert (exponent == 1 || exponent == 2);
     static if (exponent == 0)
-        auto ret = [precision * 0.5 + 1];
+        real[] ret = [precision * 0.5 + 1];
     else
-        auto ret = [1.5 - 0.5 ^^ (precision + 1)];
+        real[] ret = [1.5 - 0.5 ^^ (precision + 1)];
     foreach (i; 1..(precision + 1))
     {
         static if (exponent == 1)
