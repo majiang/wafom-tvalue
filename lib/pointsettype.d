@@ -194,7 +194,7 @@ ShiftedBasisPoints!U shiftBy(U)(in ShiftedBasisPoints!U P, in U[] shift)
 	return ShiftedBasisPoints!U(P.basis, Precision(P.precision), new_shift);
 }
 
-/// Scramble P by a range of bits.
+/// Scramble P by a nonsingular lower triangular matrix.
 auto scrambleBy(U, S)(ShiftedBasisPoints!U P, S scramble)
 	if (is (ElementType!S == bool))
 {
