@@ -47,11 +47,11 @@ out (result)
 body
 {
     static if (is (U == ulong))
-        {x ^= x >> 32; x >>= 0x100000000UL - 1;}
+        {x ^= x >> 32; x &= 0x100000000UL - 1;}
     static if (is (U == ulong) || is (U == uint))
-        {x ^= x >> 16; x >>= 0x10000U - 1;}
+        {x ^= x >> 16; x &= 0x10000U - 1;}
     static if (is (U == ulong) || is (U == uint) || is (U == ushort))
-        {x ^= x >> 8; x >>= 0x100U - 1;}
+        {x ^= x >> 8; x &= 0x100U - 1;}
     x ^= x >> 4; x &= 0x10U - 1;
     x ^= x >> 2; x &= 4-1;
     x ^= x >> 1; x &= 2-1;
@@ -113,13 +113,12 @@ auto directSum(U)(U[] a, U[] b)
     auto ret = a ~ b;
     foreach (i; 0..a.length)
         ret[i] <<= b.length;
-    ret.writeln();
     return ret;
 }
 
 /** Multiply a matrix from the left to each coordinate.
 */
-auto multiplyMatrices(U)(U[][] basis, U[][] matrices)
+auto multiplyMatrices(U)(in U[][] basis, U[][] matrices)
     if (isUnsigned!U)
 {
     immutable dimB = enforce(basis.length);
@@ -136,7 +135,7 @@ auto multiplyMatrices(U)(U[][] basis, U[][] matrices)
 /** Yoshiki scramble: multiplying the direct sum of a random matrix and the identity matrix from the left.
 
 bugs: no linear independecy check */
-auto multiplyRandomMatrices(U)(U[][] basis, size_t precision, size_t distance)
+auto multiplyRandomMatrices(U)(in U[][] basis, size_t precision, size_t distance)
 {
     immutable dimB = enforce(basis.length);
     immutable dimR = enforce(basis[0].length);
