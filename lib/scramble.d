@@ -3,6 +3,9 @@ module lib.scramble;
 import std.random : uniform;
 import std.algorithm : swap;
 import std.exception : enforce;
+import std.string : format;
+import std.array;
+import std.conv : text;
 
 auto deepcopy(U)(in U[][] basis)
 {
@@ -60,7 +63,6 @@ body
 
 bool isLinearlyIndependent(U)(U[] a)
 {
-    import std.array;
     import std.algorithm;
     auto x = a.dup;
     while (!x.empty)
@@ -71,7 +73,7 @@ bool isLinearlyIndependent(U)(U[] a)
         foreach (i; 0..x.length-1)
             if (x[i] >> (x.length-1))
                 x[i] ^= x[$-1];
-        x = x[0..$-1];
+        x.length -= 1;
     }
     return true;
 }
@@ -146,6 +148,102 @@ auto multiplyRandomMatrices(U)(in U[][] basis, size_t precision, size_t distance
     return basis.multiplyMatrices(matrices);
 }
 
+alias Precision = size_t;
+alias DimensionR = size_t;
+
+struct LargeMatrix(U)
+    if (isUnsigned!U)
+{
+    immutable size_t precision, dimensionR, size;
+    enum bpe = U.sizeof << 3;
+    U[][] bits;
+
+    this (Precision precision, DimensionR dimensionR)
+    {
+        this.precision = precision;
+        assert (this.precision <= bpe);
+        this.dimensionR = enforce(dimensionR);
+        this.size = this.precision * this.dimensionR;
+        this.bits = new U[][](size, this.dimensionR);
+    }
+    string toString()
+    {
+import std.conv : text;
+        return text("%(%(%0", this.precision, "b%)\n%)").format(bits);
+    }
+    const bool opIndex(size_t i, size_t j)
+    {
+        return bits[i][j/precision] >> (precision - 1 - j % precision) & 1;
+    }
+    auto setDiagonal()
+    {
+        foreach (i; 0..this.size)
+            this[i, i] = true;
+        return this;
+    }
+    bool opIndexAssign(bool bit, size_t i, size_t j)
+    {
+        if (bit)
+            return !!(bits[i][j/precision] |= cast(U)1 << (precision - 1 - j % precision));
+        else
+            return !!(bits[i][j/precision] &= ~(cast(U)1 << (precision - 1 - j % precision)));
+    }
+    U[] opBinary(string op)(U[] vector)
+        if (op == "*")
+    {
+        enforce(vector.length == dimensionR);
+        auto ret = new U[dimensionR];
+        foreach (r, row; bits)
+        {
+            immutable size_t s = r / precision, n = precision - 1 - r % precision;
+            U tmp = 0;
+            foreach (j, e; row)
+                tmp ^= e & vector[j];
+            ret[s] |= tmp.sumB() << n;
+        }
+        return ret;
+        }
+    U[][] opBinary(string op)(U[][] basis)
+        if (op == "*")
+    {
+        U[][] ret;
+        foreach (vector; basis)
+            ret ~= this * vector;
+        return ret;
+    }
+}
+
+auto getBit(U)(U[] bitseq, size_t index, Precision precision)
+{
+    //"getBit(%d, %d) = [%d] >> %d & 1".writefln(index, precision, bitseq.length - 1 - index/precision, index % precision);
+    return !!(bitseq[bitseq.length - 1 - index/precision] >> (index % precision) & 1);
+}
+
+auto isNonsingular(U)(LargeMatrix!U m)
+{
+    import std.algorithm;
+    auto x = m.bits.deepcopy();
+    while (!x.empty)
+    {
+        sort(x);
+        //x.outputMatrix(m.precision);
+        if (!x[$-1].getBit(x.length-1, m.precision))
+        {
+            //"returning false".writeln();readln();
+            return false;
+        }
+        auto last_row = x[$-1];
+        x.length -= 1;
+        foreach (i, ref r; x)
+            if (r.getBit(x.length, m.precision))
+                foreach (j, ref e; r)
+                    e ^= last_row[j];
+    }
+    //"returning true".writeln();readln();
+    return true;
+}
+
+
 version (old)
 auto multiplyRandomMatrices(U)(U[][] basis, size_t precision, size_t distance)
 {
@@ -173,32 +271,59 @@ auto multiplyRandomMatrices(U)(U[][] basis, size_t precision, size_t distance)
 version (stand_alone):
 import std.stdio;
 
-void notmain()
+auto testLM(U)()
 {
-    import std.algorithm;
-    import std.array;
-    foreach (i; 0..10)
+    "in".writeln();
+    import std.random : uniform;
+    enum size_t size = 48, precision = 6 * U.sizeof, dimR = size / precision;
+    enum U mask = U.max >> ((U.sizeof << 3) - precision);
+    enum num1 = 10;
+    auto m = LargeMatrix!U(precision, dimR).setDiagonal();
+    assert (m.isNonsingular());
+    foreach (k; 0..num1)
+        m[0.uniform(size), 0.uniform(size)] = true;
+    "enter while".writeln();
+    while (!m.isNonsingular())
     {
-        auto a = 4.randomMatrix!ubyte();
-        a.map!(r => [r]).array().output();
-        a.isLinearlyIndependent().writeln();
+        auto i = 0.uniform(size), j = 0.uniform(size);
+        m[i, j] = !m[i, j];
     }
+    m.toString().writeln();
+    auto v = new U[dimR];
+    foreach (i; 0..v.length)
+        v[i] = (U.max >> ((U.sizeof << 3) + i - precision));
+    text("%(%0", precision, "b %)").writefln(v);
+    text("%(%0", precision, "b %)").writefln(m * v);
+
+    enum numtry = 10000;
+    double countnonsingular = 0;
+    m.bits = LargeMatrix!U(precision, dimR).bits;
+    foreach (i; 0..numtry)
+    {
+        foreach (ref row; m.bits)
+            foreach (ref e; row)
+                e ^= 0.uniform!("[]", U, U)(mask);
+        if (m.isNonsingular())
+            countnonsingular += 1;
+    }
+    writeln("nonsingular probability = ", countnonsingular / numtry);
 }
 
 void main()
 {
-    ubyte[][] b = [[128, 255], [0, 128], [128, 127]];
-    b.output();
-    foreach (i; 0..9)
-    {
-        writeln(i);
-        foreach (j; 0..10)
-            b.multiplyRandomMatrices(8, i).output();
-    }
+    testLM!ulong();
+    testLM!uint();
+    testLM!ushort();
+    testLM!ubyte();
 }
 
 auto output(U)(U[][] basis)
 {
     "%(%(%08b %)\n%)\n".writefln(basis);
     return basis;
+}
+
+void outputMatrix(U)(U[][] bits, size_t precision)
+{
+    text("%(%(%0", precision, "b%)\n%)").format(bits).writeln();writeln();
 }
