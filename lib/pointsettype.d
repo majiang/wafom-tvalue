@@ -70,10 +70,10 @@ struct ShiftedBasisPoints(U, Size = size_t)
 	immutable size_t dimensionR;///
 	immutable size_t precision;///
 	immutable Size length;
+	const U[][] basis;
 	private
 	{
 		Size position;
-		const U[][] basis;
 		const U[] shift;
 		U[] current;
 	}
