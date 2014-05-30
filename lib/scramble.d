@@ -172,6 +172,12 @@ import std.conv : text;
         return text("%(%(%0", this.precision, "b%)\n%)").format(bits);
     }
     const bool opIndex(size_t i, size_t j)
+    in
+    {
+        assert (i < size);
+        assert (j < size);
+    }
+    body
     {
         return bits[i][j/precision] >> (precision - 1 - j % precision) & 1;
     }
@@ -182,6 +188,12 @@ import std.conv : text;
         return this;
     }
     bool opIndexAssign(bool bit, size_t i, size_t j)
+    in
+    {
+        assert (i < size);
+        assert (j < size);
+    }
+    body
     {
         if (bit)
             return !!(bits[i][j/precision] |= cast(U)1 << (precision - 1 - j % precision));
@@ -243,6 +255,65 @@ auto isNonsingular(U)(LargeMatrix!U m)
     return true;
 }
 
+auto largeRandomMatrix(U)(Precision precision, DimensionR dimensionR)
+{
+    auto ret = LargeMatrix!U(precision, dimensionR);
+    auto size = precision * dimensionR;
+    foreach (i; 0..size)
+        foreach (j; 0..size)
+            ret[i, j] = uniform(0, 2) == 1;
+    return ret;
+}
+
+auto largeRandomNonsingularMatrix(U)(Precision precision, DimensionR dimensionR)
+{
+    while (true)
+    {
+        auto ret = largeRandomMatrix!U(precision, dimensionR);
+        if (ret.isNonsingular())
+            return ret;
+    }
+    assert (false);
+}
+
+auto largeRandomIdentity(U)(Precision precision, DimensionR dimensionR, size_t degree_of_scrambling)
+{
+    auto I = LargeMatrix!U(precision - degree_of_scrambling, dimensionR);
+    I.setDiagonal();
+    return largeRandomNonsingularMatrix!U(degree_of_scrambling, dimensionR).directSum(I);
+}
+
+auto directSum(U)(LargeMatrix!U a, LargeMatrix!U b)
+{
+    enforce(a.dimensionR == b.dimensionR);
+    immutable
+        precision = a.precision + b.precision,
+        dimR = a.dimensionR;
+    auto ret = LargeMatrix!U(a.precision + b.precision, a.dimensionR);
+    // a
+    foreach (s; 0..dimR)
+        foreach (t; 0..a.precision)
+            foreach (u; 0..dimR)
+                foreach (v; 0..a.precision)
+                {
+//                    debug "ret[%d, %d] = a[%d, %d]".writefln(s * precision + t, u * precision + v, s * a.precision + t, u * a.precision + v);
+                    ret[s * precision + t, u * precision + v]
+                    = a[s * a.precision + t, u * a.precision + v];
+//                    debug readln();
+                }
+    // b
+    foreach (s; 0..dimR)
+        foreach (t; 0..b.precision)
+            foreach (u; 0..dimR)
+                foreach (v; 0..b.precision)
+                {
+//                    debug "ret[%d, %d] = b[%d, %d]".writefln(s * precision + a.precision + t, u * precision + a.precision + v, s * b.precision + t, u * b.precision + v);
+                    ret[s * precision + a.precision + t, u * precision + a.precision + v]
+                    = b[s * b.precision + t, u * b.precision + v];
+//                    debug readln();
+                }
+    return ret;
+}
 
 version (old)
 auto multiplyRandomMatrices(U)(U[][] basis, size_t precision, size_t distance)
@@ -271,10 +342,24 @@ auto multiplyRandomMatrices(U)(U[][] basis, size_t precision, size_t distance)
 version (stand_alone):
 import std.stdio;
 
+void main()
+{
+    testLMall();
+}
+
 auto testLM(U)()
 {
+    enum size_t size = 48, precision = 6 * U.sizeof, dimR = size / precision;
+    foreach (d_of_scrambling; [3, 6])
+    {
+        largeRandomIdentity!U(precision, dimR, d_of_scrambling).toString().writeln();
+        writeln();
+    }
+}
+
+auto oldtestLM(U)()
+{
     "in".writeln();
-    import std.random : uniform;
     enum size_t size = 48, precision = 6 * U.sizeof, dimR = size / precision;
     enum U mask = U.max >> ((U.sizeof << 3) - precision);
     enum num1 = 10;
@@ -309,8 +394,9 @@ auto testLM(U)()
     writeln("nonsingular probability = ", countnonsingular / numtry);
 }
 
-void main()
+void testLMall()
 {
+    import std.stdio;
     testLM!ulong();
     testLM!uint();
     testLM!ushort();
