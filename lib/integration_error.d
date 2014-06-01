@@ -3,6 +3,7 @@ module lib.integration_error;
 import lib.integral;
 //import testfunction;
 
+debug import std.stdio;
 import std.range : ElementType, hasLength;
 import std.traits : ReturnType;
 import std.algorithm : map, reduce;
@@ -25,6 +26,43 @@ auto integrationErrors(alias tf, PointSetTypeRange)(PointSetTypeRange Ps)
 {
     return Ps.map!(integrationError!(tf, ElementType!PointSetTypeRange))();
 }
+auto sumSquareDiff(F)(F[] arr)
+{
+    import std.container;
+    F[] sd;
+    foreach (i, x; arr)
+        foreach (j, y; arr)
+        {
+            if (i == j)
+                break;
+            sd ~= (x-y) * (x-y);
+        }
+    F ret = 0;
+    auto h = sd.heapify!"a > b"();
+    while (!h.empty())
+    {
+        debug "%.5f + %.5f = %.5f".writefln(ret, h.front, h.front+ret);
+        ret += h.front;
+        h.removeFront();
+        if (h.empty())
+            break;
+        if (ret <= h.front)
+            continue;
+        h.insert(ret);
+        ret = h.front;
+        h.removeFront();
+    }
+    return ret;
+}
+/// Integral f by each P in Ps and return the unbiased variance.
+auto integrationStdevPreciseSlow(alias f, PointSetTypeRange)(PointSetTypeRange Ps)
+{
+    auto I = Ps.map!(bintegral!(f, ElementType!PointSetTypeRange))().array();
+    auto ss = sumSquareDiff(I);
+    immutable n = I.length;
+    return (ss / (n * (n-1))).sqrt();
+}
+/// ditto
 auto integrationStdev(alias f, PointSetTypeRange)(PointSetTypeRange Ps)
 {
     auto I = Ps.map!(bintegral!(f, ElementType!PointSetTypeRange))();
@@ -34,10 +72,10 @@ auto integrationStdev(alias f, PointSetTypeRange)(PointSetTypeRange Ps)
     else
         immutable ulong count = I.walkLength();
     immutable average = sum / count;
-    sum = (cast(ElementType!I)0).reduce((a, b) => a + (b - average) * (b - average)();
+    sum = (cast(ElementType!I)0).reduce((a, b) => a + (b - average) * (b - average))();
      return (sum / (count - 1)).sqrt();
 }
-
+/// Given a range of numbers, return the square root of the mean square of its elements.
 auto squareRootMeanSquare(NumericRange)(NumericRange r)
 {
     import std.math : sqrt;
