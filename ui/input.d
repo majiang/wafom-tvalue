@@ -8,13 +8,13 @@ import std.traits : isUnsigned;
 
 auto getDigitalNet(U)() if (isUnsigned!U)
 {
-    import lib.pointset : fromString;
+    import lib.pointsettype : fromString;
     return stdin.readln().fromString!U();
 }
 
 auto getDigitalNets(U)() if (isUnsigned!U)
 {
-    import lib.pointset : fromString;
+    import lib.pointsettype : fromString;
     import std.traits : ReturnType;
     alias ReturnType!(fromString!U) P;
     struct R

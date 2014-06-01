@@ -1,8 +1,9 @@
 module lib.integral;
 
 import std.stdio;
-import std.traits : isUnsigned;
-import lib.pointsettype : Bisectable;
+import lib.pointsettype : Bisectable, toReals;
+import std.traits : ParameterTypeTuple;
+import std.range : ElementType;
 
 private static flist = function (size_t n)
 {
@@ -34,13 +35,9 @@ double result = integral!f(randomPoints(dimension, precision, lg_length));
 */
 real integral(alias f, R)(R P)// if (isUnsigned!T)
 {
-    real factor = flist[P.precision];
-    real shift = flist[P.precision + 1];
     real result = 0;
-    foreach (x; P)
-    {
-        result += f(x.affine(factor, shift));
-    }
+    foreach (x; P.toReals!real())
+        result += f(x);
     return result * flist[P.dimensionF2];
 }
 
@@ -53,15 +50,4 @@ real bintegral(alias f, R)(R P) if (Bisectable!R)
         return (Q[0].bintegral!(f, R) + Q[1].bintegral!(f, R)) * 0.5;
     }
     return P.integral!(f, R)();
-}
-
-private real[] affine(T)(T[] x, real factor, real shift) if (isUnsigned!T)
-{
-    auto ret = new real[x.length];
-    //ret[] = x[] * factor + shift;
-    foreach (i, c; x)
-    {
-        ret[i] = c * factor + shift;
-    }
-    return ret;
 }

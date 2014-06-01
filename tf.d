@@ -5,7 +5,7 @@ import std.range : iota;
 alias reduce!((a, b) => a + b) sumation;
 alias reduce!((a, b) => a * b) product;
 
-enum size_t S = 12;
+enum size_t S = 4;
 
 //alias monomial!(1, S) x1; alias monomial!(2, S) x2; alias monomial!(3, S) x3; alias monomial!(4, S) x4;
 alias monomial!(5, S) x5; alias monomial!(6, S) x6; alias monomial!(7, S) x7; alias monomial!(8, S) x8;
@@ -37,7 +37,7 @@ unittest
 
 template monomial(size_t u, size_t s)
 {
-    real f(real[] xs)
+    real f(in real[] xs)
     in
     {
         assert (xs.length == s);
@@ -52,7 +52,7 @@ template monomial(size_t u, size_t s)
 // a = (large weight; good function) 0.25, 0.5, 1.0, 2.0, 4.0 (small weight; bad function)
 template exponential(real a, size_t s)
 {
-    real f(real[] xs)
+    real f(in real[] xs)
     in
     {
         assert (xs.length == s);
@@ -66,7 +66,7 @@ template exponential(real a, size_t s)
 
 template cosineProd(real a, size_t s)
 {
-    real f(real[] xs)
+    real f(in real[] xs)
     in
     {
         assert (xs.length == s);
@@ -94,7 +94,7 @@ body
 
 template cosineOfSum(real a, size_t s)
 {
-    real f(real[] xs)
+    real f(in real[] xs)
     in
     {
         assert (xs.length == s);
@@ -111,7 +111,7 @@ template cosineOfSum(real a, size_t s)
 
 template gaussian(real a, size_t s)
 {
-    real f(real[] xs)
+    real f(in real[] xs)
     in
     {
         assert (xs.length == s);
@@ -125,7 +125,7 @@ template gaussian(real a, size_t s)
 
 template continuous(size_t s)
 {
-    real f(real[] xs)
+    real f(in real[] xs)
     in
     {
         assert (xs.length == s);
@@ -139,7 +139,7 @@ template continuous(size_t s)
 
 template disconti(size_t s)
 {
-    real f(real[] xs)
+    real f(in real[] xs)
     in
     {
         assert (xs.length == s);
@@ -154,7 +154,7 @@ template disconti(size_t s)
 // a = 1/3 and binary rational
 template characteristic(real a, size_t s)
 {
-    real f(real[] xs)
+    real f(in real[] xs)
     in
     {
         assert (xs.length == s);
@@ -169,7 +169,7 @@ template characteristic(real a, size_t s)
 // a = 1/3 and binary rational
 template sharppp(real a, size_t s)
 {
-    real f(real[] xs)
+    real f(in real[] xs)
     {
         return xs.map!(x => (x - a).abs()).product();
     }
@@ -179,7 +179,7 @@ template sharppp(real a, size_t s)
 // genz' product peak with u = 0 and a
 template productPeak(real a, size_t s)
 {
-    real f(real[] xs)
+    real f(in real[] xs)
     {
         return 1 / xs.map!(x => a * x * x + 1).product();
     }

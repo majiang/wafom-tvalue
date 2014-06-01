@@ -1,8 +1,4 @@
-import lib.wafom;
-import lib.pointset : nonshiftedRandomBasisPoints;
-import lib.integration_error : shifts, shifteds, integrationErrors, squareRootMeanSquare;
-import ui.input : getDigitalNets;
-import tf;
+import lib.wafom, lib.pointsettype, lib.integration_error, ui.input, tf;
 
 alias uint U;
 
@@ -10,19 +6,15 @@ void WRITEERRORS(R, F...)(R P)
 {
     import std.stdio;
     "%s,%.15e".writef(P, P.bipmswafom()); // unnecessary recalculate
+    auto Qs = P.randomShiftsFor(128).map!(sigma => P + sigma)();
     foreach (f; F)
-        writef(",%.15e", P
-            .shifteds(P.precision.shifts!(typeof (P))(P.dimensionR, 8192))
-            .integrationErrors!f()
-            .squareRootMeanSquare()
-            );
+        writef(",%.15e", Qs.integrationStdevPreciseSlow!(f.f)());
     writeln();
 }
 
 void main()
 {
     foreach (P; getDigitalNets!U())
-    {
         P.WRITEERRORS!(typeof (P),
             x6,
             exponential!(2.0/3.0, S),
@@ -33,5 +25,4 @@ void main()
             conti,
             disco
         );
-    }
 }

@@ -188,6 +188,14 @@ ShiftedBasisPoints!U[2] bisect(U)(in ShiftedBasisPoints!U P)
 
 /// Shift P by a vector.
 ShiftedBasisPoints!U shiftBy(U)(in ShiftedBasisPoints!U P, in U[] shift)
+in
+{
+    assert (P.dimensionR == shift.length);
+    if (U.sizeof << 3 != P.precision)
+        foreach (s; shift)
+            assert (s >> P.precision == 0);
+}
+body
 {
 	auto new_shift = P.shift.dup;
 	new_shift[] ^= shift[];
@@ -350,14 +358,14 @@ auto randomPointSet(U)(in Precision precision, in DimensionR dimensionR, in Dime
 /// Generate a vector to shift P.
 auto randomShiftFor(U)(ShiftedBasisPoints!U P)
 {
-	return uniform_vector!U(P.precision, P.dimensionR);
+	return uniform_vector!U(Precision(P.precision), DimensionR(P.dimensionR));
 }
 
 /// Generate vectors to shift P.
 auto randomShiftsFor(U)(ShiftedBasisPoints!U P, size_t numShift)
 {
 	// Wraps by inappropriate use of DimensionF2.
-	return uniform_vectors!U(P.precision, P.dimensionR, DimensionF2(numShift));
+	return uniform_vectors!U(Precision(P.precision), DimensionR(P.dimensionR), DimensionF2(numShift));
 }
 
 /// Shift P by uniformly and randomly selected vector.
