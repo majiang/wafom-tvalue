@@ -74,7 +74,7 @@ struct ShiftedBasisPoints(U, Size = size_t)
 	private
 	{
 		Size position;
-		const U[] shift;
+		U[] shift;
 		U[] current;
 	}
 
@@ -95,7 +95,7 @@ struct ShiftedBasisPoints(U, Size = size_t)
 		foreach (b; basis)
 			assert (this.dimensionR == b.length);
 		this.basis = basis;
-		this.shift = shift;
+		this.shift = shift.dup;
 		this.current = this.shift.dup;
 	}
 	///
@@ -374,6 +374,12 @@ auto shiftRandomly(U)(ShiftedBasisPoints!U P)
 	return P + randomShiftFor(P);
 }
 
+/*// Shift P by uniformly and randomly selected vector, many times.
+auto shiftRandomly(U)(ShiftedBasisPoints!U P, in size_t numShift)
+{
+    import std.range, std.algorithm;
+    return numShift.iota.map!(i => P + randomShiftFor(P));
+}//*/
 
 /// Generate a matrix to scramble P.
 auto randomScrambleFor(U)(ShiftedBasisPoints!U P)
