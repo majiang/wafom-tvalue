@@ -1,9 +1,7 @@
 module lib.integration_error;
 
 import lib.integral;
-//import testfunction;
 
-debug import std.stdio;
 import std.range : ElementType, hasLength, array;
 import std.traits : ReturnType;
 import std.algorithm : map, reduce;

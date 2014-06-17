@@ -8,7 +8,7 @@ import std.conv : to;
 import lib.pointsettype : Bisectable, isPointSet;
 
 debug import std.stdio;
-debug import lib.pointset : nonshiftedRandomBasisPoints;
+//debug import lib.pointset : nonshiftedRandomBasisPoints;
 
 template biwafom(R) if (Bisectable!R) /// Bisect Dick WAFOM
 {
@@ -421,17 +421,4 @@ version (none) unittest
     x.toString().writeln(" = ", x.subst(0.5, 0));
     y.toString().writeln(" = ", y.subst(0.5, 0));
     (x * y).toString().writeln(" = ", (x * y).subst(0.5, 0));
-}
-
-version (verbose) unittest
-{
-    foreach (d; 8..17)
-    {
-        "P.dimensionF2 = %d".writefln(d);
-        foreach (i; 0..100)
-        {
-            auto P = nonshiftedRandomBasisPoints!uint(32, 4, d);
-            "%.15f,%.15f,%.15f".writefln(P.wafom(), P.biwafom(), P.nrtwafom());
-        }
-    }
 }
