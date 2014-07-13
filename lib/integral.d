@@ -41,13 +41,38 @@ real integral(alias f, R)(R P)// if (isUnsigned!T)
     return result * flist[P.dimensionF2];
 }
 
+real integralNoncentering(alias f, R)(R P)// if (isUnsigned!T)
+{
+    real result = 0;
+    foreach (x; P.toReals!real())
+        result += f(x.revertCentering(P.precision + 1));
+    return result * flist[P.dimensionF2];
+}
+real[] revertCentering(in real[] x, size_t n)
+{
+    real[] ret;
+    foreach (e; x)
+        ret ~= e - flist[n];
+    return ret;
+}
+
 /// ditto
 real bintegral(alias f, R)(R P) if (Bisectable!R)
 {
     if (P.bisectable)
     {
         auto Q = P.bisect();
-        return (Q[0].bintegral!(f, R) + Q[1].bintegral!(f, R)) * 0.5;
+        return (Q[0].bintegral!(f, R)() + Q[1].bintegral!(f, R)()) * 0.5;
     }
     return P.integral!(f, R)();
+}
+
+real bintegralNoncentering(alias f, R)(R P) if (Bisectable!R)
+{
+    if (P.bisectable)
+    {
+        auto Q = P.bisect();
+        return (Q[0].bintegralNoncentering!(f, R)() + Q[1].bintegralNoncentering!(f, R)()) * 0.5;
+    }
+    return P.integralNoncentering!(f, R)();
 }

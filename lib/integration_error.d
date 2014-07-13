@@ -81,6 +81,10 @@ auto integrationStdevPreciseSlow(alias f, PointSetTypeRange)(PointSetTypeRange P
 {
     return Ps.map!(bintegral!(f, ElementType!PointSetTypeRange))().stdevPreciseSlow();
 }
+auto integrationStdevPreciseSlowNoncentering(alias f, PointSetTypeRange)(PointSetTypeRange Ps)
+{
+    return Ps.map!(bintegralNoncentering!(f, ElementType!PointSetTypeRange))().stdevPreciseSlow();
+}
 /// ditto
 auto integrationStdevSuperlinear(alias f, PointSetTypeRange)(PointSetTypeRange Ps)
 {
