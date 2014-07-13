@@ -4,12 +4,18 @@ import std.typecons : Tuple, tuple;
 import std.functional : pipe;
 
 import lib.wafom : bipmswafom;
-import lib.pointset : ShiftedBasisPoints, randomVectors, randomVector, randomBits, nonshiftedRandomBasisPoints;
+import lib.pointsettype;
 
 alias uint U;
 alias ShiftedBasisPoints!U PointSet;
-alias nonshiftedRandomBasisPoints!U randomDigitalNet;
-
+auto randomDigitalNet(size_t precision, size_t dimensionR, size_t dimensionF2)
+{
+	return randomPointSet!U(Precision(precision), DimensionR(dimensionR), DimensionF2(dimensionF2));
+}
+auto randomVectors(UU)(size_t precision, size_t dimensionR, size_t count)
+{
+	return uniform_vectors!UU(Precision(precision), DimensionR(dimensionR), DimensionF2(count));
+}
 
 enum precision = 30;
 enum default_start_temperature = 1.0;
@@ -82,7 +88,7 @@ auto do_anneal(in size_t dimensionR, in size_t dimensionF2)
 				(bipmswafom,
 					(() => randomDigitalNet(precision, dimensionR, dimensionF2)))[0]
 				),
-			neighborPointSet!(1, EuclideanRandomVectors), KirkpatrickAcceptance)
+			neighborPointSet!(1), KirkpatrickAcceptance)
 			(default_start_temperature, default_end_temperature);
 		iteration <<= 1;
 	}
@@ -191,14 +197,14 @@ auto anneal(
 auto neighborPointSet(size_t distance, alias rvectors = randomVectors)(PointSet P)
 {
 	auto vectors = rvectors!U(P.precision, P.dimensionR, distance);
-	auto xor_at = P.dimensionF2.randomVector!U(distance);
+	auto xor_at = Precision(P.dimensionF2).uniform_vector!U(DimensionR(distance));
 	auto basis = P.basis.ddup();
 	foreach (i, vector; vectors)
 		foreach (j, ref b; basis)
 			if (xor_at[i] >> j & 1)
 				foreach (k, v; vector)
 					b[k] ^= v;
-	return PointSet(basis, P.precision);
+	return PointSet(basis, Precision(P.precision));
 }
 
 auto EuclideanRandomVectors(U)(size_t precision, size_t dimensionR, size_t distance)
