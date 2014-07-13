@@ -123,7 +123,7 @@ static immutable string scale_and_return = q{
 real nrt(size_t exponent, R)(R P)
 {
     import std.algorithm : reduce;
-    auto f =P.precision._ff_!exponent();
+    auto f = P.precision._ff_!exponent();
     real ret = reduce!((ret, B) => ret + reduce!((a, b) => a * f[b.mu_star(P.precision)])(1.0, B))(0.0, P);
     mixin (scale_and_return);
 }
@@ -268,6 +268,34 @@ unittest
                 x.writeln();
 }
 
+size_t yoshiki_upper_min_weight(R)(R P)
+{
+    import std.range, std.algorithm;
+    return 2
+    .iota!(size_t, size_t)(2+P.precision)
+    .cycle()
+    .take(P.precision * P.dimensionR)
+    .array()
+    .sort()
+    .take(P.dimensionF2 + 1)
+    .reduce!((a, b) => a + b)();
+}
+
+string yoshiki_wep(R)(R P)
+{
+    auto len = P.yoshiki_upper_min_weight() + 1;
+    Polynomial ret;
+    foreach (B; P)
+    {
+        auto cur = Polynomial(len);
+        foreach (l; B)
+            foreach (j; 0..P.precision)
+                cur *= (P.precision - j + 1) * ((l >> j & 1) ? -1 : 1);
+        ret += cur;
+    }
+    return (ret >> P.dimensionF2).toCSV();
+}
+
 private auto dick_wep(R)(R P)
 {
     Polynomial ret;
@@ -300,7 +328,7 @@ string dick_weight_enumerator_polynomial(R)(R P)
 }
 
 import std.bigint;
-import std.algorithm : max;
+import std.algorithm : max, min;
 private real toDouble(BigInt x)
 {
     double f = 1;
@@ -315,7 +343,7 @@ private real toDouble(BigInt x)
 private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
 {
     BigInt[] coef = [BigInt(1)];
-    size_t max_length = 2147483647;
+    ptrdiff_t max_length = ptrdiff_t.max;
     this (BigInt[] coef)
     {
         this.coef = coef;
@@ -360,10 +388,12 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
         in { assert (rhs); } body
     {
         immutable bool negative = rhs < 0;
-        immutable size_t position = negative ? -rhs : rhs;
-        auto old_length = this.coef.length;
+        immutable ptrdiff_t position = negative ? -rhs : rhs;
+        ptrdiff_t old_length = this.coef.length;
         this.coef.length = (this.coef.length + position).min(max_length);
         old_length = old_length.min(max_length - position);
+//        import std.stdio;
+//        "[$=%d][(%d..%d) + %d]".writefln(this.coef.length, 0, old_length, position);
         if (negative)
             foreach_reverse (i; 0..old_length)
                 this.coef[i + position] -= this.coef[i];
