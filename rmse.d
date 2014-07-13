@@ -6,9 +6,9 @@ void WRITEERRORS(R, F...)(R P)
 {
     import std.stdio;
     "%s,%.15e".writef(P, P.bipmswafom()); // unnecessary recalculate
-    auto Qs = P.randomShiftsFor(128).map!(sigma => P + sigma)();
+    auto Qs = P.randomShiftsFor(1024).map!(sigma => P + sigma)();
     foreach (f; F)
-        writef(",%.15e", Qs.integrationStdevPreciseSlow!(f.f)());
+        writef(",%.15e", Qs.integrationStdevPreciseSlowNoncentering!(f.f)());
     writeln();
 }
 
