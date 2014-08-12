@@ -4,14 +4,14 @@ import std.math : abs, sin, PI, floor;
 
 template Hellekalek(T ...)
 {
-    double f(double[] x)
+    real f(in real[] x)
     in
     {
         assert (T.length == x.length);
     }
     body
     {
-        double ret = 1;
+        real ret = 1;
         foreach (i, c; T)
             ret *= x[i] ^^ c - 1 / (1 + c);
         return ret;
@@ -21,14 +21,14 @@ template Hellekalek(T ...)
 
 template Sobol2001(T ...)
 {
-    double f(double[] x)
+    real f(real[] x)
     in
     {
         assert (T.length == x.length);
     }
     body
     {
-        double ret = 1;
+        real ret = 1;
         foreach (i, c; T)
             ret *= ((4 * x[i] - 2).abs() + c) / (1 + c);
         return ret;
@@ -38,14 +38,14 @@ template Sobol2001(T ...)
 
 template Sobol1994(int s)
 {
-    double f(double[] x)
+    real f(real[] x)
     in
     {
         assert (x.length == s);
     }
     body
     {
-        double ret = 1;
+        real ret = 1;
         foreach (i; 0..s)
             ret *= (2 * x[i] + i + 1) / (i + 2);
         return ret;
@@ -55,14 +55,14 @@ template Sobol1994(int s)
 
 template Owen(int s)
 {
-    double f(double[] x)
+    real f(real[] x)
     in
     {
         assert (x.length == s);
     }
     body
     {
-        double ret = 1;
+        real ret = 1;
         foreach (i; 0..s)
             ret *= x[i] - 1/2;
         return ret;
@@ -72,14 +72,14 @@ template Owen(int s)
 
 template RooArnold1(int s)
 {
-    double f(double[] x)
+    real f(real[] x)
     in
     {
         assert (x.length == s);
     }
     body
     {
-        double ret = 0;
+        real ret = 0;
         foreach (i; 0..s)
             ret += (4 * x[i] - 2).abs();
         return ret / s;
@@ -89,14 +89,14 @@ template RooArnold1(int s)
 
 template RooArnold2(int s)
 {
-    double f(double[] x)
+    real f(real[] x)
     in
     {
         assert (x.length == s);
     }
     body
     {
-        double ret = 1;
+        real ret = 1;
         foreach (i; 0..s)
             ret *= (4 * x[i] - 2).abs();
         return ret;
@@ -106,14 +106,14 @@ template RooArnold2(int s)
 
 template RooArnold3(int s)
 {
-    double f(double[] x)
+    real f(real[] x)
     in
     {
         assert (x.length == s);
     }
     body
     {
-        double ret = 1;
+        real ret = 1;
         foreach (i; 0..s)
             ret *= (x[i] * PI).sin() * PI / 2;
         return ret;
@@ -122,17 +122,17 @@ template RooArnold3(int s)
 }
 
 /// test function proposed by Kimikazu Kato on https://twitter.com/hamukazu/status/331605169722781696
-/// template argument T ... must be array of _int_s, not _double_s.
+/// template argument T ... must be array of _int_s, not _real_s.
 template Hamukazu(T ...)
 {
-    double f(double[] x)
+    real f(real[] x)
     in
     {
         assert (x.length == T.length);
     }
     body
     {
-        double ret = 1;
+        real ret = 1;
         foreach (i, c; T)
             ret *= (c * x[i] - floor(c * x[i])) * 2;
         return ret;
@@ -166,14 +166,14 @@ version (none) template Genz2(int s)
                 return ret;
             }
             static assert (T.length == U.length);
-            double f(double[] x)
+            real f(real[] x)
             in
             {
                 assert (x.length == T.length);
             }
             body
             {
-                double ret = 1;
+                real ret = 1;
                 mixin (gen_prod());
                 return ret;
             }
