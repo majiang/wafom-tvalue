@@ -29,7 +29,7 @@ Read the range of dimB, the set of dimR from arguments.
 Do simulated annealing for each (dimB, dimR) and yield the best one.
 Precision and temperature condition are hard-coded.
 */
-void main(string[] args)
+version (stand_alone) void main(string[] args)
 {
 import std.conv : to;
 import std.algorithm : map;
