@@ -1,15 +1,15 @@
 module lib.sobol;
 
 debug import std.stdio;
-import lib.pointset : transposedBasisPoints;
+import lib.pointsettype;
 import std.traits : isUnsigned;
 
-auto defaultSobols(U)(immutable size_t dimension, immutable size_t precision, immutable size_t lg_length) if (isUnsigned!U)
+auto defaultSobols(U)(DimensionR dimensionR, Precision precision, DimensionF2 dimensionF2) if (isUnsigned!U)
 {
     U[][] _direction_numbers;
-    auto trailing_zeros = precision - lg_length;
-    foreach (i; 0..dimension)
-        _direction_numbers ~= i.defaultDirectionNumbers!U.generate(lg_length).all_left_shift!U(trailing_zeros);
+    immutable trailing_zeros = precision.n - dimensionF2.m;
+    foreach (i; 0..dimensionR.s)
+        _direction_numbers ~= i.defaultDirectionNumbers!U.generate(dimensionF2.m).all_left_shift!U(trailing_zeros);
     return sobols!U(_direction_numbers);
 }
 
@@ -105,10 +105,13 @@ template numBits(U)
 auto sobols(U)(U[][] direction_numbers) if (isUnsigned!U)
 {
     U[][] _direction_numbers;
-    _direction_numbers.length = direction_numbers.length;
+    _direction_numbers.length = direction_numbers[0].length;
+    foreach (i, ref c; direction_numbers)
+        c = c.shift();
     foreach (i, c; direction_numbers)
-        _direction_numbers[i] = c.shift();
-    return transposedBasisPoints!U(_direction_numbers, numBits!U);
+        foreach (j, e; c)
+            _direction_numbers[j] ~= e;
+    return ShiftedBasisPoints!U(_direction_numbers, Precision(numBits!U));
 }
 
 
