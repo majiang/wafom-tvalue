@@ -6,7 +6,7 @@ import std.math;
 /// simple exponential function: integral is (e-1)^s.
 template exponential(size_t s)
 {
-    double f(double[] x)
+    real f(real[] x)
     in
     {
         assert (x.length == s);
@@ -23,7 +23,7 @@ template exponential(size_t s)
 
 template negexp(size_t s)
 {
-    double f(double[] x)
+    real f(real[] x)
     in
     {
         assert (x.length == s);
@@ -41,12 +41,12 @@ template negexp(size_t s)
 template oscillatoryC(alias u, alias a)
 {
     alias oscillatory!() g;
-    double f(double[] x)
+    real f(real[] x)
     {
         return g.f(x, u, a);
     }
-    double memoI;
-    @property double I()
+    real memoI;
+    @property real I()
     {
         if (memoI.isNaN)
             return memoI = g.I(u, a);
@@ -56,19 +56,19 @@ template oscillatoryC(alias u, alias a)
 
 template oscillatory()
 {
-    double f(double[] x, double u, double[] a)
+    real f(real[] x, real u, real[] a)
     {
         auto t = 2 * PI * u;
         foreach (i, c; x)
             t += a[i] * c;
         return t.cos();
     }
-    double I(double u, double[] a)
+    real I(real u, real[] a)
     {
         import std.algorithm : reduce;
         auto s = a.length;
         auto t0 = 2 * PI * u - (s & 3) * PI_2;
-        double ret = 0;
+        real ret = 0;
         foreach (i; 0..(1u << s))
         {
             auto t = t0;
@@ -94,12 +94,12 @@ version (none) unittest
 template prodpeakC(alias u, alias a)
 {
     alias prodpeak!() g;
-    double f(double[] x)
+    real f(real[] x)
     {
         return g.f(x, u, a);
     }
-    double memoI;
-    @property double I()
+    real memoI;
+    @property real I()
     {
         if (memoI.isNaN)
             return memoI = g.I(u, a);
@@ -109,14 +109,14 @@ template prodpeakC(alias u, alias a)
 
 template prodpeak()
 {
-    double f(double[] x, double[] u, double[] a)
+    real f(real[] x, real[] u, real[] a)
     {
         auto ret = 1.0;
         foreach (i, c; x)
             ret /= 1 / (a[i] * a[i]) + (c - u[i]) * (c - u[i]);
         return ret;
     }
-    double I(double[] u, double[] a)
+    real I(real[] u, real[] a)
     {
         auto ret = 1.0;
         foreach (i, c; a)
@@ -141,12 +141,12 @@ unittest
 template cornpeakC(alias a)
 {
     alias cornpeak!() g;
-    double f(double[] x)
+    real f(real[] x)
     {
         return g.f(x, a);
     }
-    double memoI;
-    @property double I()
+    real memoI;
+    @property real I()
     {
         if (memoI.isNaN)
             return memoI = g.I(a);
@@ -166,14 +166,14 @@ template cornpeak()
         return ((x >> 1) ^ x)
             & 1; // for range propagation
     }
-    double f(double[] x, double[] a)
+    real f(real[] x, real[] a)
     {
         auto ret = 1.0;
         foreach (i, c; x)
             ret += c * a[i];
         return ret ^^ -(a.length + 1.0);
     }
-    double I(double[] a)
+    real I(real[] a)
     {
         auto ret = 0.0;
         auto s = a.length;
@@ -193,12 +193,12 @@ template cornpeak()
 template gaussianC(alias a, alias u)
 {
     alias gaussian!() g;
-    double f(double[] x)
+    real f(real[] x)
     {
         return g.f(x, a, u);
     }
-    double memoI;
-    @property double I()
+    real memoI;
+    @property real I()
     {
         if (memoI.isNaN)
             return memoI = g.I(a, u);
@@ -209,14 +209,14 @@ template gaussianC(alias a, alias u)
 
 template gaussian()
 {
-    double f(double[] x, double[] a, double[] u)
+    real f(real[] x, real[] a, real[] u)
     {
         auto exponent = 0.0;
         foreach (i, c; x)
             exponent += a[i] * a[i] * (c - u[i]) * (c - u[i]);
         return exp(-exponent);
     }
-    double I(double[] a, double[] u)
+    real I(real[] a, real[] u)
     {
         import std.mathspecial : phi = normalDistribution;
         auto ret = PI ^^ (a.length * 0.5);
@@ -229,12 +229,12 @@ template gaussian()
 template continuousC(alias a, alias u)
 {
     alias continuous!() g;
-    double f(double[] x)
+    real f(real[] x)
     {
         return g.f(x, a, u);
     }
-    double memoI;
-    @property double I()
+    real memoI;
+    @property real I()
     {
         if (memoI.isNaN)
             return memoI = g.I(a, u);
@@ -244,14 +244,14 @@ template continuousC(alias a, alias u)
 
 template continuous()
 {
-    double f(double[] x, double[] a, double[] u)
+    real f(real[] x, real[] a, real[] u)
     {
         auto exponent = 0.0;
         foreach (i, c; x)
             exponent += a[i] * abs(c - u[i]);
         return exp(-exponent);
     }
-    double I(double[] a, double[] u)
+    real I(real[] a, real[] u)
     {
         auto ret = 1.0;
         foreach (i, c; a)
@@ -263,12 +263,12 @@ template continuous()
 template discontiC(alias a, alias u)
 {
     alias g = disconti!();
-    double f(double[] x)
+    real f(real[] x)
     {
         return g.f(x, a, u);
     }
-    double memoI;
-    @property double I()
+    real memoI;
+    @property real I()
     {
         if (memoI.isNaN)
             return memoI = g.I(a, u);
@@ -278,7 +278,7 @@ template discontiC(alias a, alias u)
 
 template disconti()
 {
-    double f(double[] x, double[] a, double[] u)
+    real f(real[] x, real[] a, real[] u)
     {
         foreach (i, z; x)
             if (z > u[i])
@@ -288,7 +288,7 @@ template disconti()
             exponent += a[i] * c;
         return exp(exponent);
     }
-    double I(double[] a, double[] u)
+    real I(real[] a, real[] u)
     {
         auto ret = 1.0;
         foreach (i, c; a)
@@ -323,7 +323,7 @@ void main()
     immutable size_t dimF2 = 14;
     immutable average = 0x1p-14;
 
-    double[] a, u;
+    real[] a, u;
     {
         alias f0 = oscillatoryC!(0.5, [0.7, 1.3]);
         auto P = genPS(precision, 2, dimF2);
@@ -335,7 +335,7 @@ void main()
         auto P = genPS(precision, i, dimF2);
         a ~= uniform(0.2, 1.8);
         u ~= uniform(0.1, 0.9);
-        double I;
+        real I;
 
         I = 0.0;
         foreach (x; P.save)
@@ -381,7 +381,7 @@ auto scaling(uint[] xs)
 {
     immutable centering = 0x1p-33;
     immutable scaling = 0x1p-32;
-    double[] ret;
+    real[] ret;
     foreach (x; xs)
         ret ~= x * scaling + centering;
     return ret;
