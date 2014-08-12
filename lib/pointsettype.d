@@ -6,7 +6,7 @@ import random = std.random;
 import std.range : ElementType;
 import std.traits : isUnsigned;
 import std.array : array, empty, front, popFront;
-import std.typecons : tuple;
+import std.typecons : tuple, Flag;
 debug import std.stdio;
 
 /// Safe types for point set property.
@@ -293,20 +293,26 @@ ShiftedBasisPoints!U dimensionF2ShrinkBy(U)(in ShiftedBasisPoints!U P, size_t de
 
 import std.math;
 /// Convert to array of (0..1)<sup>s</sup>.
-auto toReals(F, U)(ShiftedBasisPoints!U P)
+auto toReals(F, Flag!"centering" centering = Flag!"centering".yes, V)(V P)
 {
 	static struct R
 	{
-		F factor, shift;
+		F factor;
+		static if (centering)
+			F shift;
 		F[] current;
-		ShiftedBasisPoints!U P;
-		this (ShiftedBasisPoints!U P)
+		V P;
+		this (V P)
 		{
 			this.P = P;
 			this.factor = 0.5 ^^ (cast(F)(P.precision));
-			this.shift = this.factor * 0.5;
+			static if (centering)
+				this.shift = this.factor * 0.5;
 			foreach (x; P.front)
-				current ~= x * factor + shift;
+				static if (centering)
+					current ~= x * factor + shift;
+				else
+					current ~= x * factor;
 		}
 		@property auto empty() const
 		{
@@ -320,7 +326,10 @@ auto toReals(F, U)(ShiftedBasisPoints!U P)
 		{
 			P.popFront();
 			foreach (i, x; P.front)
-				current[i] = x * factor + shift;
+				static if (centering)
+					current[i] = x * factor + shift;
+				else
+					current[i] = x * factor;
 		}
 	}
 	return R(P);
@@ -502,40 +511,17 @@ version (stand_alone_pointset):
 
 import std.stdio;
 
-void writePoints(R)(R P)
-{
-	if (P.dimensionR == 1)
-		foreach (x; P)
-			conv.text("%0", P.precision, "b ").writef(x[0]);
-	else
-		foreach (x; P)
-			conv.text("%(%0", P.precision, "b %)").writefln(x);
-	writeln();
-}
-
-void writeReals(R)(R P)
-{
-	if (P.dimensionR == 1)
-		foreach (x; P.toReals())
-			"%.5f".writef(x[0]);
-	else
-		foreach (x; P.toReals())
-			"%(%.5f %)".writefln(x);
-}
-
 void main()
 {
 	foreach (m; [1, 2])
 	{
 		auto P = randomPointSet!ubyte
 			(Precision(8), DimensionR(m), DimensionF2(4));
-		P.writePoints();
-		P.toString().fromString!ubyte().writePoints();
-		auto Q = P.shiftRandomly();
-		Q.writePoints();
-		Q.toString().fromString!ubyte().writePoints();
-		auto R = P.scrambleRandomly()[0];
-		R.writePoints();
-		R.toString().fromString!ubyte().writePoints();
+		foreach (p; P.toReals!real())
+			p.writeln();
+		writeln();
+		foreach (p; P.toReals!(real, Flag!"centering".no)())
+			p.writeln();
+		writeln();
 	}
 }
