@@ -338,7 +338,7 @@ auto toReals(F, Flag!"centering" centering = Flag!"centering".yes, V)(V P)
 private U uniform_number(U)(in Precision precision)
 	if (isUnsigned!U)
 {
-	return random.uniform!("[]", U, U)(U.min, U.max) >> ((U.sizeof << 3) - precision.n);
+	return random.uniform!U() >> ((U.sizeof << 3) - precision.n);
 }
 
 U[] uniform_vector(U)(in Precision precision, in DimensionR dimensionR)
@@ -383,12 +383,29 @@ auto shiftRandomly(U)(ShiftedBasisPoints!U P)
 	return P + randomShiftFor(P);
 }
 
-/*// Shift P by uniformly and randomly selected vector, many times.
-auto shiftRandomly(U)(ShiftedBasisPoints!U P, in size_t numShift)
+/// Shift P by uniformly and randomly selected vector, many times.
+auto randomlyShifted(U)(ShiftedBasisPoints!U P, size_t numDS)
 {
-    import std.range, std.algorithm;
-    return numShift.iota.map!(i => P + randomShiftFor(P));
-}//*/
+	struct R
+	{
+		ShiftedBasisPoints!U P;
+		size_t n;
+		@property bool empty()
+		{
+			return n == 0;
+		}
+		@property auto front()
+		{
+			return P.shiftRandomly();
+		}
+		void popFront()
+		{
+			n -= 1;
+		}
+	}
+	return R(ShiftedBasisPoints!U(P.basis, Precision(P.precision)), numDS);
+}
+
 
 /// Generate a matrix to scramble P.
 auto randomScrambleFor(U)(ShiftedBasisPoints!U P)
