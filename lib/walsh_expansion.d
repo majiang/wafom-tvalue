@@ -2,7 +2,7 @@ import std.math : exp;
 
 auto pxe(real x)
 {
-	return (-x).exp();
+	return (-x*2).exp();
 }
 
 void main(string[] args)
@@ -11,7 +11,7 @@ void main(string[] args)
 	import std.conv : to;
 	import std.string : strip;
 	foreach (line; args[1..$])
-		"%(%.15f,%)".writefln(line.strip().to!size_t().walsh!exphi().bitrev());
+		"%(%.15f\n%)".writefln(line.strip().to!size_t().walsh!(hellekalek!1.7)().bitrev());
 		//line.strip().to!size_t().walsh!trivial().bitrev().writeln();
 		//line.strip().to!size_t().walsh!pxe().bitrev().writeln();
 }
@@ -19,6 +19,11 @@ void main(string[] args)
 auto trivial(real x)
 {
 	return x < 0.25 ? 1 : 0;
+}
+
+auto hellekalek(real a)(real x)
+{
+	return x ^^ a - 1 / (a + 1);
 }
 
 auto exphi(real x)
@@ -50,6 +55,7 @@ private:
 auto bitrev(T)(T[] x)
 {
 	import core.bitop;
+	import std.math : abs, lg = log2;
 	auto n = x.length;
 	auto ret = new T[n];
 	size_t u;
@@ -60,7 +66,7 @@ auto bitrev(T)(T[] x)
 	}
 	foreach (uint i, ref c; ret)
 	{
-		c = x[i.bitswap() >> u];
+		c = x[i.bitswap() >> u].abs().lg();
 		debug
 		{
 			import std.stdio : writefln;
