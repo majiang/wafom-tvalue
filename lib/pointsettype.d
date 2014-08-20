@@ -282,13 +282,13 @@ ShiftedBasisPoints!U changedTo(U)(in ShiftedBasisPoints!U P, Precision precision
 /// Change dimensionF2 of P.
 ShiftedBasisPoints!U changedTo(U)(in ShiftedBasisPoints!U P, DimensionF2 dimensionF2)
 {
-	return ShiftedBasisPoints!U(basis[0..dimensionF2], P.precision, P.shift);
+	return ShiftedBasisPoints!U(P.basis[0..dimensionF2.m], Precision(P.precision), P.shift);
 }
 
 /// ditto
 ShiftedBasisPoints!U dimensionF2ShrinkBy(U)(in ShiftedBasisPoints!U P, size_t decrement)
 {
-	return P.changedTo!(DimensionF2(P.dimensionF2 - decrement));
+	return P.changedTo(DimensionF2(P.dimensionF2 - decrement));
 }
 
 import std.math;
