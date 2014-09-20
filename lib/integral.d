@@ -109,15 +109,16 @@ auto integrationErrors(F, R)(R Ps, TestFunction!F f)
     return Ps.map!(P => P.signedIntegrationError!centering(f))();
 }
 
-import std.algorithm : reduce, min, max;
+import std.algorithm : map, reduce, min, max;
+import std.conv : to;
 alias minimum = reduce!min;
 alias maximum = reduce!max;
 //alias maxabs = reduce!((a, b) => a.abs().max(b.abs()))();
 
 F stdDev(F, R)(R xs)
 {
-    auto xm = R.mean!F();
-    return R.map!(x => x - xm).rootMeanSquare();
+    auto xm = xs.mean!F();
+    return xs.map!(x => x - xm).rootMeanSquare!F();
 }
 
 F mean(F, R)(R xs)
@@ -132,12 +133,13 @@ private F meanPositive(F, R)(R xs)
 
 F rootMeanSquare(F, R)(R xs)
 {
-    return R.map!(a => a * a)().meanPositive!F().sqrt();
+    import std.math : sqrt;
+    return xs.map!(a => a * a)().meanPositive!F().sqrt();
 }
 
 F sum(F, R)(R xs)
 {
-    return R.map!(to!F)().reduce!((a, b) => a + b)();
+    return xs.map!(to!F)().reduce!((a, b) => a + b)();
 }
 
 private alias sumPositive = sum;
