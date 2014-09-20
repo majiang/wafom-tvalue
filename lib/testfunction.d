@@ -304,15 +304,10 @@ TestFunction!F genzFactory(F)(size_t index, size_t dimensionR, F difficulty = 1)
 	auto rg = Random();
 	rg.seed(seed);
 
-	enum sumA = [0.9, 0.725, 0.185, 7.03, 2.04, 4.3];
-	F x = sumA[index] * 2 / (3 * dimensionR) * difficulty;
-	immutable F d = x / (dimensionR - 1);
-	F[] a;
-	foreach (i; 0..dimensionR)
-	{
-		a ~= x;
-		x += d;
-	}
+	auto a = index.genzParameter!F(dimensionR);
+	foreach (ref ai; a)
+		ai *= difficulty;
+
 	if (index == 0)
 		return new Oscillatory!F(a, uniform(0.0, 1.0, rg));
 	if (index == 2)
@@ -331,6 +326,29 @@ TestFunction!F genzFactory(F)(size_t index, size_t dimensionR, F difficulty = 1)
 	if (index == 5)
 		return new Discontinuous!F(a, u);
 	assert (false);
+}
+
+private template genzParameter(F)
+{
+	F[] _gp = [0.9, 0.725, 0.185, 0.703, 0.204, 0.43];
+	auto genzParameter(size_t index, size_t dimensionR)
+	out (result)
+	{
+		import std.math, std.algorithm, std.stdio;
+		assert (result.reduce!((a, b) => a + b)().approxEqual(_gp[index] * dimensionR));
+	}
+	body
+	{
+		auto x = _gp[index] * 2 / 3;
+		immutable F d = x / (dimensionR - 1);
+		F[] a;
+		foreach (i; 0..dimensionR)
+		{
+			a ~= x;
+			x += d;
+		}
+		return a;
+	}
 }
 
 
