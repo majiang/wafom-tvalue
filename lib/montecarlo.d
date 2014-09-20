@@ -1,4 +1,58 @@
+module lib.montecarlo;
+
 import lib.pointsettype;
+
+struct UniformPoints(Size = size_t)
+{
+	import std.random : uniform;
+	immutable size_t dimensionF2;
+	immutable size_t dimensionR;
+	immutable Size _length;
+	enum bisectable = false;
+	typeof (this)[2] bisect()
+	{
+		assert (false);
+	}
+
+	this (DimensionR dimensionR, DimensionF2 dimensionF2)
+	{
+		this.dimensionF2 = dimensionF2.m;
+		this.dimensionR = dimensionR.s;
+		Size length = 1;
+		length <<= dimensionF2.m;
+		this._length = length;
+	}
+	auto toReals(F)()
+	{
+		struct UniformRealsImpl
+		{
+			Size length;
+			F[] current;
+			this (Size _length, size_t dimensionR)
+			{
+				this.length = _length;
+				foreach (i; 0..dimensionR)
+					this.current ~= 0.uniform!("[)", F, F)(1);
+			}
+			@property bool empty()
+			{
+				return length == 0;
+			}
+			void popFront()
+			{
+				assert (!empty);
+				length -= 1;
+				foreach (ref x; current)
+					x = 0.uniform!("[)", F, F)(1);
+			}
+			@property F[] front()
+			{
+				return current.dup;
+			}
+		}
+		return UniformRealsImpl(_length, dimensionR);
+	}
+}
 
 struct MonteCarloPoints(U, Size = size_t)
 	if (isUnsigned!U)
@@ -52,7 +106,7 @@ struct MonteCarloPoints(U, Size = size_t)
 	}
 }
 
-void main()
+version (standalone_montecarlo) void main()
 {
 	import std.stdio;
 	import lib.testfunction;
