@@ -7,7 +7,7 @@ void main()
 	stderr.writeln(
 "Computes Walsh Figure of Merit:
     Matsumoto-Saito-Matoba original (Dick weight)
-    Non-RMS
+    RMS
 input:
     http://www.ms.u-tokyo.ac.jp/~ohori/format.html
 output:
