@@ -15,6 +15,14 @@ auto deepcopy(U)(in U[][] basis)
     return ret;
 }
 
+auto shuffleBasis(U)(U[][] basis)
+{
+    if (basis.length <= 1)
+        return basis;
+    auto bp = basis.changeBasis();
+    return bp[0] ~ bp[1..$].shuffleBasis();
+}
+
 /// Given a space by a basis, take another basis of the space so that the first vector of the output is randomly selected from the whole space.
 auto changeBasis(U)(U[][] basis)
 {
