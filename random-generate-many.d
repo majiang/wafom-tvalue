@@ -9,7 +9,7 @@ import lib.pointsettype;
 void main(string[] args)
 {
     auto buf = args[1..$];
-    if (len(buf) != 4)
+    if (buf.length != 4)
         return "random-generate-many precision dimB dimR count".writeln();
     immutable precision = buf[0].to!size_t();
     immutable dimensionF2 = buf[1].to!size_t();
