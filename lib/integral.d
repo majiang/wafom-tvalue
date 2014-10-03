@@ -35,15 +35,15 @@ double f(double[] x)
 double result = integral!f(randomPoints(dimension, precision, lg_length));
 ----------------
 */
-real integral(alias f, R)(R P)// if (isUnsigned!T)
+real integral(alias f, R)(R P)
 {
     real result = 0;
     foreach (x; P.toReals!real())
         result += f(x);
     return result * flist[P.dimensionF2];
-}
+}//*/
 
-real integralNoncentering(alias f, R)(R P)// if (isUnsigned!T)
+real integralNoncentering(alias f, R)(R P)
 {
     real result = 0;
     foreach (x; P.toReals!real())
@@ -81,6 +81,7 @@ real bintegralNoncentering(alias f, R)(R P) if (Bisectable!R)
 
 
 F signedIntegrationError(Flag!"centering" centering = Flag!"centering".yes, F, R)(R P, TestFunction!F f)
+    if (Bisectable!R)
 {
     return P.integral!(centering, F, R)(f) - f.I;
 }
