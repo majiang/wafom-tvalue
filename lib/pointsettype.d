@@ -155,6 +155,23 @@ struct ShiftedBasisPoints(U, Size = size_t)
 	{
 		return this.changedTo(Precision(precision.n + (op == "<<" ? 1 : -1) * amount));
 	}
+	typeof (this) opBinary(string op)(in typeof (this) P)
+		if (op == "&")
+	in
+	{
+		assert (this.precision == P.precision);
+		assert (this.dimensionF2 == P.dimensionF2);
+	}
+	body
+	{
+		U[][] basis;
+		foreach (h, b; this.basis)
+		{
+			basis ~= b.dup;
+			basis[$-1] ~= P.basis[h].dup;
+		}
+		return typeof (this)(basis, Precision(this.precision));
+	}
 	@property bool bisectable()
 	{
 		if (this.dimensionR == 1)
@@ -522,6 +539,20 @@ private auto coins(size_t count = 0)
 		}
 	}
 	return R(count);
+}
+
+private auto pickup(U)(U[] arr, size_t[] indice)
+{
+	U[] ret;
+	foreach (i; indice)
+		ret ~= arr[i];
+	return ret;
+}
+
+auto projectionTo(U, Size)(ShiftedBasisPoints!(U, Size) P, size_t[] indice)
+{
+	import std.algorithm : map;
+	return ShiftedBasisPoints!(U, Size)(P.basis.map!(b => b.pickup(indice))().array(), Precision(P.precision));
 }
 
 version (stand_alone_pointset):
