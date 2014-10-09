@@ -44,9 +44,14 @@ void main(string[] args)
 	stderr.writefln("c = %.4f", c);
 
 	auto H = (new DN[find_size]).heapify(0);
+	version (NX)
+		auto NXS = nxPointSet!U(prec, dimR, dimB);
 	foreach (i; 0..search_size)
 	{
-		auto P = randomPointSet!U(prec, dimR, dimB);
+		version (NX)
+			auto P = NXS.scrambleRandomly()[0];
+		else
+			auto P = randomPointSet!U(prec, dimR, dimB);
 		auto w = P.WAFOM(c);
 		if (H.length < find_size)
 		{
@@ -58,4 +63,21 @@ void main(string[] args)
 	}
 	foreach (dn; H.release().sort())
 		"%s,%.15f,%.15f".writefln(ShiftedBasisPoints!U(dn[1], prec), c, dn[0].lg());
+}
+
+auto nxPointSet(U)(Precision prec, DimensionR dimR, DimensionF2 dimB)
+{
+	import std.stdio, std.string, std.algorithm;
+	foreach (P; File("nx-low-s%02d-large.csv".format(dimR.s)).byLine().map!(fromString!U)())
+	{
+		debug "P: (s=%d, m=%d, n=%d); specified: (s=%d, m=%d, n=%d)".writefln(
+			P.dimensionR, P.dimensionF2, P.precision,
+			dimR.s, dimB.m, prec.n
+			);
+		if (P.precision == prec.n &&
+			P.dimensionR == dimR.s &&
+			P.dimensionF2 == dimB.m)
+			return P;
+	}
+	assert (false);
 }
