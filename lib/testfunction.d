@@ -16,6 +16,10 @@ abstract class TestFunction(F) : Function!F
 	{
 		this.I = I;
 	}
+	override string toString()
+	{
+		assert (false);
+	}
 }
 
 interface Validator(F)
@@ -80,7 +84,16 @@ private:
 	F a;
 }
 
-
+private auto genzToString(F)(size_t index, F[] a)
+{
+	import std.string;
+	return "%d %d %(%.15f %)".format(index, a.length, a);
+}
+private auto appendGenzParameter(F)(string x, F[] u ...)
+{
+	import std.string;
+	return "%s %(%.15f %)".format(x, u);
+}
 
 final class Oscillatory(F) : TestFunction!F
 {
@@ -116,6 +129,10 @@ final class Oscillatory(F) : TestFunction!F
 			t += a[i] * c;
 		return t.cos();
 	}
+	override string toString()
+	{
+		return 0.genzToString(a).appendGenzParameter(u);
+	}
 private:
 	F u;
 	F[] a;
@@ -149,6 +166,10 @@ final class ProductPeak(F) : TestFunction!F
         foreach (i, c; x)
             ret /= 1 / (a[i] * a[i]) + (c - u[i]) * (c - u[i]);
         return ret;
+	}
+	override string toString()
+	{
+		return 1.genzToString(a).appendGenzParameter(u);
 	}
 private:
 	F[] u, a;
@@ -189,6 +210,10 @@ final class CornerPeak(F) : TestFunction!F
 			ret += c * a[i];
 		return ret ^^ -(a.length + 1.0);
 	}
+	override string toString()
+	{
+		return 2.genzToString(a).appendGenzParameter!F();
+	}
 private:
 	F[] a;
 }
@@ -223,6 +248,10 @@ final class Gaussian(F) : TestFunction!F
 			exponent += a[i] * a[i] * (c - u[i]) * (c - u[i]);
 		return (-exponent).exp();
 	}
+	override string toString()
+	{
+		return 3.genzToString(a).appendGenzParameter(u);
+	}
 private:
 	F[] a, u;
 }
@@ -255,6 +284,10 @@ final class Continuous(F) : TestFunction!F
 		foreach (i, c; x)
 			exponent -= a[i] * abs(c - u[i]);
 		return exponent.exp();
+	}
+	override string toString()
+	{
+		return 4.genzToString(a).appendGenzParameter(u);
 	}
 private:
 	F[] a, u;
@@ -292,17 +325,54 @@ final class Discontinuous(F) : TestFunction!F
 			exponent += a[i] * c;
 		return exponent.exp();
 	}
+	override string toString()
+	{
+		return 5.genzToString(a).appendGenzParameter(u);
+	}
 private:
 	F[] a, u;
 }
 
 
+TestFunction!F stringToGenz(F)(string x)
+{
+	import std.string : strip;
+	import std.conv : to;
+	auto buf = x.strip().split();
+	immutable size_t
+		index = buf[0].to!size_t(),
+		dimensionR = buf[1].to!size_t();
+	auto a = buf[2..$].map!(to!F)().array();
+	// index dimR a... u...
+	if (index == 0)
+		return new Oscillatory!F(a[0..dimensionR], a[dimensionR]);
+	if (index == 2)
+		return new CornerPeak!F(a);
+	auto u = a[dimensionR..$];
+	a = a[0..dimensionR];
+	if (index == 1)
+		return new ProductPeak!F(a, u);
+	if (index == 3)
+		return new Gaussian!F(a, u);
+	if (index == 4)
+		return new Continuous!F(a, u);
+	if (index == 5)
+		return new Discontinuous!F(a, u);
+	assert (false);
+}
+
+
 TestFunction!F genzFactory(F)(size_t index, size_t dimensionR, F difficulty = 1)
 {
-	enum seed = 20140807;
 	import std.random;
 	auto rg = Random();
-	rg.seed(seed);
+	version (dynamic)
+		rg.seed(unpredictableSeed);
+	else
+	{
+		enum constantSeed = 20140807;
+		rg.seed(constantSeed);
+	}
 
 	auto a = index.genzParameter!F(dimensionR);
 	foreach (ref ai; a)
