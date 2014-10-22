@@ -28,7 +28,7 @@ void main(string[] args)
 	{
 		outfile.write(p[0]);
 		foreach (f; testfunctions)
-			outfile.writef(",%.15f", p[1].signedIntegrationError(f));
+			outfile.writef(",%.15e", p[1].signedIntegrationError(f));
 		outfile.writeln();
 	}
 }
