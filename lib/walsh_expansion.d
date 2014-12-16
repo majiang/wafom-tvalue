@@ -11,7 +11,7 @@ void main(string[] args)
 	import std.conv : to;
 	import std.string : strip;
 	foreach (line; args[1..$])
-		"%(%.15f\n%)".writefln(line.strip().to!size_t().walsh!(hellekalek!1.7)().bitrev());
+		"%(%.15e\n%)".writefln(line.strip().to!size_t().walsh!(hellekalek!1.7)().bitrev());
 		//line.strip().to!size_t().walsh!trivial().bitrev().writeln();
 		//line.strip().to!size_t().walsh!pxe().bitrev().writeln();
 }
@@ -66,7 +66,7 @@ auto bitrev(T)(T[] x)
 	}
 	foreach (uint i, ref c; ret)
 	{
-		c = x[i.bitswap() >> u].abs().lg();
+		c = x[i.bitswap() >> u];//.abs().lg();
 		debug
 		{
 			import std.stdio : writefln;
