@@ -65,19 +65,17 @@ void main(string[] args)
 		"%s,%.15f,%.15f".writefln(ShiftedBasisPoints!U(dn[1], prec), c, dn[0].lg());
 }
 
+version (NX)
 auto nxPointSet(U)(Precision prec, DimensionR dimR, DimensionF2 dimB)
 {
 	import std.stdio, std.string, std.algorithm;
-	foreach (P; File("nx-low-s%02d-large.csv".format(dimR.s)).byLine().map!(fromString!U)())
-	{
-		debug "P: (s=%d, m=%d, n=%d); specified: (s=%d, m=%d, n=%d)".writefln(
-			P.dimensionR, P.dimensionF2, P.precision,
-			dimR.s, dimB.m, prec.n
-			);
-		if (P.precision == prec.n &&
-			P.dimensionR == dimR.s &&
-			P.dimensionF2 == dimB.m)
-			return P;
-	}
-	assert (false);
+	try
+		foreach (P; File("nx-low-s%02d-all.csv".format(dimR.s)).byLine().map!(fromString!U)())
+			if (P.precision == prec.n &&
+				P.dimensionR == dimR.s &&
+				P.dimensionF2 == dimB.m)
+				return P;
+	catch
+		assert (false, "Place a file `nx-low-s%02d-all.csv` in the same directory with the program.".format(dimR.s));
+	assert (false, "The file `nx-low-%s02d-all.csv` must have a line for m = %d".format(dimR.s, dimB.m));
 }

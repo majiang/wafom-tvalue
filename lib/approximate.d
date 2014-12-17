@@ -26,7 +26,7 @@ auto volatility(F)(Precision n, DimensionR s, DimensionF2 m, in F c)
 		denominator /= 2;
 	}
 	numerator = denominator - numerator;
-	auto ret = numerator.sqrt() / denominator;
+	immutable ret = numerator.sqrt() / denominator;
 	numerator = 1;
 	denominator = 1;
 	F eps = 2.0 ^^ (c - 1);
@@ -40,10 +40,12 @@ auto volatility(F)(Precision n, DimensionR s, DimensionF2 m, in F c)
 	denominator = denominator ^^ s.s;
 	numerator -= 1;
 	denominator -= 1;
+	if (numerator == 0)
+		return F.nan;
 	return ret * numerator.sqrt() / denominator;
 }
 
-auto binarysearch(F, F EPS = 0.0001)(in Precision n, in DimensionR s, in DimensionF2 m, in F targetVolatility, in F left = 0.0, in F right = 1.0)
+auto binarysearch(F, F EPS = 0.0001)(in Precision n, in DimensionR s, in DimensionF2 m, in F targetVolatility, in F left = 0, in F right = 1)
 in
 {
 	assert (left <= right);
@@ -55,9 +57,9 @@ body
 		return (left + right) * 0.5;
 	immutable lv = volatility!F(n, s, m, left);
 	immutable rv = volatility!F(n, s, m, right);
-	if (lv < targetVolatility)
+	if (lv < targetVolatility) // move left
 		return binarysearch(n, s, m, targetVolatility, left * 3 - right * 2, left);
-	if (rv > targetVolatility)
+	if (rv > targetVolatility) // move right
 		return binarysearch(n, s, m, targetVolatility, right, right * 3 - left * 2);
 	immutable middle = (left + right) * 0.5;
 	immutable mv = volatility!F(n, s, m, middle);
