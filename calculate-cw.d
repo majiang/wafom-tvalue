@@ -9,6 +9,7 @@ void main(string[] args)
 	import std.stdio;
 	import std.conv : to;
 	import std.math : lg = log2;
+	stderr.writeln("calculate integration error of exp(-2^c sum(x)) and output lg-scale.");
 	if (args.length < 2)
 		return stderr.writeln("specify c-value.");
 	auto c = args[1].to!real();
