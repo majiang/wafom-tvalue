@@ -10,6 +10,8 @@ void main(string[] args)
 	import std.string : strip;
 	import std.array : split;
 	import std.conv : to;
+	stderr.writeln("read from stdin and write the best [capacity] to stdout.");
+	stderr.writeln("The smaller third column is the better.");
 	if (args.length < 2)
 		return stderr.writeln("filter-good capacity");
 	auto capacity = args[1].to!size_t();
@@ -21,5 +23,5 @@ void main(string[] args)
 		heap.conditionalInsert(D(key, value));
 	}
 	foreach (t; heap.release())
-		t[1].write();
+		t[1].writeln();
 }
