@@ -2,6 +2,7 @@ module lib.approximate;
 import lib.integral, lib.pointsettype;
 import lib.testfunction : Exponential;
 import std.functional : memoize;
+import std.typecons : Flag;
 
 auto _exponential(F)(in F c, size_t dimR)
 {
@@ -13,7 +14,7 @@ alias exponential(F) = memoize!(_exponential!F);
 auto WAFOM(F, R)(R P, in F c)
 	if (Bisectable!R)
 {
-	return P.signedIntegrationError(exponential!F(c, P.dimensionR));
+	return P.signedIntegrationError!(Flag!"centering".no)(exponential!F(c, P.dimensionR));
 }
 
 auto volatility(F)(Precision n, DimensionR s, DimensionF2 m, in F c)
