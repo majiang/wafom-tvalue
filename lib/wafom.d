@@ -281,19 +281,19 @@ size_t yoshiki_upper_min_weight(R)(R P)
     .reduce!((a, b) => a + b)();
 }
 
-string yoshiki_wep(R)(R P)
+auto yoshiki_wep(CoefficientType, R)(R P)
 {
     auto len = P.yoshiki_upper_min_weight() + 1;
-    Polynomial ret;
+    Polynomial!CoefficientType ret;
     foreach (B; P)
     {
-        auto cur = Polynomial(len);
+        auto cur = Polynomial!CoefficientType(len);
         foreach (l; B)
             foreach (j; 0..P.precision)
                 cur *= (P.precision - j + 1) * ((l >> j & 1) ? -1 : 1);
         ret += cur;
     }
-    return (ret >> P.dimensionF2).toCSV();
+    return (ret >> P.dimensionF2);
 }
 
 private auto dick_wep(R)(R P)
@@ -340,11 +340,15 @@ private real toDouble(BigInt x)
     return x.toLong() * f;
 }
 
-private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
+private struct Polynomial(CoefficientType = BigInt) // WAFOM-specified polynomial. NOT FOR GENERAL USE.
 {
-    BigInt[] coef = [BigInt(1)];
+    import std.traits : isIntegral;
+    static if (is (CoefficientType == BigInt))
+        auto coef = [BigInt(1)];
+    static if (isIntegral!CoefficientType)
+        CoefficientType[] coef = [1];
     ptrdiff_t max_length = ptrdiff_t.max;
-    this (BigInt[] coef)
+    this (CoefficientType[] coef)
     {
         this.coef = coef;
     }
@@ -434,7 +438,7 @@ private struct Polynomial // WAFOM-specified polynomial. NOT FOR GENERAL USE.
     }
 }
 
-Polynomial fromCSV(string line)
+version (read)Polynomial!BigInt fromCSV(string line)
 {
     import std.array : split;
     BigInt[] coef;
