@@ -3,8 +3,10 @@ module mvnormtest;
 import lib.testfunction, lib.integral, lib.pointsettype;
 import ui.input;
 import std.stdio, std.range, std.array, std.math;
+alias lg = log2;
 
 enum size_t s = 2;
+immutable real I = 0.7613400055430;
 
 void main(string[] args)
 {
@@ -34,11 +36,11 @@ void main(string[] args)
 	foreach (Pp; getDigitalNets!uint())
 	{
 		auto P = Pp.projectionTo(s.iota.array);
-		writefln("%s,%(%.10e,%),%.10e", P, testfuncs.map!(f => P.integral(f)), P.WAFOM(wc) / U);
+		writefln("%s,,%(%.10e,%),,%.10e", P, testfuncs.map!(f => (P.integral(f) - I).abs.lg), (P.WAFOM(wc) / U).lg);
 		foreach (i; 0..c)
 		{
 			auto Q = P.shiftRandomly;
-			writefln("%s,%(%.10e,%),%.10e", Q, testfuncs.map!(f => Q.integral(f)), Q.WAFOM(wc) / U);
+			writefln("%s,,%(%.10e,%),,%.10e", Q, testfuncs.map!(f => (Q.integral(f) - I).abs.lg), (Q.WAFOM(wc) / U).lg);
 		}
 	}
 }
