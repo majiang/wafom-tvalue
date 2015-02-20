@@ -1,4 +1,5 @@
 module lib.testfunction;
+debug import std.stdio;
 
 import std.math, std.algorithm, std.range;
 alias reduce!((a, b) => a + b) sumation;
@@ -404,7 +405,7 @@ private template genzParameter(F)
 	auto genzParameter(size_t index, size_t dimensionR)
 	out (result)
 	{
-		import std.math, std.algorithm, std.stdio;
+		import std.stdio;
 		assert (result.reduce!((a, b) => a + b)().approxEqual(_gp[index] * dimensionR));
 	}
 	body
@@ -436,7 +437,7 @@ in
 }
 body
 {
-	import std.range, std.algorithm, std.conv, std.functional;
+	import std.range, std.conv, std.functional;
 	alias f = memoize!getIntegralPoweredSumWhichWeWantToBePrivate;
 	if (s == 1)
 		return 1 / (u + 1).to!F();
@@ -647,6 +648,111 @@ private:
 	immutable F A, stdv, p0ds, k, reduction;
 }
 
+/// QMC integrand to integrate exp(-A(x, x)) from -infty to b.
+class MultivariateNormalProbability(F) : Function!F
+{
+	// see http://goo.gl/Vf3w2j
+	import std.mathspecial : normalDistribution, normalDistributionInverse;
+
+	/// function [0..1]^s -> R
+	F opCall(in F[] xraw)
+	in
+	{
+		assert (xraw.length == s);
+		foreach (x; xraw)
+			assert (0 <= x && x <= 1);
+	}
+	body
+	{
+		F[] x;
+		e(xraw, x); // x[i] = E[i](xraw[i] * F[i](b[i])).
+		F exponent = 0;
+		foreach (i, xi; x)
+			foreach (j, xj; x)
+			{
+				if (i == j)
+				{
+					exponent += xi * A[i][i] * xi;
+					break;
+				}
+				exponent += xi * 2 * A[i][j] * xj;
+			}
+		return exp(-exponent) * prodfb;
+	}
+	private void e(in F[] x, out F[] y)
+	{
+		y.length = this.s;
+		foreach (i, xi; x)
+			y[i] = ey[i] * normalDistributionInverse(ex[i] * xi);
+	}
+	this (F[][] A, F[] b, F dd = 1)
+	in
+	{
+		//assert (0 <= dd && dd <= 1);
+	}
+	body
+	{
+		F[] diag;
+		foreach (i, row; A)
+			diag ~= row[i];
+		foreach (i, row; A)
+			foreach (j, a; row[0..i])
+				{
+					immutable t = a.abs * dd;
+					diag[i] -= t;
+					diag[j] -= t;
+				}
+		this (A, diag, b);
+	}
+private:
+	this (F[][] A, F[] diag, F[] b)
+	in
+	{
+		immutable n = diag.length;
+		assert (b.length == n);
+		assert (A.length == n);
+		foreach (i, row; A)
+			assert (row.length == i + 1);
+		foreach (c; diag)
+			assert (0 < c);
+	}
+	body
+	{
+		debug
+		{
+			stderr.writeln("A, C, b:");
+			stderr.writefln("%(%(%.3f %)\n%)\n", A);
+			stderr.writefln("%(%.3f %)", diag);
+			stderr.writefln("%(%.3f %)", b);
+		}
+		this.s = diag.length;
+		this.A.length = this.s;
+		foreach (i, ref row; this.A)
+		{
+			row = A[i].dup;
+			row[i] -= diag[i];
+		}
+		foreach (i, c; diag)
+		{
+			ex ~= normalDistribution(sqrt(2 * c) * b[i]);
+			ey ~= 1 / sqrt(2 * c);
+		}
+		debug
+		{
+			stderr.writefln("F(b), sx, sy:\n%(%(%.3f %)\n%)", [ex, ey]);
+		}
+		F fb = 1;
+		foreach (i, c; diag)
+			fb *= sqrt(PI / c) * ex[i];
+		this.prodfb = fb;
+	}
+	immutable size_t s;
+	F[][] A;
+	immutable(F)[] ex, ey;
+public:
+	immutable F prodfb;
+	// E(F(b)x) = ey * Phi^{-1}(ex*x)
+}
 
 version (stand_alone) void main()
 {
