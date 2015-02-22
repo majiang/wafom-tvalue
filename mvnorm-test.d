@@ -31,7 +31,7 @@ void main(string[] args)
 	//auto pddd = new MultivariateNormalProbability!real(A, b); // use positive definite & diagonally dominant
 	import lib.approximate : WAFOM;
 	enum real wc = 1;
-	immutable real U = -(2 ^^ -wc) * expm1(- (2 ^^ wc));
+	immutable real U = (-(2 ^^ -wc) * expm1(- (2 ^^ wc))) ^^ s;
 
 	foreach (Pp; getDigitalNets!uint())
 	{
