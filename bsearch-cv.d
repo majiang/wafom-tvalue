@@ -19,11 +19,6 @@ void main(string[] args)
 auto bs(F)(in DimensionR s, in DimensionF2 m, in Precision n, in F v, in F left=-1, in F right=1)
 {
 	import std.string, std.exception;
-	debug
-	{
-		import std.string, std.stdio;
-		stderr.writefln("bs(s,%d,n,v,%f,%f)", m.m, left, right);
-	}
 	enforce(left <= right, "bs(s, m, n, v, %f > %f)".format(left, right));
 	enum EPS = 1e-10;
 	immutable
