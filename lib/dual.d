@@ -5,10 +5,37 @@ import std.bigint;
 import std.algorithm;
 import std.stdio;
 
+version (yoshiki_net)
+void main()
+{
+	foreach (m; 1..10)
+	{
+		auto b = new uint[][] (m, 1);
+		uint v = 1;
+		foreach (ref x; b)
+		{
+			x[0] |= v;
+			v <<= 1;
+		}
+		foreach_reverse (ref x; b)
+		{
+			x[0] |= v;
+//			v <<= 1;
+		}
+		auto P = ShiftedBasisPoints!uint(b, Precision(2 * m));
+		auto dP = P.dualNet();
+		assert (P.precision == dP.precision);
+		assert (P.dimensionR == dP.dimensionR);
+		assert (P.dimensionF2 == dP.dimensionF2);
+		writefln("P.mu2 = %(%d, %).", P.mu!2().array().sort());
+		writefln("dP.mu2 = %(%d, %).", dP.mu!2().array().sort());
+	}
+
+}
+
 version (standalone_dual)
 void main()
 {
-	import std.stdio;
 	auto P = randomPointSet!ubyte(Precision(4), DimensionR(2), DimensionF2(4));
 	stderr.writefln("%(%(%04b %)\n%)", P.basis);
 	auto b = P.encodeBasis();
